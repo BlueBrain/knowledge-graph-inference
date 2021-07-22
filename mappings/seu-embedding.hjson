@@ -1,0 +1,38 @@
+{
+    type: [
+        Entity
+        Embedding
+    ]
+    id: forge.format("identifier", "embeddings", x.uuid)
+    name: x.embedding_name
+    generation: {
+        type: Generation
+        activity: {
+            type: [
+                Activity
+                EmbeddingActivity
+            ]
+            wasAssociatedWith: {
+                type: [
+                    SoftwareAgent
+                    EmbeddingModel
+                ]
+                name: x.model_name
+                version: x.model_version
+            }
+        }
+    }
+    derivation: {
+        type: Derivation
+        entity: {
+            id: x.morphology_id
+            type: Entity
+            hasSelector: {
+                type: FragmentSelector
+                conformsTo: https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch
+                value: f"?rev={x.morphology_rev}"
+            }
+        }
+    }
+    embedding: x.embedding 
+}
