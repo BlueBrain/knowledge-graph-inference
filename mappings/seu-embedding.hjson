@@ -13,13 +13,23 @@
                 EmbeddingActivity
             ]
             wasAssociatedWith: {
-                type: [
-                    SoftwareAgent
-                    EmbeddingModel
-                ]
-                name: x.model_name
-                version: x.model_version
+                type: SoftwareAgent
+                description: Unifying Python framework for graph analytics and co-occurrence analysis.
+                name: BlueGraph
+                softwareSourceCode: {
+                    type: SoftwareSourceCode
+                    codeRepository: https://github.com/BlueBrain/BlueGraph
+                    programmingLanguage: Python
+                    runtimePlatform: 3.7
+                    version: v0.1.2
+                    
+                }
             }
+            used: {
+                type: EmbeddingModel
+                id: x.model_id
+            }
+            
         }
     }
     derivation: {
