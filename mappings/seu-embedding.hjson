@@ -28,6 +28,11 @@
             used: {
                 type: EmbeddingModel
                 id: x.model_id
+                hasSelector: {
+                    type: FragmentSelector
+                    conformsTo: https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch
+                    value: f"?rev={x.model_rev}"
+                }
             }
             
         }
