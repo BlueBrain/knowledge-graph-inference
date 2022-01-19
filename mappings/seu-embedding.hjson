@@ -4,7 +4,7 @@
         Embedding
     ]
     id: forge.format("identifier", "embeddings", x.uuid)
-    name: x.embedding_name
+    name: x.embedding_name,
     generation: {
         type: Generation
         activity: {
