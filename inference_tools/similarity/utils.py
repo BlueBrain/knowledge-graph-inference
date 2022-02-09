@@ -345,8 +345,9 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
     all_vectors = get_all_documents(forge)
     scores = []
     for vector_resource in all_vectors:
-        vector = vector_resource._source["embedding"]
-        vector_id = vector_resource._id
+        vector_resource = forge.as_json(vector_resource)
+        vector = vector_resource["embedding"]
+        vector_id = vector_resource["@id"]
         neighbors = get_neighbors(
             forge, vector, vector_id,
             k=len(all_vectors), score_formula=score_formula)
@@ -389,9 +390,10 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
     result = forge.elastic(query)
     scores = set()
     for el in result:
-        if point_id != el._id:
+        if point_id != forge.as_json(el)["@id"]:
             # Min/max normalization of the score
-            score = (el._score - score_min) / (score_max - score_min)
+            score = (el._store_metadata._score - score_min) / (
+                score_max - score_min)
             scores.add(score)
     scores = np.array(list(scores))
     return math.sqrt(((1 - scores)**2).mean())
@@ -405,9 +407,10 @@ def compute_boosting_factors(forge, view_id, stats, formula,
     set_elastic_view(forge, view_id)
     all_vectors = get_all_documents(forge)
     for vector_resource in all_vectors:
-        point_id = vector_resource._id
-        vector = vector_resource._source["embedding"]
-        boosting_factors[point_id] = 1 + get_score_deviation(
+        vector_resource = forge.as_json(vector_resource)
+        point_id = vector_resource["@id"]
+        vector = vector_resource["embedding"]
+        boosting_factors[point_id] = 1 + compute_score_deviation(
             forge, point_id, vector, stats.min, stats.max,
             neighborhood_size, formula)
 

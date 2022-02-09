@@ -1,7 +1,83 @@
 """."""
 
 import uuid
+from collections import namedtuple
+
 from .utils import FORMULAS
+
+from kgforge.core import KnowledgeGraphForge
+from kgforge.specializations.mappings import DictionaryMapping
+
+
+BucketConfiguration = namedtuple(
+    'BucketConfiguration', 'endpoint org proj')
+
+
+def create_forge_session(config_path, bucket_config, token):
+    return KnowledgeGraphForge(
+        config_path,
+        token=token,
+        endpoint=bucket_config.endpoint,
+        bucket=f"{bucket_config.org}/{bucket_config.proj}")
+
+
+def register_embeddings(forge, vectors, model_id, model_revision, tag, mapping_path):
+    new_embeddings = []
+    updated_embeddings = []
+    for at_id, embedding in vectors.items():
+        existing_vectors = forge.search({
+            "type": "Embedding",
+            "derivation": {
+                "entity": {
+                    "id": at_id
+                }
+            },
+            "generation": {
+                "activity": {
+                    "used": {
+                        "id": model_id
+                    }
+                }
+            }
+        })
+        if existing_vectors:
+            vector_resource = existing_vectors[0]
+            vector_resource.embedding = embedding
+            vector_resource.generation.activity.used.hasSelector =\
+                forge.from_json({
+                    "type": "FragmentSelector",
+                    "conformsTo": "https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch",
+                    "value": f"?rev={model_revision}"
+                })
+            updated_embeddings.append(vector_resource)
+        else:
+            new_embeddings.append({
+                "morphology_id": at_id,
+                "morphology_rev": "TODO",
+                "model_id": model_id,
+                "model_rev": model_revision,
+                "embedding_name": f"Embedding of morphology {at_id.split('/')[-1]} at revision TODO" ,
+                "embedding": embedding,
+                "uuid": at_id.split("/")[-1]
+
+            })
+    mapping = DictionaryMapping.load(mapping_path)
+    new_embedding_resources = forge.map(new_embeddings, mapping)
+    for r in new_embedding_resources:
+        r.id = forge.format("identifier", "embeddings", str(uuid.uuid4()))
+#    # There is some error with registering new resources, so instead of
+#     forge.register(new_embedding_resources)
+#     print("Tagging new resources...")
+#     forge.tag(new_embedding_resources, tag)
+#   # I do the following:
+    new_embedding_resources = forge.from_json(forge.as_json(new_embedding_resources))
+    forge.register(new_embedding_resources)
+    for r in new_embedding_resources:
+        forge.tag(forge.retrieve(r.id), tag)
+
+    forge.update(updated_embeddings)
+    print("Tagging updated resources...")
+    forge.tag(updated_embeddings, tag)
 
 
 def vectors_to_resources(forge, vectors, resources, model_id):
@@ -149,3 +225,10 @@ def register_boosting_data(forge, view_id, boosting_factors,
             forge.register(boosting_resource)
         forge.tag(boosting_resource, tag)
     return resources
+
+
+def add_views_with_replacement(existing_views, new_views):
+    new_views = {el["_project"]: el for el in new_views}
+    existing_views = {el["_project"]: el for el in existing_views}
+    existing_views.update(new_views)
+    return list(existing_views.values())

@@ -1,5 +1,7 @@
 from urllib.parse import quote_plus
 
+from string import Template
+
 
 def set_sparql_view(forge, view):
     """Set sparql view."""
@@ -17,12 +19,13 @@ def execute_sparql_query(forge, query, parameters, custom_sparql_view=None):
         set_sparql_view(forge, custom_sparql_view["id"])
 
     query = Template(
-        query["hasBody"]).substitute(**current_parameters)
+        query["hasBody"]).substitute(**parameters)
     return forge.as_json(forge.sparql(query, limit=None))
 
 
 def check_sparql_premise(forge, query, parameters, custom_sparql_view=None):
-    results = execute_sparql_query(forge, query, parameters, custom_sparql_view)
+    results = execute_sparql_query(
+        forge, query, parameters, custom_sparql_view)
     if len(results) > 0:
         return True
     return False

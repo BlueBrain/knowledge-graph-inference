@@ -4,5 +4,5 @@ seu_morphologies/*
 .idea/*
 .eggs/*
 *.egg-info/*
-inference_tools/__pycache__/*
-inference_tools/similarity/__pycache__/*
+**/__pycache__/
+data/morphologies/
