@@ -10,12 +10,16 @@ from inference_tools.similarity.utils import execute_similarity_query
 from inference_tools.query.sparql import (set_sparql_view,
                                           check_sparql_premise,
                                           execute_sparql_query)
-from inference_tools.query.elastic import set_elastic_view
+from inference_tools.query.elastic_search import (set_elastic_view,
+                                                  get_elastic_view_endpoint,
+                                                  set_elastic_view_endpoint)
 from inference_tools.exceptions import (InferenceToolsException,
                                         InferenceToolsWarning,
                                         MissingParameterException,
                                         MissingParameterWarning,
-                                        PremiseException)
+                                        PremiseException,
+                                        QueryException,
+                                        QueryTypeException)
 
 
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
@@ -26,6 +30,18 @@ ENDPOINT = "https://staging.nexus.ocp.bbp.epfl.ch/v1"
 
 # !!! This must move to the sessions of the service
 FORGE_SESSIONS = dict()
+
+
+def _safe_get_type(query):
+    query_type = (
+        query.get("type", None)
+        if query.get("type", None)
+        else query.get("@type")
+    )
+    if query_type is None:
+        raise TypeError(
+            "Unknown entity type")
+    return query_type
 
 
 def _restore_default_views(forge):
@@ -74,21 +90,26 @@ def _build_parameter_map(parameter_spec, parameter_values):
 
     for p in parameter_spec:
         name = p["name"]
-        if p["type"] == "list":
+
+        try:
+            parameter_type = _safe_get_type(p)
+        except TypeError:
+            raise QueryTypeException("Unknown parameter type")
+
+        if parameter_type == "list":
             param_map[name] = ", ".join([
                 f"\"{el}\"" for el in parameter_values[name]])
-        elif p["type"] == "str":
+        elif parameter_type == "str":
             if isinstance(parameter_values[name], list):
                 value = parameter_values[name][0]
             else:
                 value = parameter_values[name]
             param_map[name] = f"\"{value}\""
-        elif p["type"] == "sparql_uri":
+        elif parameter_type == "sparql_uri":
             if isinstance(parameter_values[name], list):
                 value = parameter_values[name][0]
             else:
                 value = parameter_values[name]
-
             param_map[name] = value
         else:
             param_map[name] = parameter_values[name]
@@ -137,14 +158,19 @@ def check_premises(rule, parameters, token):
                 satisfies = False
                 break
 
-        if premise["type"] == "SparqlPremise":
+        try:
+            premise_type = _safe_get_type(premise)
+        except TypeError:
+            raise("Unknown premise type")
+
+        if premise_type == "SparqlPremise":
             custom_sparql_view = config.get("sparqlView", None)
             passed = check_sparql_premise(
-                forge, query, parameters, custom_sparql_view)
+                forge, premise, parameters, custom_sparql_view)
             if not passed:
                 satisfies = False
                 break
-        elif premise["type"] == "ForgeSearchPremise":
+        elif premise_type == "ForgeSearchPremise":
             target_param = premise.get("targetParameter", None)
             target_path = premise.get("targetPath", None)
             query = json.loads(
@@ -166,10 +192,10 @@ def check_premises(rule, parameters, token):
                 if len(resources) == 0:
                     satisfies = False
                     break
-        elif premise["type"] == "ElasticSearchPremise":
+        elif premise_type == "ElasticSearchPremise":
             print(premise)
         else:
-            raise InferenceToolsException("Unknown type of premise")
+            raise PremiseException("Unknown type of premise")
 
         _restore_default_views(forge)
 
@@ -213,19 +239,24 @@ def execute_query(query, parameters, token):
                 "Query cannot be executed, one or more parameters " +
                 f"are missing. See the following exception: {e}")
 
+    try:
+        query_type = _safe_get_type(query)
+    except TypeError:
+        raise QueryTypeException("Unknown query type")
+
     resources = None
-    if query["type"] == "SparqlQuery":
+    if query_type == "SparqlQuery":
         custom_sparql_view = config.get("sparqlView", None)
         resources = execute_sparql_query(
-            forge, query, parameters, custom_sparql_view)
-    elif query["type"] == "ForgeSearchQuery":
+            forge, query, current_parameters, custom_sparql_view)
+    elif query_type == "ForgeSearchQuery":
         query = json.loads(
             Template(json.dumps(query["pattern"])).substitute(
                 **current_parameters))
         resources = forge.search(query)
-    elif query["type"] == "SimilarityQuery":
+    elif query_type == "SimilarityQuery":
         resources = execute_similarity_query(forge, query, current_parameters)
-    elif query["type"] == "ElasticSearchQuery":
+    elif query_type == "ElasticSearchQuery":
         query = Template(query["hasBody"]).substitute(**current_parameters)
         resources = forge.as_json(forge.elastic(query, limit=None))
     else:
@@ -250,7 +281,13 @@ def execute_query_pipe(head, parameters, token, rest=None):
         JSON-representation of the remaining query or query pipe
     """
     if rest is None:
-        if head["type"] == "QueryPipe":
+        try:
+            head_type = _safe_get_type(head)
+        except TypeError:
+            raise QueryException(
+                "Invalid query pipe: unknown query type of the head")
+
+        if head_type == "QueryPipe":
             return execute_query_pipe(
                 head["head"], parameters, token, head["rest"])
         else:
@@ -270,7 +307,14 @@ def execute_query_pipe(head, parameters, token, rest=None):
             else:
                 new_parameters[mapping["parameterName"]] =\
                     result[mapping["path"]]
-        if rest["type"] == "QueryPipe":
+
+        try:
+            rest_type = _safe_get_type(rest)
+        except TypeError:
+            raise QueryException(
+                "Invalid query pipe: unknown query type of the rest")
+
+        if rest_type == "QueryPipe":
             return execute_query_pipe(
                 rest["head"], new_parameters, token, rest["rest"])
         else:
@@ -298,3 +342,143 @@ def apply_rule(rule, parameters, token):
         warnings.warn(
             "Rule premise is not satisfied on the input parameters",
             InferenceToolsWarning)
+
+
+def fetch_rules(forge, rule_view_id, resource_types=None):
+    """Get all the rules using provided view.
+
+    Parameters
+    ----------
+    forge : KnowledgeGraphForge
+        Instance of a forge session
+    rule_view_id : str
+        Id of the view to use when retrieving rules
+    resource_types : list, optional
+        List of resource types to fetch the rules for
+
+    Returns
+    -------
+    rules : list of dict
+        Result rule payloads
+    """
+    old_endpoint = get_elastic_view_endpoint(forge)
+    set_elastic_view(forge, rule_view_id)
+    if resource_types is None:
+        rules = forge.elastic("""
+            {
+              "query": {
+                "term": {
+                  "_deprecated": false
+                }
+              }
+            }
+        """)
+    else:
+        resource_type_repr = "".join([f"\"{t}\"" for t in resource_types])
+        rules = forge.elastic(f"""{{
+          "query": {{
+            "bool": {{
+                "must": [
+                    {{
+                       "terms": {{"targetResourceType": [{resource_type_repr}]}}
+                    }},
+                    {{
+                        "term": {{"_deprecated": false}}
+                    }}
+                ]
+             }}
+           }}
+        }}""")
+
+    set_elastic_view_endpoint(forge, old_endpoint)
+
+    rules = forge.as_json(rules)
+    return rules
+
+
+def get_rule_parameters(rule):
+    """Get parameters of the input rule.
+
+    Parameters
+    ----------
+    rule : dict
+        Rule payload
+
+    Returns
+    -------
+    all_params : dict
+        Dictionary with all the input parameters. Keys are parameter names,
+        values are full parameter payloads.
+    """
+    def _add_input_params(input_params, all_params, prev_output_params=None):
+        if prev_output_params is None:
+            prev_output_params = []
+
+        new_params = (
+            input_params
+            if isinstance(input_params, list)
+            else [input_params]
+        )
+        for p in new_params:
+            if p["name"] not in prev_output_params:
+                all_params[p["name"]] = p
+ 
+    def _get_output_params(query):
+        param_mapping = query.get("resultParameterMapping", [])
+        result_params = (
+            param_mapping
+            if isinstance(param_mapping, list)
+            else [param_mapping]
+        )
+        return [p["parameterName"] for p in result_params]
+    
+    def _get_head_rest(query):
+        head = None
+        rest = None
+
+        try:
+            query_type = _safe_get_type(query)
+        except TypeError:
+            raise QueryException(
+                "Unknown query type")
+
+        if query_type == "QueryPipe":
+            head = query["head"]
+            rest = query["rest"]
+        else:
+            head = query
+        return head, rest
+    
+    def _get_pipe_params(query):
+        params = {}
+        
+        head, rest = _get_head_rest(query)
+        _add_input_params(head.get("hasParameter", []), params)
+        output_params = _get_output_params(head)
+
+        while rest is not None:
+            head, rest = _get_head_rest(rest)
+            _add_input_params(
+                head.get("hasParameter", []), params, output_params)
+            output_params = _get_output_params(head)
+
+        return params
+
+    # Get premise parameters
+    premise_params = {}
+    if isinstance(rule["premise"], dict):
+        rule["premise"] = [rule["premise"]]
+    for premise in rule["premise"]:
+        params = (
+            premise["hasParameter"]
+            if isinstance(premise["hasParameter"], list)
+            else [premise["hasParameter"]]
+        )
+        for p in params:
+            premise_params[p["name"]] = p
+
+    # Get query parameters
+    search_params = _get_pipe_params(rule["searchQuery"])
+
+    all_params = {**premise_params, **search_params}
+    return all_params

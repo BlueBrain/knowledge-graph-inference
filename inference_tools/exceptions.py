@@ -18,6 +18,11 @@ class QueryException(InferenceToolsException):
     pass
 
 
+class QueryTypeException(InferenceToolsException):
+    """Generic exception in querying."""
+    pass
+
+
 class SimilaritySearchException(InferenceToolsException):
     """Exception in similarity search."""
     pass

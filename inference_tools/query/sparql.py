@@ -11,12 +11,17 @@ def set_sparql_view(forge, view):
         quote_plus(forge._store.bucket.split("/")[0]),
         quote_plus(forge._store.bucket.split("/")[1])))
     forge._store.service.sparql_endpoint["endpoint"] = "/".join(
-        (views_endpoint, quote_plus(view), "_search"))
+        (views_endpoint, quote_plus(view), "sparql"))
 
 
 def execute_sparql_query(forge, query, parameters, custom_sparql_view=None):
     if custom_sparql_view is not None:
-        set_sparql_view(forge, custom_sparql_view["id"])
+        view_id = (
+            custom_sparql_view.get("id")
+            if custom_sparql_view.get("id")
+            else custom_sparql_view.get("@id")
+        )
+        set_sparql_view(forge, view_id)
 
     query = Template(
         query["hasBody"]).substitute(**parameters)

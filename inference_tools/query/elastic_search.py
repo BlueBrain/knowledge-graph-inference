@@ -4,14 +4,22 @@ import urllib
 from urllib.parse import quote_plus
 
 
+def get_elastic_view_endpoint(forge):
+    return forge._store.service.elastic_endpoint["endpoint"]
+
+
+def set_elastic_view_endpoint(forge, endpoint):
+    forge._store.service.elastic_endpoint["endpoint"] = endpoint
+
+
 def set_elastic_view(forge, view):
     views_endpoint = "/".join((
         forge._store.endpoint,
         "views",
         quote_plus(forge._store.bucket.split("/")[0]),
         quote_plus(forge._store.bucket.split("/")[1])))
-    forge._store.service.elastic_endpoint["endpoint"] = "/".join(
-        (views_endpoint, quote_plus(view), "_search"))
+    endpoint = "/".join((views_endpoint, quote_plus(view), "_search"))
+    set_elastic_view_endpoint(forge, endpoint)
 
 
 def get_all_documents(forge):

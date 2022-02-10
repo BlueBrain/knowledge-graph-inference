@@ -169,7 +169,15 @@ def query_similar_resources(forge, query, config, parameters, k):
         the resource).
     """
     # Set ES view from the config
-    set_elastic_view(forge, config["similarityView"]["id"])
+    view_id = (
+        config["similarityView"].get("id")
+        if config["similarityView"].get("id")
+        else config["similarityView"].get("@id")
+    )
+    if view_id is None:
+        raise SimilaritySearchException(
+            "Similarity search view is not defined")
+    set_elastic_view(forge, view_id)
 
     # Get search target vector
     target_parameter = query.get("searchTargetParameter", None)
@@ -178,7 +186,16 @@ def query_similar_resources(forge, query, config, parameters, k):
     search_target = parameters[target_parameter]
     vector_id, vector = get_embedding_vector(forge, search_target)
     # Retrieve score formula from the model
-    model = forge.retrieve(config["embeddingModel"]["id"])
+
+    model_id = (
+        config["embeddingModel"].get("id")
+        if config["embeddingModel"].get("id")
+        else config["embeddingModel"].get("@id")
+    )
+    if model_id is None:
+        raise SimilaritySearchException(
+            "Model is not defined, cannot retrieve similarity score formula")
+    model = forge.retrieve(model_id)
     score_formula = model.similarity
 
     # Setup the result filter
@@ -193,7 +210,15 @@ def query_similar_resources(forge, query, config, parameters, k):
 
 def get_score_stats(forge, config, boosted=False):
     """Retrieve view statistics."""
-    set_elastic_view(forge, config["statisticsView"]["id"])
+    view_id = (
+        config["statisticsView"].get("id")
+        if config["statisticsView"].get("id")
+        else config["statisticsView"].get("@id")
+    )
+    if view_id is None:
+        raise SimilaritySearchException(
+            "Statistics view is not defined")
+    set_elastic_view(forge, view_id)
     boosted_str = "true" if boosted else "false"
     statistics = forge.elastic(f"""
         {{
@@ -229,7 +254,15 @@ def get_score_stats(forge, config, boosted=False):
 
 def get_boosting_factors(forge, config):
     """Retrieve boosting factors."""
-    set_elastic_view(forge, config["boostingView"]["id"])
+    view_id = (
+        config["boostingView"].get("id")
+        if config["boostingView"].get("id")
+        else config["boostingView"].get("@id")
+    )
+    if view_id is None:
+        raise SimilaritySearchException(
+            "Boosing view is not defined")
+    set_elastic_view(forge, view_id)
     factors = forge.elastic("""
        {
           "query": {
