@@ -25,7 +25,7 @@ from inference_tools.exceptions import (InferenceToolsException,
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
 DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
 
-FORGE_CONFIG = "../../configs/new-forge-config.yaml"
+FORGE_CONFIG = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
 ENDPOINT = "https://staging.nexus.ocp.bbp.epfl.ch/v1"
 
 # !!! This must move to the sessions of the service
