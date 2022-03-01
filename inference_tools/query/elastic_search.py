@@ -31,7 +31,7 @@ def get_all_documents(forge):
                 }
             }
         }
-    """)
+    """, limit=10000)
 
 
 def check_view_readiness(bucket_config, view_id, token):

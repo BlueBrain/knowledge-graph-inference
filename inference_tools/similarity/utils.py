@@ -376,6 +376,7 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
     """Compute similarity score statistics given a view."""
     set_elastic_view(forge, view_id)
     all_vectors = get_all_documents(forge)
+
     scores = []
     for vector_resource in all_vectors:
         vector_resource = forge.as_json(vector_resource)
@@ -439,6 +440,7 @@ def compute_boosting_factors(forge, view_id, stats, formula,
     # Compute local similarity deviations for points
     set_elastic_view(forge, view_id)
     all_vectors = get_all_documents(forge)
+
     for vector_resource in all_vectors:
         vector_resource = forge.as_json(vector_resource)
         point_id = vector_resource["@id"]

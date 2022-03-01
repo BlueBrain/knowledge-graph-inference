@@ -4,8 +4,6 @@ import warnings
 
 from string import Template
 
-from kgforge.core import KnowledgeGraphForge
-
 from inference_tools.similarity.utils import execute_similarity_query
 from inference_tools.query.sparql import (set_sparql_view,
                                           check_sparql_premise,
@@ -24,12 +22,6 @@ from inference_tools.exceptions import (InferenceToolsException,
 
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
 DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
-
-FORGE_CONFIG = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
-ENDPOINT = "https://staging.nexus.ocp.bbp.epfl.ch/v1"
-
-# !!! This must move to the sessions of the service
-FORGE_SESSIONS = dict()
 
 
 def _safe_get_type(query):
@@ -50,18 +42,6 @@ def _restore_default_views(forge):
     for f in forge:
         set_sparql_view(f, DEFAULT_SPARQL_VIEW)
         set_elastic_view(f, DEFAULT_ES_VIEW)
-
-
-def _allocate_forge_session(config, token):
-    global FORGE_SESSIONS
-    if (config['org'], config['project']) not in FORGE_SESSIONS:
-        FORGE_SESSIONS[(config['org'], config['project'])] = KnowledgeGraphForge(
-            FORGE_CONFIG,
-            endpoint=ENDPOINT,
-            token=token,
-            bucket=f"{config['org']}/{config['project']}")
-
-    return FORGE_SESSIONS[(config['org'], config['project'])]
 
 
 def _follow_path(json_resource, path):
@@ -116,13 +96,14 @@ def _build_parameter_map(parameter_spec, parameter_values):
     return param_map
 
 
-def check_premises(rule, parameters, token):
+def check_premises(forge_factory, rule, parameters):
     """Check if the rule premises are satisfied given the parameters.
 
     Parameters
     ----------
-    forge : KnowledgeGraphForge
-        Instance of a forge session
+    forge_factory : func
+        A function that takes as an input the name of the organization and
+        the project, and returns a forge session.
     rule : dict
         JSON-representation of a rule
     parameters : dict, optional
@@ -142,9 +123,7 @@ def check_premises(rule, parameters, token):
         if config is None:
             raise PremiseException(
                 "Query configuration is not provided")
-
-        forge = _allocate_forge_session(config, token)
-
+        forge = forge_factory(config['org'], config['project'])
         current_parameters = dict()
         if "hasParameter" in premise:
             try:
@@ -202,11 +181,14 @@ def check_premises(rule, parameters, token):
     return satisfies
 
 
-def execute_query(query, parameters, token):
+def execute_query(forge_factory, query, parameters):
     """Execute an individual query given parameters.
 
     Parameters
     ----------
+    forge_factory : func
+        A function that takes as an input the name of the organization and
+        the project, and returns a forge session.
     query : dict
         JSON-representation of a query
     parameters : dict, optional
@@ -223,11 +205,11 @@ def execute_query(query, parameters, token):
             "Query configuration is not provided")
     if isinstance(config, list):
         forge = [
-            _allocate_forge_session(el, token)
+            forge_factory(el["org"], el["project"])
             for el in config
         ]
     else:
-        forge = _allocate_forge_session(config, token)
+        forge = forge_factory(config["org"], config["project"])
 
     current_parameters = dict()
     if "hasParameter" in query:
@@ -265,7 +247,7 @@ def execute_query(query, parameters, token):
     return resources
 
 
-def execute_query_pipe(head, parameters, token, rest=None):
+def execute_query_pipe(forge_factory, head, parameters, rest=None):
     """Execute a query pipe given the input parameters.
 
     This recursive function executes pipes of queries and performs
@@ -273,6 +255,9 @@ def execute_query_pipe(head, parameters, token, rest=None):
 
     Parameters
     ----------
+    forge_factory : func
+        A function that takes as an input the name of the organization and
+        the project, and returns a forge session.
     head : dict
         JSON-representation of a head query
     parameters : dict, optional
@@ -289,11 +274,11 @@ def execute_query_pipe(head, parameters, token, rest=None):
 
         if head_type == "QueryPipe":
             return execute_query_pipe(
-                head["head"], parameters, token, head["rest"])
+                forge_factory, head["head"], parameters, head["rest"])
         else:
-            return execute_query(head, parameters, token)
+            return execute_query(forge_factory, head, parameters)
     else:
-        result = execute_query(head, parameters, token)
+        result = execute_query(forge_factory, head, parameters)
         # Compute new parameters combining old parameters and the result
         new_parameters = {**parameters}
         if isinstance(head["resultParameterMapping"], dict):
@@ -316,12 +301,12 @@ def execute_query_pipe(head, parameters, token, rest=None):
 
         if rest_type == "QueryPipe":
             return execute_query_pipe(
-                rest["head"], new_parameters, token, rest["rest"])
+                forge_factory, rest["head"], new_parameters, rest["rest"])
         else:
-            return execute_query(rest, new_parameters, token)
+            return execute_query(forge_factory, rest, new_parameters)
 
 
-def apply_rule(rule, parameters, token):
+def apply_rule(forge_factory, rule, parameters, premise_check=True):
     """Apply a rule given the input parameters.
 
     This function, first, checks if the premises of the rule are satisfied.
@@ -329,15 +314,22 @@ def apply_rule(rule, parameters, token):
 
     Parameters
     ----------
-    forge : KnowledgeGraphForge
-        Instance of a forge session
+    forge_factory : func
+        A function that takes as an input the name of the organization and
+        the project, and returns a forge session.
     rule : dict
         JSON-representation of a rule
     parameters : dict, optional
         Parameter dictionary to use in premises and search queries.
     """
-    if check_premises(rule, parameters, token):
-        return execute_query_pipe(rule["searchQuery"], parameters, token)
+    if premise_check:
+        satisfies = check_premises(forge_factory, rule, parameters)
+    else:
+        satisfies = True
+    if satisfies:
+        res = execute_query_pipe(
+            forge_factory, rule["searchQuery"], parameters)
+        return res
     else:
         warnings.warn(
             "Rule premise is not satisfied on the input parameters",
