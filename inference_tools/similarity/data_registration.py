@@ -86,7 +86,7 @@ def register_model(forge, name, description, label, distribution,
         }
     }
     model_resource.wasAssociatedWith = software_agent
-    
+
     forge.register(model_resource)
     return model_resource.id
 
@@ -100,12 +100,13 @@ def update_model_distribution(forge, model_resource, new_distribution,
         new_distribution, content_type="application/octet-stream")
     forge.update(model_resource)
     return model_resource.id
-    
+
 
 def push_model(forge, name, description, label, distribution,
                similarity, dimension, bluegraph_version=None):
-    result = forge.search({"name": name})
     """Push (register or update) an embedding model."""
+    result = forge.search({"name": name})
+
     if result:
         print("Model exists, updating...")
         model_resource = result[0]
@@ -189,22 +190,22 @@ def vectors_to_resources(forge, vectors, resources, model_id):
             "derivation": {
                 "@type": "Derivation",
                 "entity": {
-                  "@id": resources[i],
-                  "@type": "Entity"
+                    "@id": resources[i],
+                    "@type": "Entity"
                 }
             },
             "embedding": v.tolist(),
             "generation": {
                 "@type": "Generation",
                 "activity": {
-                  "@type": [
-                    "Activity",
-                    "EmbeddingActivity"
-                  ],
-                  "used": {
-                    "@id": model_id,
-                    "@type": "EmbeddingModel",
-                  }
+                    "@type": [
+                        "Activity",
+                        "EmbeddingActivity"
+                    ],
+                    "used": {
+                        "@id": model_id,
+                        "@type": "EmbeddingModel",
+                    }
                 }
             },
             "name": f"Embedding of {resources[i]}"
@@ -218,29 +219,29 @@ def register_stats(forge, view_id, sample_size, stats, formula,
     """Create ES view statistic resources."""
     stat_values = [
         {
-          "statistic": "min",
-          "unitCode": "dimensionless",
-          "value": stats.min
+            "statistic": "min",
+            "unitCode": "dimensionless",
+            "value": stats.min
         },
         {
-          "statistic": "max",
-          "unitCode": "dimensionless",
-          "value": stats.max
+            "statistic": "max",
+            "unitCode": "dimensionless",
+            "value": stats.max
         },
         {
-          "statistic": "mean",
-          "unitCode": "dimensionless",
-          "value": stats.mean
+            "statistic": "mean",
+            "unitCode": "dimensionless",
+            "value": stats.mean
         },
         {
-          "statistic": "standard deviation",
-          "unitCode": "dimensionless",
-          "value": stats.std
+            "statistic": "standard deviation",
+            "unitCode": "dimensionless",
+            "value": stats.std
         },
         {
-          "statistic": "N",
-          "unitCode": "dimensionless",
-          "value": sample_size
+            "statistic": "N",
+            "unitCode": "dimensionless",
+            "value": sample_size
         }
     ]
 
@@ -356,7 +357,7 @@ def load_embedding_models(forge_models, model_ids,
 
         tag = f"{model_id.split('/')[-1]}?rev={model_revision}"
         model_tags[model_id] = tag
-        
+
     pipeline_paths = {}
     for model_resource in model_resources:
         forge_models.download(

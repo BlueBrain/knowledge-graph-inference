@@ -22,7 +22,6 @@ def execute_sparql_query(forge, query, parameters, custom_sparql_view=None):
             else custom_sparql_view.get("@id")
         )
         set_sparql_view(forge, view_id)
-
     query = Template(
         query["hasBody"]).substitute(**parameters)
     return forge.as_json(forge.sparql(query, limit=None))

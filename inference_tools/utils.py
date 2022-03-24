@@ -53,15 +53,17 @@ def _follow_path(json_resource, path):
     return value
 
 
-def _build_parameter_map(parameter_spec, parameter_values):
+def _build_parameter_map(parameter_spec, parameter_values, query_type):
     """Build parameter values given query specification."""
     if isinstance(parameter_spec, dict):
         parameter_spec = [parameter_spec]
 
     for spec in parameter_spec:
-        if spec["name"] not in parameter_values:
+        optional = spec.get("optional")
+        if not optional and spec["name"] not in parameter_values:
             raise MissingParameterException(
-                "Parameter value '{}' is not specified".format(spec['name']))
+                "Parameter value '{}' is not specified".format(
+                    spec['name']))
 
     param_map = {}
 
@@ -70,29 +72,49 @@ def _build_parameter_map(parameter_spec, parameter_values):
 
     for p in parameter_spec:
         name = p["name"]
-
         try:
             parameter_type = _safe_get_type(p)
         except TypeError:
             raise QueryTypeException("Unknown parameter type")
 
+        provided_value = parameter_values.get(name)
+        if provided_value is None:
+            continue
+
         if parameter_type == "list":
             param_map[name] = ", ".join([
-                f"\"{el}\"" for el in parameter_values[name]])
+                f"\"{el}\"" for el in provided_value])
+        elif parameter_type == "uri_list":
+            if query_type in [
+                    "SparqlPremise",
+                    "SparqlQuery"]:
+                param_map[name] = ", ".join([
+                    f"<{el}>" for el in provided_value])
+            else:
+                param_map[name] = ", ".join([
+                    f"\"{el}\"" for el in provided_value])
         elif parameter_type == "str":
-            if isinstance(parameter_values[name], list):
-                value = parameter_values[name][0]
+            if isinstance(provided_value, list):
+                value = provided_value[0]
             else:
-                value = parameter_values[name]
+                value = provided_value
             param_map[name] = f"\"{value}\""
-        elif parameter_type == "sparql_uri":
-            if isinstance(parameter_values[name], list):
-                value = parameter_values[name][0]
+        elif parameter_type == "uri":
+            if isinstance(provided_value, list):
+                value = provided_value[0]
             else:
-                value = parameter_values[name]
+                value = provided_value
+
+            if query_type in [
+                    "ElasticSearchPremise",
+                    "ElasticSearchQuery",
+                    "SimilarityQuery"
+               ]:
+                value = f"\"{value}\""
+
             param_map[name] = value
         else:
-            param_map[name] = parameter_values[name]
+            param_map[name] = provided_value
     return param_map
 
 
@@ -115,6 +137,9 @@ def check_premises(forge_factory, rule, parameters):
     """
     satisfies = True
 
+    if "premise" not in rule:
+        return True
+
     if isinstance(rule["premise"], dict):
         rule["premise"] = [rule["premise"]]
 
@@ -124,11 +149,17 @@ def check_premises(forge_factory, rule, parameters):
             raise PremiseException(
                 "Query configuration is not provided")
         forge = forge_factory(config['org'], config['project'])
+
+        try:
+            premise_type = _safe_get_type(premise)
+        except TypeError:
+            raise("Unknown premise type")
+
         current_parameters = dict()
         if "hasParameter" in premise:
             try:
                 current_parameters = _build_parameter_map(
-                    premise["hasParameter"], parameters)
+                    premise["hasParameter"], parameters, premise_type)
             except MissingParameterException as e:
                 warnings.warn(
                     "Premise is not satified, one or more parameters " +
@@ -136,11 +167,6 @@ def check_premises(forge_factory, rule, parameters):
                     MissingParameterWarning)
                 satisfies = False
                 break
-
-        try:
-            premise_type = _safe_get_type(premise)
-        except TypeError:
-            raise("Unknown premise type")
 
         if premise_type == "SparqlPremise":
             custom_sparql_view = config.get("sparqlView", None)
@@ -156,6 +182,8 @@ def check_premises(forge_factory, rule, parameters):
                 Template(json.dumps(premise["pattern"])).substitute(
                     **current_parameters))
             resources = forge.search(query)
+            if not isinstance(resources, list):
+                resources = [resources]
             if target_param:
                 if target_path:
                     matched_values = [
@@ -211,21 +239,20 @@ def execute_query(forge_factory, query, parameters):
     else:
         forge = forge_factory(config["org"], config["project"])
 
-    current_parameters = dict()
-    if "hasParameter" in query:
-        try:
-            current_parameters = _build_parameter_map(
-                query["hasParameter"], parameters)
-        except MissingParameterException as e:
-            raise QueryException(
-                "Query cannot be executed, one or more parameters " +
-                f"are missing. See the following exception: {e}")
-
     try:
         query_type = _safe_get_type(query)
     except TypeError:
         raise QueryTypeException("Unknown query type")
 
+    current_parameters = dict()
+    if "hasParameter" in query:
+        try:
+            current_parameters = _build_parameter_map(
+                query["hasParameter"], parameters, query_type)
+        except MissingParameterException as e:
+            raise QueryException(
+                "Query cannot be executed, one or more parameters " +
+                f"are missing. See the following exception: {e}")
     resources = None
     if query_type == "SparqlQuery":
         custom_sparql_view = config.get("sparqlView", None)
@@ -237,7 +264,8 @@ def execute_query(forge_factory, query, parameters):
                 **current_parameters))
         resources = forge.search(query)
     elif query_type == "SimilarityQuery":
-        resources = execute_similarity_query(forge, query, current_parameters)
+        resources = execute_similarity_query(
+            forge_factory, forge, query, current_parameters)
     elif query_type == "ElasticSearchQuery":
         query = Template(query["hasBody"]).substitute(**current_parameters)
         resources = forge.as_json(forge.elastic(query, limit=None))
@@ -279,11 +307,11 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
             return execute_query(forge_factory, head, parameters)
     else:
         result = execute_query(forge_factory, head, parameters)
+
         # Compute new parameters combining old parameters and the result
         new_parameters = {**parameters}
         if isinstance(head["resultParameterMapping"], dict):
             head["resultParameterMapping"] = [head["resultParameterMapping"]]
-
         for mapping in head["resultParameterMapping"]:
             if isinstance(result, list):
                 new_parameters[mapping["parameterName"]] = [
@@ -292,13 +320,11 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
             else:
                 new_parameters[mapping["parameterName"]] =\
                     result[mapping["path"]]
-
         try:
             rest_type = _safe_get_type(rest)
         except TypeError:
             raise QueryException(
                 "Invalid query pipe: unknown query type of the rest")
-
         if rest_type == "QueryPipe":
             return execute_query_pipe(
                 forge_factory, rest["head"], new_parameters, rest["rest"])
@@ -458,16 +484,17 @@ def get_rule_parameters(rule):
 
     # Get premise parameters
     premise_params = {}
-    if isinstance(rule["premise"], dict):
-        rule["premise"] = [rule["premise"]]
-    for premise in rule["premise"]:
-        params = (
-            premise["hasParameter"]
-            if isinstance(premise["hasParameter"], list)
-            else [premise["hasParameter"]]
-        )
-        for p in params:
-            premise_params[p["name"]] = p
+    if "premise" in rule:
+        if isinstance(rule["premise"], dict):
+            rule["premise"] = [rule["premise"]]
+        for premise in rule["premise"]:
+            params = (
+                premise["hasParameter"]
+                if isinstance(premise["hasParameter"], list)
+                else [premise["hasParameter"]]
+            )
+            for p in params:
+                premise_params[p["name"]] = p
 
     # Get query parameters
     search_params = _get_pipe_params(rule["searchQuery"])
