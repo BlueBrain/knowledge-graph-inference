@@ -3,6 +3,8 @@ import urllib
 
 from urllib.parse import quote_plus
 
+from string import Template
+
 
 def get_elastic_view_endpoint(forge):
     return forge._store.service.elastic_endpoint["endpoint"]
@@ -20,6 +22,19 @@ def set_elastic_view(forge, view):
         quote_plus(forge._store.bucket.split("/")[1])))
     endpoint = "/".join((views_endpoint, quote_plus(view), "_search"))
     set_elastic_view_endpoint(forge, endpoint)
+
+
+def execute_es_query(forge, query, parameters, custom_es_view):
+    if custom_es_view is not None:
+        view_id = (
+            custom_es_view.get("id")
+            if custom_es_view.get("id")
+            else custom_es_view.get("@id")
+        )
+        set_elastic_view(forge, view_id)
+    query = Template(query["hasBody"]).substitute(**parameters)
+    results = forge.as_json(forge.elastic(query, limit=10000))
+    return results
 
 
 def get_all_documents(forge):

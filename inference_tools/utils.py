@@ -10,7 +10,8 @@ from inference_tools.query.sparql import (set_sparql_view,
                                           execute_sparql_query)
 from inference_tools.query.elastic_search import (set_elastic_view,
                                                   get_elastic_view_endpoint,
-                                                  set_elastic_view_endpoint)
+                                                  set_elastic_view_endpoint,
+                                                  execute_es_query)
 from inference_tools.exceptions import (InferenceToolsException,
                                         InferenceToolsWarning,
                                         MissingParameterException,
@@ -22,6 +23,10 @@ from inference_tools.exceptions import (InferenceToolsException,
 
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
 DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+
+
+def _expand_uri(forge, uri):
+    return forge._model.context().expand(uri)
 
 
 def _safe_get_type(query):
@@ -49,12 +54,19 @@ def _follow_path(json_resource, path):
     value = json_resource
     path = path.split(".")
     for el in path:
+        if el not in value:
+            raise QueryException(
+                f"Invalid path for retrieving results: '{el}' "
+                "is not in the path.")
         value = value[el]
     return value
 
 
-def _build_parameter_map(parameter_spec, parameter_values, query_type):
+def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
     """Build parameter values given query specification."""
+    if isinstance(forge, list):
+        forge = forge[0]
+
     if isinstance(parameter_spec, dict):
         parameter_spec = [parameter_spec]
 
@@ -89,8 +101,13 @@ def _build_parameter_map(parameter_spec, parameter_values, query_type):
                     "SparqlPremise",
                     "SparqlQuery"]:
                 param_map[name] = ", ".join([
-                    f"<{el}>" for el in provided_value])
+                    f"<{_expand_uri(forge, el)}>"
+                    for el in provided_value
+                ])
             else:
+                # TODO: figure out if we need to expand uris
+                # when doing ElasticSearch queries
+                # (hard to say in general because it depends on the indexing)
                 param_map[name] = ", ".join([
                     f"\"{el}\"" for el in provided_value])
         elif parameter_type == "str":
@@ -101,10 +118,15 @@ def _build_parameter_map(parameter_spec, parameter_values, query_type):
             param_map[name] = f"\"{value}\""
         elif parameter_type == "uri":
             if isinstance(provided_value, list):
-                value = provided_value[0]
+                value = _expand_uri(
+                    forge, provided_value[0])
             else:
-                value = provided_value
+                value = _expand_uri(
+                    forge, provided_value)
 
+            # TODO: figure out if we need to expand uris
+            # when doing ElasticSearch queries
+            # (hard to say in general because it depends on the indexing)
             if query_type in [
                     "ElasticSearchPremise",
                     "ElasticSearchQuery",
@@ -159,7 +181,7 @@ def check_premises(forge_factory, rule, parameters):
         if "hasParameter" in premise:
             try:
                 current_parameters = _build_parameter_map(
-                    premise["hasParameter"], parameters, premise_type)
+                    forge, premise["hasParameter"], parameters, premise_type)
             except MissingParameterException as e:
                 warnings.warn(
                     "Premise is not satified, one or more parameters " +
@@ -171,7 +193,7 @@ def check_premises(forge_factory, rule, parameters):
         if premise_type == "SparqlPremise":
             custom_sparql_view = config.get("sparqlView", None)
             passed = check_sparql_premise(
-                forge, premise, parameters, custom_sparql_view)
+                forge, premise, current_parameters, custom_sparql_view)
             if not passed:
                 satisfies = False
                 break
@@ -209,7 +231,7 @@ def check_premises(forge_factory, rule, parameters):
     return satisfies
 
 
-def execute_query(forge_factory, query, parameters):
+def execute_query(forge_factory, query, parameters, last_query=False):
     """Execute an individual query given parameters.
 
     Parameters
@@ -248,7 +270,7 @@ def execute_query(forge_factory, query, parameters):
     if "hasParameter" in query:
         try:
             current_parameters = _build_parameter_map(
-                query["hasParameter"], parameters, query_type)
+                forge, query["hasParameter"], parameters, query_type)
         except MissingParameterException as e:
             raise QueryException(
                 "Query cannot be executed, one or more parameters " +
@@ -267,8 +289,14 @@ def execute_query(forge_factory, query, parameters):
         resources = execute_similarity_query(
             forge_factory, forge, query, current_parameters)
     elif query_type == "ElasticSearchQuery":
-        query = Template(query["hasBody"]).substitute(**current_parameters)
-        resources = forge.as_json(forge.elastic(query, limit=None))
+        custom_es_view = config.get("elasticSearchView", None)
+        resources = execute_es_query(
+            forge, query, current_parameters, custom_es_view)
+        if last_query:
+            resources = [
+                {"id": el["@id"]}
+                for el in resources
+            ]
     else:
         raise InferenceToolsException("Unknown type of query")
     _restore_default_views(forge)
@@ -304,7 +332,8 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
             return execute_query_pipe(
                 forge_factory, head["head"], parameters, head["rest"])
         else:
-            return execute_query(forge_factory, head, parameters)
+            return execute_query(
+                forge_factory, head, parameters, last_query=True)
     else:
         result = execute_query(forge_factory, head, parameters)
 
@@ -329,7 +358,8 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
             return execute_query_pipe(
                 forge_factory, rest["head"], new_parameters, rest["rest"])
         else:
-            return execute_query(forge_factory, rest, new_parameters)
+            return execute_query(
+                forge_factory, rest, new_parameters, last_query=True)
 
 
 def apply_rule(forge_factory, rule, parameters, premise_check=True):

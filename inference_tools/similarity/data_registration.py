@@ -119,7 +119,7 @@ def push_model(forge, name, description, label, distribution,
             similarity, dimension, bluegraph_version)
 
 
-def register_embeddings(forge, vectors, model_id, model_revision, tag,mapping_path):
+def register_embeddings(forge, vectors, model_id, model_revision, tag, mapping_path):
     """Register embedding vectors."""
     new_embeddings = []
     updated_embeddings = []
