@@ -1,0 +1,933 @@
+@prefix : <http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes> .
+
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes> rdf:type owl:Ontology ;
+                                                          rdfs:label "Cell Morphological Types"^^xsd:string .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/RX7kj5BzRwPqntDPM1GnN7
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/RX7kj5BzRwPqntDPM1GnN7> rdf:type owl:AnnotationProperty ;
+                                                                                rdfs:label "alt" .
+
+
+###  http://www.w3.org/2004/02/skos/core#altLabel
+<http://www.w3.org/2004/02/skos/core#altLabel> rdf:type owl:AnnotationProperty .
+
+
+###  http://www.w3.org/2004/02/skos/core#notation
+<http://www.w3.org/2004/02/skos/core#notation> rdf:type owl:AnnotationProperty .
+
+
+###  http://www.w3.org/2004/02/skos/core#prefLabel
+<http://www.w3.org/2004/02/skos/core#prefLabel> rdf:type owl:AnnotationProperty .
+
+
+###  https://neuroshapes.org/defines
+<https://neuroshapes.org/defines> rdf:type owl:AnnotationProperty .
+
+
+###  https://neuroshapes.org/hasInstanceInSpecies
+<https://neuroshapes.org/hasInstanceInSpecies> rdf:type owl:AnnotationProperty .
+
+
+###  https://neuroshapes.org/hasLayerLocationPhenotype
+<https://neuroshapes.org/hasLayerLocationPhenotype> rdf:type owl:AnnotationProperty .
+
+
+###  https://neuroshapes.org/hasMorphologicalPhenotype
+<https://neuroshapes.org/hasMorphologicalPhenotype> rdf:type owl:AnnotationProperty .
+
+
+###  https://neuroshapes.org/hasSomaLocatedIn
+<https://neuroshapes.org/hasSomaLocatedIn> rdf:type owl:AnnotationProperty .
+
+
+###  https://schema.org/color
+<https://schema.org/color> rdf:type owl:AnnotationProperty ;
+                           rdfs:label "color"@en .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/brainRegion
+<https://bbp.epfl.ch/ontologies/core/mtypes/brainRegion> rdf:type owl:ObjectProperty .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/hasNeurotransmitterType
+<https://bbp.epfl.ch/ontologies/core/mtypes/hasNeurotransmitterType> rdf:type owl:ObjectProperty ;
+                                                                     rdfs:label "hasNeurotransmitterType"@en .
+
+
+###  https://neuroshapes.org/componentType
+<https://neuroshapes.org/componentType> rdf:type owl:ObjectProperty .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L23_PTPC
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L23_PTPC> rdf:type owl:Class ;
+                                                                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                  <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                  rdfs:label "L23_PTPC"@en ;
+                                                                  <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Profuse-Tufted Pyramidal Cell"^^xsd:string ;
+                                                                  <https://neuroshapes.org/hasInstanceInSpecies> <http://purl.obolibrary.org/obo/NCBITaxon_9606> ;
+                                                                  <https://neuroshapes.org/hasLayerLocationPhenotype> <http://purl.obolibrary.org/obo/UBERON_0005391> ,
+                                                                                                                      <http://purl.obolibrary.org/obo/UBERON_0005392> .
+
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L23_STPC
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L23_STPC> rdf:type owl:Class ;
+                                                                  rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                  <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                  rdfs:label "L23_STPC"@en ;
+                                                                  <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Slim-Tufted Pyramidal Cell"^^xsd:string ;
+                                                                  <https://neuroshapes.org/hasInstanceInSpecies> <http://purl.obolibrary.org/obo/NCBITaxon_9606> ;
+                                                                  <https://neuroshapes.org/hasLayerLocationPhenotype> <http://purl.obolibrary.org/obo/UBERON_0005391> ,
+                                                                                                                      <http://purl.obolibrary.org/obo/UBERON_0005392> .
+
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L2_ChC
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L2_ChC> rdf:type owl:Class ;
+                                                                rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107356> ;
+                                                                rdfs:label "L2_ChC"@en ;
+                                                                <http://www.w3.org/2004/02/skos/core#notation> "L2_ChC"^^xsd:string ;
+                                                                <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Chandelier Cell"@en ;
+                                                                <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                                                <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/ChandelierPhenotype> .
+
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L2_MC
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L2_MC> rdf:type owl:Class ;
+                                                               rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                                               rdfs:label "L2_MC"@en ;
+                                                               <http://www.w3.org/2004/02/skos/core#notation> "L2_MC"^^xsd:string ;
+                                                               <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Martinotti Cell"@en ;
+                                                               <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                                               <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L3_MC
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/L3_MC> rdf:type owl:Class ;
+                                                               rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                                               rdfs:label "L3_MC"@en ;
+                                                               <http://www.w3.org/2004/02/skos/core#notation> "L3_MC"^^xsd:string ;
+                                                               <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 3 Martinotti Cell"@en ;
+                                                               <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005392> ;
+                                                               <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/RHYUdxH7spioam6E9haPwu
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/RHYUdxH7spioam6E9haPwu> rdf:type owl:Class ;
+                                                                                rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738384> ;
+                                                                                rdfs:label "L3_TPC:C"@en ;
+                                                                                <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 3 Narrow Tufted Pyramidal Cell"^^xsd:string ;
+                                                                                <https://neuroshapes.org/hasLayerLocationPhenotype> <http://purl.obolibrary.org/obo/UBERON_0005392> ;
+                                                                                <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NarrowTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0107351
+<http://uri.interlex.org/base/ilx_0107351> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Basket Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0107356
+<http://uri.interlex.org/base/ilx_0107356> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Chandelier Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0107375
+<http://uri.interlex.org/base/ilx_0107375> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Martinotti Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0381364
+<http://uri.interlex.org/base/ilx_0381364> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738209> ;
+                                           rdfs:label "L5_TPC:B"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_TPC:B"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Early Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/EarlyBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381365
+<http://uri.interlex.org/base/ilx_0381365> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738209> ;
+                                           rdfs:label "L5_TPC:A"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_TPC:A"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Late Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LateBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381366
+<http://uri.interlex.org/base/ilx_0381366> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738384> ;
+                                           rdfs:label "L3_TPC:A"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L3_TPC:A"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 3 Late Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LateBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381367
+<http://uri.interlex.org/base/ilx_0381367> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738383> ;
+                                           rdfs:label "L2_TPC:B"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L2_TPC:B"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Early Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/EarlyBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381368
+<http://uri.interlex.org/base/ilx_0381368> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738384> ;
+                                           rdfs:label "L3_TPC:B"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L3_TPC:B"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 3 Early Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/EarlyBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381369
+<http://uri.interlex.org/base/ilx_0381369> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                           rdfs:label "L5_MC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_MC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Martinotti Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381370
+<http://uri.interlex.org/base/ilx_0381370> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738209> ;
+                                           rdfs:label "L5_TPC:C"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_TPC:C"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Narrow Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NarrowTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381371
+<http://uri.interlex.org/base/ilx_0381371> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/UntufterdPyramidalNeuron> ;
+                                           rdfs:label "L5_UPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_UPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Untufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/UntuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381373
+<http://uri.interlex.org/base/ilx_0381373> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/InvertedPyramidalCell> ;
+                                           rdfs:label "L6_IPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_IPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Inverted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/InvertedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381374
+<http://uri.interlex.org/base/ilx_0381374> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                           rdfs:label "L6_MC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_MC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Martinotti Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381375
+<http://uri.interlex.org/base/ilx_0381375> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738210> ;
+                                           rdfs:label "L6_TPC:A"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_TPC:A"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Late Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LateBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381376
+<http://uri.interlex.org/base/ilx_0381376> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738210> ;
+                                           rdfs:label "L6_TPC:C"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_TPC:C"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Narrow Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NarrowTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0381377
+<http://uri.interlex.org/base/ilx_0381377> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/UntufterdPyramidalNeuron> ;
+                                           rdfs:label "L6_UPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_UPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Untufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/UntuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383192
+<http://uri.interlex.org/base/ilx_0383192> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L1_DAC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_DAC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 1 Descending Axon Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/DescendingAxonPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383193
+<http://uri.interlex.org/base/ilx_0383193> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L1_HAC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_HAC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 1 Horizontal Axon Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/HorizontalAxonPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383194
+<http://uri.interlex.org/base/ilx_0383194> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L1_LAC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_LAC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 1 Large Axon Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LargeAxonPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383195
+<http://uri.interlex.org/base/ilx_0383195> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L1_NGC-DA"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_NGC-DA"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Neurogliaform Cell_ dense axon"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> .
+
+
+###  http://uri.interlex.org/base/ilx_0383196
+<http://uri.interlex.org/base/ilx_0383196> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L1_NGC-SA"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_NGC-SA"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Neurogliaform Cell_sparse axon"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> .
+
+
+###  http://uri.interlex.org/base/ilx_0383197
+<http://uri.interlex.org/base/ilx_0383197> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L1_SAC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L1_SAC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 1 Small Axon Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005390> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SmallAxonPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383198
+<http://uri.interlex.org/base/ilx_0383198> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L23_BP"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_BP"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Bipolar Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BipolarPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383199
+<http://uri.interlex.org/base/ilx_0383199> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777212> ;
+                                           rdfs:label "L23_BTC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_BTC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Bitufted Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BituftedPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383200
+<http://uri.interlex.org/base/ilx_0383200> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107356> ;
+                                           rdfs:label "L23_ChC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_ChC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Chandelier Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/ChandelierPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383201
+<http://uri.interlex.org/base/ilx_0383201> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0784350> ;
+                                           rdfs:label "L23_DBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_DBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Double Bouquet Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/DoubleBouquetPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383202
+<http://uri.interlex.org/base/ilx_0383202> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777215> ;
+                                           rdfs:label "L23_LBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_LBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Large Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LargeBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383203
+<http://uri.interlex.org/base/ilx_0383203> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                           rdfs:label "L23_MC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_MC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Martinotti Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383204
+<http://uri.interlex.org/base/ilx_0383204> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777217> ;
+                                           rdfs:label "L23_NBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_NBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Nest Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NestBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383205
+<http://uri.interlex.org/base/ilx_0383205> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L23_NGC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_NGC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Neurogliaform Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NeurogliaformPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383206
+<http://uri.interlex.org/base/ilx_0383206> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777219> ;
+                                           rdfs:label "L23_SBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_SBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Small Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ,
+                                                                                               <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SmallBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383207
+<http://uri.interlex.org/base/ilx_0383207> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/InvertedPyramidalCell> ;
+                                           rdfs:label "L2_IPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L2_IPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Inverted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/InvertedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383208
+<http://uri.interlex.org/base/ilx_0383208> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0738383> ;
+                                           rdfs:label "L2_TPC:A"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L2_TPC:A"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Late Bifurcating Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LateBifurcatingTuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383209
+<http://uri.interlex.org/base/ilx_0383209> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L4_BP"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_BP"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Bipolar Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BipolarPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383210
+<http://uri.interlex.org/base/ilx_0383210> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777212> ;
+                                           rdfs:label "L4_BTC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_BTC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Bitufted Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BituftedPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383211
+<http://uri.interlex.org/base/ilx_0383211> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107356> ;
+                                           rdfs:label "L4_ChC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_ChC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Chandelier Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/ChandelierPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383212
+<http://uri.interlex.org/base/ilx_0383212> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0784350> ;
+                                           rdfs:label "L4_DBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_DBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Double Bouquet Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/DoubleBouquetPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383213
+<http://uri.interlex.org/base/ilx_0383213> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777215> ;
+                                           rdfs:label "L4_LBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_LBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Large Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LargeBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383214
+<http://uri.interlex.org/base/ilx_0383214> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107375> ;
+                                           rdfs:label "L4_MC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_MC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Martinotti Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/MartinottiPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383215
+<http://uri.interlex.org/base/ilx_0383215> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777217> ;
+                                           rdfs:label "L4_NBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_NBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Nest Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NestBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383216
+<http://uri.interlex.org/base/ilx_0383216> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L4_NGC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_NGC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Neurogliaform Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NeurogliaformPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383217
+<http://uri.interlex.org/base/ilx_0383217> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777219> ;
+                                           rdfs:label "L4_SBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_SBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Small Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SmallBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383218
+<http://uri.interlex.org/base/ilx_0383218> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L4_SSC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_SSC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Spiny Stellate Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SpinyStellatePhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383219
+<http://uri.interlex.org/base/ilx_0383219> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> ;
+                                           rdfs:label "L4_TPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_TPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/TuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383220
+<http://uri.interlex.org/base/ilx_0383220> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/UntufterdPyramidalNeuron> ;
+                                           rdfs:label "L4_UPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L4_UPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 4 Untufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005393> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/UntuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383221
+<http://uri.interlex.org/base/ilx_0383221> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L5_BP"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_BP"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Bipolar Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BipolarPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383222
+<http://uri.interlex.org/base/ilx_0383222> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777212> ;
+                                           rdfs:label "L5_BTC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_BTC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Bitufted Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BituftedPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383223
+<http://uri.interlex.org/base/ilx_0383223> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107356> ;
+                                           rdfs:label "L5_ChC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_ChC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Chandelier Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/ChandelierPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383224
+<http://uri.interlex.org/base/ilx_0383224> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0784350> ;
+                                           rdfs:label "L5_DBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_DBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Double Bouquet Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/DoubleBouquetPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383225
+<http://uri.interlex.org/base/ilx_0383225> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777215> ;
+                                           rdfs:label "L5_LBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_LBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Large Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LargeBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383226
+<http://uri.interlex.org/base/ilx_0383226> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777217> ;
+                                           rdfs:label "L5_NBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_NBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Nest Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NestBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383227
+<http://uri.interlex.org/base/ilx_0383227> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777219> ;
+                                           rdfs:label "L5_SBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_SBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Small Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SmallBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383228
+<http://uri.interlex.org/base/ilx_0383228> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                           <https://neuroshapes.org/PyramidalNeuron> ;
+                                           rdfs:label "L6_BPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_BPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Biopolar Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BiopolarPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383229
+<http://uri.interlex.org/base/ilx_0383229> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777212> ;
+                                           rdfs:label "L6_BTC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_BTC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Bitufted Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BituftedPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383230
+<http://uri.interlex.org/base/ilx_0383230> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107356> ;
+                                           rdfs:label "L6_ChC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_ChC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Chandelier Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/ChandelierPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383231
+<http://uri.interlex.org/base/ilx_0383231> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0784350> ;
+                                           rdfs:label "L6_DBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_DBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Double Bouquet Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/DoubleBouquetPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383232
+<http://uri.interlex.org/base/ilx_0383232> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/HorizontalPyramidalCell> ;
+                                           rdfs:label "L6_HPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_HPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Horizontal Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/HorizontalPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383233
+<http://uri.interlex.org/base/ilx_0383233> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777215> ;
+                                           rdfs:label "L6_LBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_LBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Large Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/LargeBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383234
+<http://uri.interlex.org/base/ilx_0383234> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777217> ;
+                                           rdfs:label "L6_NBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_NBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Nest Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NestBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383235
+<http://uri.interlex.org/base/ilx_0383235> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L6_NGC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_NGC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Neurogliaform Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NeurogliaformPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383236
+<http://uri.interlex.org/base/ilx_0383236> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777219> ;
+                                           rdfs:label "L6_SBC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_SBC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Small Basket Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/SmallBasketPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383239
+<http://uri.interlex.org/base/ilx_0383239> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0777218> ;
+                                           rdfs:label "L5_NGC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_NGC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Neurogliaform Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/NeurogliaformPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0383240
+<http://uri.interlex.org/base/ilx_0383240> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "L6_BP"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_BP"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Bipolar Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/BipolarPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0738209
+<http://uri.interlex.org/base/ilx_0738209> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> ;
+                                           rdfs:label "L5_TPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L5_TPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 5 Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005394> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/TuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0738210
+<http://uri.interlex.org/base/ilx_0738210> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> ;
+                                           rdfs:label "L6_TPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L6_TPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 6 Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005395> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/TuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0738295
+<http://uri.interlex.org/base/ilx_0738295> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                           <https://neuroshapes.org/PyramidalNeuron> ;
+                                           rdfs:label "L23_PC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L23_PC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2/3 Pyramidal Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0738383
+<http://uri.interlex.org/base/ilx_0738383> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> ;
+                                           rdfs:label "L2_TPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L2_TPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 2 Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005391> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/TuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0738384
+<http://uri.interlex.org/base/ilx_0738384> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> ;
+                                           rdfs:label "L3_TPC"@en ;
+                                           <http://www.w3.org/2004/02/skos/core#notation> "L3_TPC"^^xsd:string ;
+                                           <http://www.w3.org/2004/02/skos/core#prefLabel> "Layer 3 Tufted Pyramidal Cell"@en ;
+                                           <https://neuroshapes.org/hasLayerLocationPhenotype> <uberon:0005392> ;
+                                           <https://neuroshapes.org/hasMorphologicalPhenotype> <https://neuroshapes.org/TuftedPyramidalPhenotype> .
+
+
+###  http://uri.interlex.org/base/ilx_0777212
+<http://uri.interlex.org/base/ilx_0777212> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Bitufted Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0777215
+<http://uri.interlex.org/base/ilx_0777215> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107351> ;
+                                           rdfs:label "Large Basket Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0777217
+<http://uri.interlex.org/base/ilx_0777217> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107351> ;
+                                           rdfs:label "Nest Basket Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0777218
+<http://uri.interlex.org/base/ilx_0777218> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Neurogliaform Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0777219
+<http://uri.interlex.org/base/ilx_0777219> rdf:type owl:Class ;
+                                           rdfs:subClassOf <http://uri.interlex.org/base/ilx_0107351> ;
+                                           rdfs:label "Small Basket Cell"@en .
+
+
+###  http://uri.interlex.org/base/ilx_0784350
+<http://uri.interlex.org/base/ilx_0784350> rdf:type owl:Class ;
+                                           rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ,
+                                                           <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ;
+                                           rdfs:label "Double Bouquet Cell"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell
+<https://bbp.epfl.ch/ontologies/core/mtypes/BipolarCell> rdf:type owl:Class ;
+                                                         rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ;
+                                                         rdfs:label "Bipolar Cell"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/BrainRegionDependentMType
+<https://bbp.epfl.ch/ontologies/core/mtypes/BrainRegionDependentMType> rdf:type owl:Class ;
+                                                                       rdfs:subClassOf <https://neuroshapes.org/MType> ;
+                                                                       rdfs:label "Brain Region Dependent MType"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType
+<https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> rdf:type owl:Class ;
+                                                                           rdfs:subClassOf <https://neuroshapes.org/MType> ;
+                                                                           rdfs:label "Common Neuron Morphological Type"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/HorizontalPyramidalCell
+<https://bbp.epfl.ch/ontologies/core/mtypes/HorizontalPyramidalCell> rdf:type owl:Class ;
+                                                                     rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                     <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                     rdfs:label "Horizontal Pyramidal Neuron"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/InvertedPyramidalCell
+<https://bbp.epfl.ch/ontologies/core/mtypes/InvertedPyramidalCell> rdf:type owl:Class ;
+                                                                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                   <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                   rdfs:label "Inverted Pyramidal Cell"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType
+<https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> rdf:type owl:Class ;
+                                                            rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/BrainRegionDependentMType> ;
+                                                            rdfs:label "Neocortex MType"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron
+<https://bbp.epfl.ch/ontologies/core/mtypes/TuftedPyramidalNeuron> rdf:type owl:Class ;
+                                                                   rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                   <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                   rdfs:label "Tufted Pyramidal Neuron"@en .
+
+
+###  https://bbp.epfl.ch/ontologies/core/mtypes/UntufterdPyramidalNeuron
+<https://bbp.epfl.ch/ontologies/core/mtypes/UntufterdPyramidalNeuron> rdf:type owl:Class ;
+                                                                      rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/NeocortexMType> ,
+                                                                                      <https://neuroshapes.org/PyramidalNeuron> ;
+                                                                      rdfs:label "Untufterd Pyramidal Neuron"@en .
+
+
+###  https://neuroshapes.org/MType
+<https://neuroshapes.org/MType> rdf:type owl:Class ;
+                                rdfs:label "Neuron Morphological Type"@en .
+
+
+###  https://neuroshapes.org/PyramidalNeuron
+<https://neuroshapes.org/PyramidalNeuron> rdf:type owl:Class ;
+                                          rdfs:subClassOf <https://bbp.epfl.ch/ontologies/core/mtypes/CommonNeuronMorphologicalType> ;
+                                          rdfs:label "Pyramidal Neuron"@en ;
+                                          <http://www.w3.org/2004/02/skos/core#notation> "Pyr"^^xsd:string ;
+                                          <http://www.w3.org/2004/02/skos/core#prefLabel> "Pyramidal neuron"^^xsd:string .
+
+
+#################################################################
+#    Annotations
+#################################################################
+
+<http://bbp.epfl.ch/neurosciencegraph/ontologies/mtypes/RUM9qjr1jQxl3EdePR2vy0> rdfs:label "Spiny_14"@en .
+
+
+###  Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi

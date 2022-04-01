@@ -57,15 +57,16 @@ def get_embedding_vector(forge, search_target):
           }
         }
     """
-    vector_query = Template(vector_query).substitute({"_searchTarget": search_target})
+    vector_query = Template(vector_query).substitute(
+        {"_searchTarget": search_target})
     result = forge.elastic(vector_query)
-    result = forge.as_json(result[0])
+    result = forge.as_json(result)[0]
     vector_id = result["@id"]
     vector = result["embedding"]
     return vector_id, vector
 
 
-def get_neighbors(forge, vector, vector_id, k, score_formula="euclidean",
+def get_neighbors(forge, vector, vector_id, k=None, score_formula="euclidean",
                   result_filter=None, parameters=None):
     """Get nearest neighbors of the provided vector.
 
@@ -104,6 +105,9 @@ def get_neighbors(forge, vector, vector_id, k, score_formula="euclidean",
     else:
         result_filter = ""
 
+    if k is None:
+        k = 10000
+
     similarity_query = """
         {
           "from": 0,
@@ -129,6 +133,7 @@ def get_neighbors(forge, vector, vector_id, k, score_formula="euclidean",
           }
     }
     """
+
     similarity_query = Template(similarity_query).substitute({
         "_vectorId": vector_id,
         "_vector": vector,
@@ -136,19 +141,20 @@ def get_neighbors(forge, vector, vector_id, k, score_formula="euclidean",
         "_formula": FORMULAS[score_formula],
         "_resultFilter": result_filter
     })
-
     result = [
-        (el._store_metadata._score, forge.as_json(el))
+        (el._store_metadata._score, forge.as_json([el])[0])
         for el in forge.elastic(similarity_query, limit=None)
     ]
     return result
 
 
-def query_similar_resources(forge, query, config, parameters, k):
+def query_similar_resources(forge_factory, forge, query, config, parameters, k):
     """Query similar resources using the similarity query.
 
     Parameters
     ----------
+    forge_factory : func
+        Factory that returns a forge session given a bucket
     forge : KnowledgeGraphForge
         Instance of a forge session
     query : dict
@@ -185,7 +191,8 @@ def query_similar_resources(forge, query, config, parameters, k):
         raise SimilaritySearchException("Target parameter is not specified")
     search_target = parameters[target_parameter]
     vector_id, vector = get_embedding_vector(forge, search_target)
-    # Retrieve score formula from the model
+
+    # TODO: Retrieve score formula from the model
 
     model_id = (
         config["embeddingModel"].get("id")
@@ -195,7 +202,21 @@ def query_similar_resources(forge, query, config, parameters, k):
     if model_id is None:
         raise SimilaritySearchException(
             "Model is not defined, cannot retrieve similarity score formula")
-    model = forge.retrieve(model_id)
+
+    if "org" in config["embeddingModel"] and\
+       "project" in config["embeddingModel"]:
+        model_forge = forge_factory(
+            config["embeddingModel"]["org"],
+            config["embeddingModel"]["project"])
+    else:
+        model_forge = forge
+
+    # Get model revision, if specified
+    if "hasSelector" in config["embeddingModel"]:
+        revision = config["embeddingModel"]["hasSelector"]["value"]
+        model_id = model_id + revision
+
+    model = model_forge.retrieve(model_id)
     score_formula = model.similarity
 
     # Setup the result filter
@@ -240,7 +261,7 @@ def get_score_stats(forge, config, boosted=False):
     if len(statistics) > 1:
         # Here warn that more than one is found, we will use one of them
         pass
-    statistics = forge.as_json(statistics[0])
+    statistics = forge.as_json(statistics)[0]
     min_score = None
     max_score = None
     for el in statistics["series"]:
@@ -265,26 +286,29 @@ def get_boosting_factors(forge, config):
     set_elastic_view(forge, view_id)
     factors = forge.elastic("""
        {
+          "size": 10000,
           "query": {
                 "term" : { "_deprecated": false }
               }
         }
-    """)
+    """, limit=None)
     if len(factors) == 0:
         raise SimilaritySearchException("No boosting factors found")
     boosting_factors = {}
     for el in factors:
-        json_el = forge.as_json(el)
+        json_el = forge.as_json([el])[0]
         boosting_factors[json_el["derivation"]["entity"]["@id"]] =\
             json_el["value"]
     return boosting_factors
 
 
-def execute_similarity_query(forge, query, parameters):
+def execute_similarity_query(forge_factory, forge, query, parameters):
     """Execute similarity search query.
 
     Parameters
     ----------
+    forge_factory : func
+        Factory that returns a forge session given a bucket
     forge : KnowledgeGraphForge
         Instance of a forge session
     query : dict
@@ -303,6 +327,12 @@ def execute_similarity_query(forge, query, parameters):
             "No similarity search configuration provided")
 
     k = query["k"]
+    if isinstance(k, str):
+        k = int(Template(k).substitute(parameters))
+
+    models_to_ignore = []
+    if "IgnoreModelsParameter" in parameters:
+        models_to_ignore = parameters["IgnoreModelsParameter"]
 
     neighbors = []
     if isinstance(config, dict) or len(config) == 1:
@@ -311,39 +341,64 @@ def execute_similarity_query(forge, query, parameters):
             forge = forge[0]
         # Perform similarity search using a single similarity model
         _, neighbors = query_similar_resources(
-            forge, query, config, parameters, k)
+            forge_factory, forge, query, config, parameters, k)
         neighbors = [
             {"id": n["derivation"]["entity"]["@id"]}
             for _, n in neighbors
         ]
     else:
         # Perform similarity search combining several similarity models
-        vector_ids = []
-        all_neighbors = []
-        stats = []
+        vector_ids = {}
+        all_neighbors = {}
+        stats = {}
         all_boosting_factors = {}
         all_boosted_stats = {}
         for i, individual_config in enumerate(config):
-            all_resources = get_all_documents(forge[i])
-            n_resources = len(all_resources)
-            vector_id, neighbors = query_similar_resources(
-                forge[i], query, individual_config, parameters, n_resources)
-            vector_ids.append(vector_id)
-            all_neighbors.append(neighbors)
+            # get the model ID and check if it's not in the
+            # list of models to ignore HERE
+            model_id = (
+                individual_config["embeddingModel"].get("id")
+                if individual_config["embeddingModel"].get("id")
+                else individual_config["embeddingModel"].get("@id")
+            )
+            if model_id is None:
+                raise SimilaritySearchException(
+                    "Model is not defined, "
+                    "cannot retrieve similarity score formula")
+            if model_id not in models_to_ignore:
+                view_id = (
+                    individual_config["similarityView"].get("id")
+                    if individual_config["similarityView"].get("id")
+                    else individual_config["similarityView"].get("@id")
+                )
+                if view_id is None:
+                    raise SimilaritySearchException(
+                        "Similarity search view is not defined")
+                set_elastic_view(forge[i], view_id)
 
-            min_score, max_score = get_score_stats(
-                forge[i], individual_config)
-            stats.append((min_score, max_score))
-            if individual_config["boosted"]:
-                boosting_factors = get_boosting_factors(
+                vector_id, neighbors = query_similar_resources(
+                    forge_factory, forge[i], query, individual_config,
+                    parameters,
+                    k=None)
+
+                vector_ids[i] = vector_id
+                all_neighbors[i] = neighbors
+
+                min_score, max_score = get_score_stats(
                     forge[i], individual_config)
-                all_boosting_factors[i] = boosting_factors
-                all_boosted_stats[i] = get_score_stats(
-                    forge[i], individual_config, boosted=True)
+                stats[i] = (min_score, max_score)
+                if "boosted" in individual_config and\
+                        individual_config["boosted"]:
+                    boosting_factors = get_boosting_factors(
+                        forge[i], individual_config)
+                    all_boosting_factors[i] = boosting_factors
+                    all_boosted_stats[i] = get_score_stats(
+                        forge[i], individual_config, boosted=True)
 
         # Combine the results
         combined_results = defaultdict(list)
-        for i, neighbor_collection in enumerate(all_neighbors):
+        for i in all_neighbors.keys():
+            neighbor_collection = all_neighbors[i]
             min_score, max_score = stats[i]
             boosting_factor = 1
             boosted_min, boosted_max = min_score, max_score
@@ -359,8 +414,8 @@ def execute_similarity_query(forge, query, parameters):
                 combined_results[resource_id].append(score)
 
         combined_results = {
-            k: np.array(v).mean()
-            for k, v in combined_results.items()
+            key: np.array(value).mean()
+            for key, value in combined_results.items()
         }
         neighbors = [
             {"id": el}
@@ -376,9 +431,10 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
     """Compute similarity score statistics given a view."""
     set_elastic_view(forge, view_id)
     all_vectors = get_all_documents(forge)
+
     scores = []
     for vector_resource in all_vectors:
-        vector_resource = forge.as_json(vector_resource)
+        vector_resource = forge.as_json([vector_resource])[0]
         vector = vector_resource["embedding"]
         vector_id = vector_resource["@id"]
         neighbors = get_neighbors(
@@ -423,7 +479,7 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
     result = forge.elastic(query)
     scores = set()
     for el in result:
-        if point_id != forge.as_json(el)["@id"]:
+        if point_id != forge.as_json([el])[0]["@id"]:
             # Min/max normalization of the score
             score = (el._store_metadata._score - score_min) / (
                 score_max - score_min)
@@ -439,8 +495,9 @@ def compute_boosting_factors(forge, view_id, stats, formula,
     # Compute local similarity deviations for points
     set_elastic_view(forge, view_id)
     all_vectors = get_all_documents(forge)
+
     for vector_resource in all_vectors:
-        vector_resource = forge.as_json(vector_resource)
+        vector_resource = forge.as_json([vector_resource])[0]
         point_id = vector_resource["@id"]
         vector = vector_resource["embedding"]
         boosting_factors[point_id] = 1 + compute_score_deviation(
