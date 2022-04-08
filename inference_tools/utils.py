@@ -110,6 +110,30 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
                 # (hard to say in general because it depends on the indexing)
                 param_map[name] = ", ".join([
                     f"\"{el}\"" for el in provided_value])
+        elif parameter_type == "sparql_value_list":
+            if query_type in [
+                    "ElasticSearchPremise",
+                    "ElasticSearchQuery",
+                    "SimilarityQuery"
+               ]:
+                raise QueryException(
+                    "Invalid rule: cannot use a parameter with "
+                    "type 'sparql_value_list' in a non-SPARQL query")
+            param_map[name] = "\n".join([
+                f"(\"{el}\")" for el in provided_value])
+        elif parameter_type == "sparql_value_uri_list":
+            if query_type in [
+                    "ElasticSearchPremise",
+                    "ElasticSearchQuery",
+                    "SimilarityQuery"
+               ]:
+                raise QueryException(
+                    "Invalid rule: cannot use a parameter with "
+                    "type 'sparql_value_uri_list' in a non-SPARQL query")
+            param_map[name] = "\n".join([
+                f"(<{_expand_uri(forge, el)}>)"
+                for el in provided_value
+            ])
         elif parameter_type == "str":
             if isinstance(provided_value, list):
                 value = provided_value[0]
