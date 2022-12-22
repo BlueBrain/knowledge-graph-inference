@@ -12,6 +12,9 @@ class PremiseException(InferenceToolsException):
     """Exception in premise checking."""
     pass
 
+class PremiseTypeException(InferenceToolsException):
+    """Exception in premise checking."""
+    pass
 
 class QueryException(InferenceToolsException):
     """Generic exception in querying."""

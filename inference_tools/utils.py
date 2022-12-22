@@ -2,7 +2,10 @@
 import json
 import warnings
 
+from enum import Enum 
+
 from string import Template
+
 
 from inference_tools.similarity.utils import execute_similarity_query
 from inference_tools.query.sparql import (set_sparql_view,
@@ -12,15 +15,17 @@ from inference_tools.query.elastic_search import (set_elastic_view,
                                                   get_elastic_view_endpoint,
                                                   set_elastic_view_endpoint,
                                                   execute_es_query)
-from inference_tools.exceptions import (InferenceToolsException,
-                                        InferenceToolsWarning,
+from inference_tools.exceptions import (InferenceToolsWarning,
                                         MissingParameterException,
                                         MissingParameterWarning,
                                         PremiseException,
+                                        PremiseTypeException,
                                         QueryException,
                                         QueryTypeException)
 
+from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
+    
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
 DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
 
@@ -62,7 +67,58 @@ def _follow_path(json_resource, path):
     return value
 
 
-def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
+def has_multi(parameter_spec, parameter_values): 
+    
+    if isinstance(parameter_spec, dict):
+        parameter_spec = [parameter_spec]
+        
+    try: 
+        types = [_safe_get_type(p) for p in parameter_spec]
+        try: 
+            idx = types.index(ParameterType.MUTLI_PREDICATE_OBJECT_PAIR.value)
+            spec = parameter_spec[idx]
+            name = spec["name"]
+            nb_multi = len(parameter_values[name])
+            
+            return (idx, name, nb_multi)
+        
+        except ValueError: 
+            pass
+    except TypeError: 
+        pass
+    
+    return None
+    
+            
+def multi_predicate_object_pair(idx, parameter_spec, parameter_values): 
+    
+    spec = parameter_spec[idx]
+    del parameter_spec[idx]
+    name = spec["name"]
+    provided_value = parameter_values[name]
+    del parameter_values[name]
+
+    for (i, pair) in enumerate(provided_value):
+        ((predicate_value, predicate_type),
+         (object_value, object_type) ) = pair
+
+        name_desc = ["predicate", "object"]
+        values = [predicate_value, object_value]
+        types = [predicate_type, object_type]
+
+        for j in range(2): 
+            constructed_name = "{}_{}_{}".format(name, str(i), name_desc[j])
+            parameter_spec.append({
+                "type": types[j],
+                "name": constructed_name
+            })
+            parameter_values[constructed_name] = values[j]
+ 
+    return parameter_spec, parameter_values
+
+    
+def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, multi=None):
+    
     """Build parameter values given query specification."""
     if isinstance(forge, list):
         forge = forge[0]
@@ -78,28 +134,45 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
                     spec['name']))
 
     param_map = {}
-
-    if isinstance(parameter_spec, dict):
-        parameter_spec = [parameter_spec]
-
+                      
+    if multi: 
+        (idx, name, nb_multi) = multi
+        parameter_spec, parameter_values = multi_predicate_object_pair(idx, parameter_spec, parameter_values)
+        
+    sparql_valid = [
+        PremiseType.SPARQL_PREMISE,
+        QueryType.SPARQL_QUERY
+    ]
+   
     for p in parameter_spec:
+        
         name = p["name"]
+        
         try:
             parameter_type = _safe_get_type(p)
         except TypeError:
-            raise QueryTypeException("Unknown parameter type")
+            raise QueryTypeException("Missing parameter type for {}".format(name))
 
+            
         provided_value = parameter_values.get(name)
         if provided_value is None:
             continue
+            
+        try:
+            parameter_type = ParameterType(parameter_type)
+        except ValueError:
+            warnings.warn("Unknown parameter type {}"
+                          .format(parameter_type), InferenceToolsWarning)
+            
+            param_map[name] = provided_value
+            continue
 
-        if parameter_type == "list":
+        if parameter_type == ParameterType.LIST:
             param_map[name] = ", ".join([
                 f"\"{el}\"" for el in provided_value])
-        elif parameter_type == "uri_list":
-            if query_type in [
-                    "SparqlPremise",
-                    "SparqlQuery"]:
+
+        elif parameter_type == ParameterType.URI_LIST:
+            if query_type in sparql_valid:
                 param_map[name] = ", ".join([
                     f"<{_expand_uri(forge, el)}>"
                     for el in provided_value
@@ -110,37 +183,39 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
                 # (hard to say in general because it depends on the indexing)
                 param_map[name] = ", ".join([
                     f"\"{el}\"" for el in provided_value])
-        elif parameter_type == "sparql_value_list":
-            if query_type in [
-                    "ElasticSearchPremise",
-                    "ElasticSearchQuery",
-                    "SimilarityQuery"
-               ]:
+
+        elif parameter_type == ParameterType.SPARQL_VALUE_LIST:
+            if query_type not in sparql_valid:
                 raise QueryException(
                     "Invalid rule: cannot use a parameter with "
                     "type 'sparql_value_list' in a non-SPARQL query")
             param_map[name] = "\n".join([
                 f"(\"{el}\")" for el in provided_value])
-        elif parameter_type == "sparql_value_uri_list":
-            if query_type in [
-                    "ElasticSearchPremise",
-                    "ElasticSearchQuery",
-                    "SimilarityQuery"
-               ]:
+
+        elif parameter_type == ParameterType.SPARQL_VALUE_URI_LIST:
+            if query_type not in sparql_valid:
                 raise QueryException(
                     "Invalid rule: cannot use a parameter with "
                     "type 'sparql_value_uri_list' in a non-SPARQL query")
             param_map[name] = "\n".join([
                 f"(<{_expand_uri(forge, el)}>)"
-                for el in provided_value
-            ])
-        elif parameter_type == "str":
+                for el in provided_value])
+
+        elif parameter_type == ParameterType.STR:
             if isinstance(provided_value, list):
                 value = provided_value[0]
             else:
                 value = provided_value
             param_map[name] = f"\"{value}\""
-        elif parameter_type == "uri":
+            
+        elif parameter_type == ParameterType.PATH:
+            if isinstance(provided_value, list):
+                value = provided_value[0]
+            else:
+                value = provided_value
+            param_map[name] = value
+            
+        elif parameter_type == ParameterType.URI:
             if isinstance(provided_value, list):
                 value = _expand_uri(
                     forge, provided_value[0])
@@ -152,15 +227,14 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type):
             # when doing ElasticSearch queries
             # (hard to say in general because it depends on the indexing)
             if query_type in [
-                    "ElasticSearchPremise",
-                    "ElasticSearchQuery",
-                    "SimilarityQuery"
-               ]:
+                PremiseType.ELASTIC_SEARCH_PREMISE,
+                QueryType.ELASTIC_SEARCH_QUERY,
+                QueryType.SIMILARITY_QUERY
+            ]:
                 value = f"\"{value}\""
 
             param_map[name] = value
-        else:
-            param_map[name] = provided_value
+    
     return param_map
 
 
@@ -194,12 +268,18 @@ def check_premises(forge_factory, rule, parameters):
         if config is None:
             raise PremiseException(
                 "Query configuration is not provided")
+                    
         forge = forge_factory(config['org'], config['project'])
 
         try:
             premise_type = _safe_get_type(premise)
         except TypeError:
-            raise("Unknown premise type")
+            raise PremiseTypeException("Missing premise type")
+                              
+        try: 
+            premise_type = PremiseType(premise_type)
+        except ValueError:
+            raise PremiseTypeException("Unknown premise type {}".format(premise_type))
 
         current_parameters = dict()
         if "hasParameter" in premise:
@@ -214,14 +294,15 @@ def check_premises(forge_factory, rule, parameters):
                 satisfies = False
                 break
 
-        if premise_type == "SparqlPremise":
+        if premise_type == PremiseType.SPARQL_PREMISE:
             custom_sparql_view = config.get("sparqlView", None)
             passed = check_sparql_premise(
                 forge, premise, current_parameters, custom_sparql_view)
             if not passed:
                 satisfies = False
                 break
-        elif premise_type == "ForgeSearchPremise":
+                    
+        elif premise_type == PremiseType.FORGE_SEARCH_PREMISE:
             target_param = premise.get("targetParameter", None)
             target_path = premise.get("targetPath", None)
             query = json.loads(
@@ -245,16 +326,25 @@ def check_premises(forge_factory, rule, parameters):
                 if len(resources) == 0:
                     satisfies = False
                     break
-        elif premise_type == "ElasticSearchPremise":
+        elif premise_type == PremiseType.ELASTIC_SEARCH_PREMISE:
             print(premise)
-        else:
-            raise PremiseException("Unknown type of premise")
 
         _restore_default_views(forge)
 
     return satisfies
 
 
+def substitute_multi(idx, name, nb_multi, query_body): 
+    query_split = query_body.split("\n")
+    to_find = "${}".format(name)
+    index = next(i for i, line in enumerate(query_split) if to_find in line)
+    replacement = lambda name, nb: "${}_{}_{} ${}_{}_{}".format(name, nb, "predicate", name, nb, "object")
+    new_lines = [query_split[index].replace(to_find, replacement(name, i)) for i in range(nb_multi)]
+    query_split[index] = "\n".join(new_lines)
+    query_body = "\n".join(query_split)
+    return query_body
+
+                         
 def execute_query(forge_factory, query, parameters, last_query=False):
     """Execute an individual query given parameters.
 
@@ -288,31 +378,52 @@ def execute_query(forge_factory, query, parameters, last_query=False):
     try:
         query_type = _safe_get_type(query)
     except TypeError:
-        raise QueryTypeException("Unknown query type")
+        raise QueryTypeException("Missing query type")
+                    
+    try:
+        query_type = QueryType(query_type)
+    except ValueError:            
+        raise QueryTypeException("Unknown query type {}".format(query_type))
+           
+            
+    # TEST 
+    multi = has_multi(query["hasParameter"], parameters)
+        
+    if multi: 
+        (idx, name, nb_multi) = multi
+        query["hasBody"] = substitute_multi(idx, name, nb_multi, query["hasBody"])
+                         
+    # TEST        
 
-    current_parameters = dict()
     if "hasParameter" in query:
         try:
             current_parameters = _build_parameter_map(
-                forge, query["hasParameter"], parameters, query_type)
+                forge, query["hasParameter"], parameters, query_type, multi=multi)
         except MissingParameterException as e:
             raise QueryException(
                 "Query cannot be executed, one or more parameters " +
                 f"are missing. See the following exception: {e}")
-    resources = None
-    if query_type == "SparqlQuery":
+    else: 
+        current_parameters = dict()
+    
+    resources = None    
+                         
+    if query_type == QueryType.SPARQL_QUERY:
         custom_sparql_view = config.get("sparqlView", None)
         resources = execute_sparql_query(
             forge, query, current_parameters, custom_sparql_view)
-    elif query_type == "ForgeSearchQuery":
+                    
+    elif query_type == QueryType.FORGE_SEARCH_QUERY:
         query = json.loads(
             Template(json.dumps(query["pattern"])).substitute(
                 **current_parameters))
         resources = forge.search(query)
-    elif query_type == "SimilarityQuery":
+                    
+    elif query_type == QueryType.SIMILARITY_QUERY:
         resources = execute_similarity_query(
             forge_factory, forge, query, current_parameters)
-    elif query_type == "ElasticSearchQuery":
+                    
+    elif query_type == QueryType.ELASTIC_SEARCH_QUERY:
         custom_es_view = config.get("elasticSearchView", None)
         resources = execute_es_query(
             forge, query, current_parameters, custom_es_view)
@@ -321,8 +432,7 @@ def execute_query(forge_factory, query, parameters, last_query=False):
                 {"id": el["@id"]}
                 for el in resources
             ]
-    else:
-        raise InferenceToolsException("Unknown type of query")
+        
     _restore_default_views(forge)
     return resources
 
