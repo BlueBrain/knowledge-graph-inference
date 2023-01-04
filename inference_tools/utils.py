@@ -61,6 +61,7 @@ def _follow_path(json_resource, path):
     value = json_resource
     path = path.split(".")
     for el in path:
+        el = el.strip('@')
         if el not in value:
             raise QueryException(
                 f"Invalid path for retrieving results: '{el}' "
@@ -501,7 +502,7 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
             forge, query, current_parameters, custom_es_view)
         if last_query:
             resources = [
-                {"id": el["@id"]}
+                {"id": el["id"]}
                 for el in resources
             ]
         
