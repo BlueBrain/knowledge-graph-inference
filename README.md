@@ -1,132 +1,240 @@
-BBP inference 
-**************
-
-**Rule**: (defined by the ontology)
-
-    {
-        "id": **uri**
-
-        "type": "DataGeneralizationRule"
-
-        "_schemaProject": "https://bbp.epfl.ch/nexus/v1/projects/bbp/inference-rules",
-
-        "description": **str**
-
-        "name": **str**
-
-        "searchQuery": **SearchQuery**
-
-        "premise": **Premise** or [**Premise**] *OPTIONAL*
-
-        "targetResourceType": **uri** *OPTIONAL*
-
-    }
+<span style="color:red">TODO:</span>
+- <span style="color:red">Figure out which fields are optional and which are mandatory</span>
+- <span style="color:red">For some fields that are strings, it's only a valid set of strings that will work (ex: org, project)</span>
 
 
+# Rule
+(defined by the ontology)
+
+       {
+              "id": uri
+              
+              "type": "DataGeneralizationRule"
+              
+              "_schemaProject": "https://bbp.epfl.ch/nexus/v1/projects/bbp/inference-rules"
+              
+              "description": str
+              
+              "name": str
+              
+              "searchQuery": SearchQuery
+              
+              "premise": Premise or [Premise] *OPTIONAL*
+              
+              "targetResourceType": uri *OPTIONAL*
+       }
 
 
-**SearchQuery** :
+# SearchQuery
 
 - **QueryPipe**
 - **Query**
 
-1. **QueryPipe**:
+## 1. QueryPipe
 
-    {
-        "type": "QueryPipe"
+       {
+               "type": "QueryPipe"
+              
+               "head": Query
+              
+               "rest": SearchQuery
+       }
 
-        "head": **Query**
+## 2. Query
 
-        "rest": **SearchQuery**
-    }
+<span style="color:red">(is there a difference between the sparql/es q and p? 
+other than maybe "resultParameterMapping")</span>
 
-2. **Query**:
+- QueryType = "SparqlQuery" or "ElasticSearchQuery"
 
-    {
-        "type": **QueryType**
+        {
+                "type": QueryType
+                
+                "hasParameter": [Parameter] or Parameter
+                
+                "queryConfiguration": QueryConfiguration
+                
+                "resultParameterMapping": ParameterMapping or [ParameterMapping]
+                
+                "hasBody": str
+        }
 
-        "resultParameterMapping": **ParameterMapping** or [**ParameterMapping**]
+- QueryType = "SimilarityQuery"
 
-        "hasBody": **str**
+        {
+        
+                "type": QueryType
+                
+                "hasParameter": [Parameter] or Parameter
+                
+                "queryConfiguration": QueryConfiguration
+                
+                "k": int
+                
+                "searchTargetParameter": str
+        
+        }
 
-        "queryConfiguration: **QueryConfiguration**
-    }
+- QueryType = "ForgeSearchQuery"
 
-TODO this is closer to the Sparql/Elastic queries.
-SimilarityQuery is much different. This also applies to the QueryConfiguration
-which is similar between Sparql and Elastic but much more different for Similarity.
+       {
+              "type": QueryType
+       }
 
+
+---
 **ParameterMapping**
-
-    {
-        "parameterName": **str**
-
-        "path": **str**
-    }
+       
+       {
+               "parameterName": str
+              
+               "path": str
+       }
 
 **Parameter**
+              
+       {
+              "type": ParameterType
+              
+              "description": str *OPTIONAL*
+              
+              "name": str
+              
+              "optional": bool *OPTIONAL*
+       }
+---
+
+# QueryConfiguration
+
+- **SearchQueryConfiguration**
+- **SimilarityQueryConfiguration**
+
+## 1. SearchQueryConfiguration
+
+- SearchQueryConfiguration in a Query & its "type" == ""SparqlQuery"
+
+       {
+              "sparqlView": View OPTIONAL
+              
+              "org": str
+              
+              "project": str
+       }
+
+-  SearchQueryConfiguration in a Query & its "type" == "ElasticSearchQuery"
+
+       {
+              "elasticSearchView": View OPTIONAL
+              
+              "org": str
+              
+              "project": str
+       }
+
+<span style="color:red">Is there a ForgeSearchQueryConfig??</span>
+
+## 2. SimilarityQueryConfiguration
 
     {
-            "type": **ParameterType**
+            "description" str
 
-            "description": **str** *OPTIONAL*
+            "similarityView": View
 
-            "name": **str**
+            "statisticsView" View
 
-            "optional": **bool** *OPTIONAL*
+            "boosted": bool
+
+            "boostingView": View
+
+            "embeddingModel": EmbeddingModel
+
+            "org": str
+
+            "project": str
     }
+___
+**View**
 
-**QueryConfiguration**
+       {
 
-    {
-        "sparqlView" or "elasticSearchView": {
-        "id": **uri**
-        } OPTIONAL
+              "id": uri
 
-        "org": "neurosciencegraph"
+              "type": str
+       
+       }
+<span style="color:red">TODO exhaustive list of view types (ex:    "ElasticSearchView")</span>
 
-        "project": "datamodels"
-    }
+**EmbeddingModel**
+
+       {
+              "id": uri
+              "type": "EmbeddingModel"
+              "hasSelector": {
+                     "type"
+                     "conformsTo"
+                     "value"
+              }
+              "org": str
+              "project": str
+       }
+       
+<span style="color:red">TODO</span>
+____
 
 
-# **Premise**
-
+# Premise
+<span style="color:red">
 (TODO Anything particular or same format as Query)
+<br>
 (TODO Any differences between different Premise Types/QueryTypes ?)
+</span>
 
-1. SparqlPremise
+## 1. SparqlPremise
 
-    {
-        "type": "SparqlPremise",
+       {
+              "type": "SparqlPremise"
+              
+              "hasBody": str
+              
+              "hasParameter": [Parameter] or Parameter
+              
+              "queryConfiguration": QueryConfiguration
+       }
 
-        "hasBody": str (the sparql query)
+hasBody: the sparql query
 
-        "hasParameter": [**Parameter**] or **Parameter**
+## 2. ElasticSearchPremise
 
-        "queryConfiguration": **QueryConfiguration**
-    }
-
-2. ElasticSearchPremise
+<span style="color:red">Not implemented yet??</span>
 
 
-3. ForgeSearchPremise
+## 3. ForgeSearchPremise
+
+<span style="color:red">TODO</span>
+
+       {
+              "targetParameter"
+
+              "targetPath"
+
+              "pattern"
+       }
 
 
+# Types
 
-Types
-
-1. **QueryType**:
+## 1. QueryType
     - "SparqlQuery"
     - "ElasticSearchQuery"
     - "SimilarityQuery"
     - "ForgeSearchQuery"
 
-2. **PremiseType**
+## 2. PremiseType
     - "SparqlPremise"
     - "ElasticSearchPremise"
     - "ForgeSearchPremise"
 
-3. **ParameterType**
+## 3. ParameterType
     - "list"
     - "uri_list"
     - "sparql_value_list"
