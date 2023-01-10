@@ -8,6 +8,7 @@ class ParameterType(Enum):
     URI_LIST = "uri_list"
     SPARQL_VALUE_LIST = "sparql_value_list"
     SPARQL_VALUE_URI_LIST = "sparql_value_uri_list"
+    SPARQL_LIST = "sparql_list"
     URI = "uri"
     STR = "str"
     PATH = "path"

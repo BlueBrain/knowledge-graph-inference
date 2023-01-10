@@ -30,7 +30,7 @@ setup(
         "pandas",
         "nexus-sdk",
         "bluegraph",
-        "nexusforge==0.7.0",
+        "nexusforge>=0.7.0",
     ],
     extras_require={
         "dev": [

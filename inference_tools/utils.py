@@ -237,7 +237,12 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, mu
                 # (hard to say in general because it depends on the indexing)
                 param_map[name] = ", ".join([
                     f"\"{el}\"" for el in provided_value])
-
+        
+        elif parameter_type == ParameterType.SPARQL_LIST: 
+            tmp = ", ".join([
+                f"<{el}>" for el in provided_value])
+            param_map[name] = f"({tmp})"
+            
         elif parameter_type == ParameterType.SPARQL_VALUE_LIST:
             if query_type not in sparql_valid:
                 raise QueryException(
