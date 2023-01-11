@@ -68,7 +68,17 @@ def _follow_path(json_resource, path):
 
 
 def has_multi(parameter_spec, parameter_values): 
-    
+    """
+    Checks whether within the rule parameters (parameter specification),
+    a parameter of type MultiPredicateObjectPair exists.
+
+    @param parameter_spec: the parameter specification of a rule
+    @param parameter_values: the parameter values specified by the user
+    @return: If a parameter of this type exists, returns the name of the parameter,
+        its index within the parameters specifications array, and
+        the number of predicate-object pairs specified by the user in the parameter values
+        else returns None
+    """
     if isinstance(parameter_spec, dict):
         parameter_spec = [parameter_spec]
         
@@ -89,9 +99,30 @@ def has_multi(parameter_spec, parameter_values):
     
     return None
     
-            
-def multi_predicate_object_pair(idx, parameter_spec, parameter_values): 
-    
+
+
+def multi_predicate_object_pair(idx, parameter_spec, parameter_values):
+    """
+    Predicate-object pairs are pairs of type-value pairs specified by the user of the rule to add additional
+    properties of an entity to retrieve in a SPARQL query's WHERE statement.
+    They are injected into the query, as such, each predicate and object become query parameters.
+    These type-value pairs are split into:
+    - an entry into the parameter specifications with
+         - name: the MultiPredicateObject parameter name concatenated
+        with "object" or "predicate" and the object-predicate pair index,
+         - type: the type component of the type-value pair
+    - an entry into the parameter values with:
+        - name: the MultiPredicateObject parameter name concatenated
+        with "object" or "predicate" and the object-pair pair index,
+        - value: the value component of the type-value pair
+
+    @param idx: The index in the parameter specifications of the parameter of type MultiPredicateObjectPair
+    @param parameter_spec: the parameter specifications of the rule
+    @param parameter_values: the parameter values as specified by the user
+    @return: new parameter specifications and values, with the information specified by the user in the
+    parameter values appropriately reorganized in the parameter specifications and parameter values so that future
+    steps can treat these parameters the way standard ParameterType.s are being treated
+    """
     spec = parameter_spec[idx]
     del parameter_spec[idx]
     name = spec["name"]
