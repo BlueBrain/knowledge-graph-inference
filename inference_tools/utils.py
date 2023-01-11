@@ -2,8 +2,6 @@
 import json
 import warnings
 
-from enum import Enum 
-
 from string import Template
 
 
@@ -21,7 +19,8 @@ from inference_tools.exceptions import (InferenceToolsWarning,
                                         PremiseException,
                                         PremiseTypeException,
                                         QueryException,
-                                        QueryTypeException)
+                                        QueryTypeException,
+                                        InvalidParameterException)
 
 from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
@@ -67,7 +66,7 @@ def _follow_path(json_resource, path):
     return value
 
 
-def has_multi(parameter_spec, parameter_values): 
+def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
     """
     Checks whether within the rule parameters (parameter specification),
     a parameter of type MultiPredicateObjectPair exists.
@@ -101,7 +100,7 @@ def has_multi(parameter_spec, parameter_values):
     
 
 
-def multi_predicate_object_pair(idx, parameter_spec, parameter_values):
+def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parameter_values):
     """
     Predicate-object pairs are pairs of type-value pairs specified by the user of the rule to add additional
     properties of an entity to retrieve in a SPARQL query's WHERE statement.
@@ -168,7 +167,7 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, mu
                       
     if multi: 
         (idx, name, nb_multi) = multi
-        parameter_spec, parameter_values = multi_predicate_object_pair(idx, parameter_spec, parameter_values)
+        parameter_spec, parameter_values = multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parameter_values)
         
     sparql_valid = [
         PremiseType.SPARQL_PREMISE,
@@ -365,7 +364,20 @@ def check_premises(forge_factory, rule, parameters):
     return satisfies
 
 
-def substitute_multi(idx, name, nb_multi, query_body): 
+
+def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
+    """
+    Rewrite the query in order to have the line where the parameter of name "name"
+    duplicated for as many predicate-pairs there are and two parameters on each line,
+    one for the predicate, one for the object, with a parameter naming following the one of
+    @see multi_predicate_object_pairs_parameter_rewriting
+
+    @param name: the name of the MultiPredicateObjectPairs parameter
+    @param nb_multi: the number of predicate-object pairs, and therefore of
+     duplication of the line where the parameter is located
+    @param query_body: the query body where the rewriting of parameter placeholders is done
+    @return: the rewritten query body
+    """
     query_split = query_body.split("\n")
     to_find = "${}".format(name)
     index = next(i for i, line in enumerate(query_split) if to_find in line)
@@ -415,18 +427,17 @@ def execute_query(forge_factory, query, parameters, last_query=False):
         query_type = QueryType(query_type)
     except ValueError:            
         raise QueryTypeException("Unknown query type {}".format(query_type))
-           
-            
-    # TEST 
-    multi = has_multi(query["hasParameter"], parameters)
-        
-    if multi: 
-        (idx, name, nb_multi) = multi
-        query["hasBody"] = substitute_multi(idx, name, nb_multi, query["hasBody"])
-                         
-    # TEST        
 
     if "hasParameter" in query:
+
+        multi = has_multi_predicate_object_pairs(query["hasParameter"], parameters)
+        if multi:
+            if query_type == QueryType.SPARQL_QUERY:
+                (idx, name, nb_multi) = multi
+                query["hasBody"] = multi_predicate_object_pairs_query_rewriting(name, nb_multi, query["hasBody"])
+            else:
+                raise InvalidParameterException("A MultiPredicateObjectPair parameter can only be used in a Sparql query")
+
         try:
             current_parameters = _build_parameter_map(
                 forge, query["hasParameter"], parameters, query_type, multi=multi)
