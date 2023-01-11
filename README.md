@@ -243,3 +243,50 @@ hasBody: the sparql query
     - "str"
     - "path" # TEMP
     - "MultiPredicateObjectPair" # TEMP
+
+
+Rewriting of parameters: 
+
+- "list": `"a", "b", "c", "d"`
+- "uri_list" `<expanded(a)>, <expanded(b)>, <expanded(c)>` if in a SparqlQuery/SparqlPremise, else same as "list"
+- "sparql_value_list": `("a") \n ("b") \n ("c")`
+- "sparql_value_uri_list": `(<expanded(a)>) \n (<expanded(b)>) \n (<expanded(c)>)`
+- "sparql_list" `(<a>, <b> ,<c>)` <span style="color:red"># TODO rename something more fitting? # TEMP, from new_rule branch </span>
+- "uri": `expanded(a)`, will only get the first element if an array is provided
+- "str": `"a"`, will only get the first element if an array is provided
+- "path": `a` <span style="color:red"># TEMP, from multipredicateobjectpair branch</span>
+- "MultiPredicateObjectPair" <span style="color:red"># TEMP, from multipredicateobjectpair branch</span> # should be in a SPARQL query
+
+
+The parameter `$whatever` of type `MultiPredicateObjectPair` is a list of requirements, specified as pairs of predicate and objects (they themselves are a pair, indicating their value, and their `ParameterType` any of the ones defined above)
+
+Example usage of `$whatever`: 
+
+       SELECT ?id ?br
+       WHERE {
+              ?id $whatever .
+              ?id nsg:brainLocation/nsg:brainRegion ?br .
+       }
+
+Example value for `$whatever`: 
+
+       [
+              (
+                     ("rdf:type", "path"), 
+                     ("<https://neuroshapes.org/NeuronMorphology>", "path")
+              ),
+              (
+                     ("contribution/agent", "path"), 
+                     ("<https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028>", "path")
+              )
+       ]
+
+The query is rewritten as: 
+
+
+       SELECT ?id ?br
+       WHERE { 
+              ?id rdf:type <https://neuroshapes.org/NeuronMorphology> .
+              ?id nsg:contribution/prov:agent <https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028> .
+              ?id nsg:brainLocation/nsg:brainRegion ?br .
+       }
