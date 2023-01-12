@@ -102,7 +102,7 @@ def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
 
 def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parameter_values):
     """
-    Predicate-object pairs are pairs of type-value pairs specified by the user of the rule to add additional
+    Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user of the rule to add additional
     properties of an entity to retrieve in a SPARQL query's WHERE statement.
     They are injected into the query, as such, each predicate and object become query parameters.
     These type-value pairs are split into:
@@ -268,7 +268,7 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, mu
     return param_map
 
 
-def check_premises(forge_factory, rule, parameters):
+def check_premises(forge_factory, rule, parameters, debug=False):
     """Check if the rule premises are satisfied given the parameters.
 
     Parameters
@@ -388,7 +388,7 @@ def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
     return query_body
 
                          
-def execute_query(forge_factory, query, parameters, last_query=False):
+def execute_query(forge_factory, query, parameters, last_query=False, debug=False):
     """Execute an individual query given parameters.
 
     Parameters
@@ -453,7 +453,7 @@ def execute_query(forge_factory, query, parameters, last_query=False):
     if query_type == QueryType.SPARQL_QUERY:
         custom_sparql_view = config.get("sparqlView", None)
         resources = execute_sparql_query(
-            forge, query, current_parameters, custom_sparql_view)
+            forge, query, current_parameters, custom_sparql_view, debug=debug)
                     
     elif query_type == QueryType.FORGE_SEARCH_QUERY:
         query = json.loads(
@@ -479,7 +479,7 @@ def execute_query(forge_factory, query, parameters, last_query=False):
     return resources
 
 
-def execute_query_pipe(forge_factory, head, parameters, rest=None):
+def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
     """Execute a query pipe given the input parameters.
 
     This recursive function executes pipes of queries and performs
@@ -506,12 +506,12 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
 
         if head_type == "QueryPipe":
             return execute_query_pipe(
-                forge_factory, head["head"], parameters, head["rest"])
+                forge_factory, head["head"], parameters, head["rest"], debug=debug)
         else:
             return execute_query(
-                forge_factory, head, parameters, last_query=True)
+                forge_factory, head, parameters, last_query=True, debug=debug)
     else:
-        result = execute_query(forge_factory, head, parameters)
+        result = execute_query(forge_factory, head, parameters, debug=debug)
 
         # Compute new parameters combining old parameters and the result
         new_parameters = {**parameters}
@@ -532,13 +532,13 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None):
                 "Invalid query pipe: unknown query type of the rest")
         if rest_type == "QueryPipe":
             return execute_query_pipe(
-                forge_factory, rest["head"], new_parameters, rest["rest"])
+                forge_factory, rest["head"], new_parameters, rest["rest"], debug=debug)
         else:
             return execute_query(
-                forge_factory, rest, new_parameters, last_query=True)
+                forge_factory, rest, new_parameters, last_query=True, debug=debug)
 
 
-def apply_rule(forge_factory, rule, parameters, premise_check=True):
+def apply_rule(forge_factory, rule, parameters, premise_check=True, debug=False):
     """Apply a rule given the input parameters.
 
     This function, first, checks if the premises of the rule are satisfied.
@@ -555,12 +555,12 @@ def apply_rule(forge_factory, rule, parameters, premise_check=True):
         Parameter dictionary to use in premises and search queries.
     """
     if premise_check:
-        satisfies = check_premises(forge_factory, rule, parameters)
+        satisfies = check_premises(forge_factory, rule, parameters, debug)
     else:
         satisfies = True
     if satisfies:
         res = execute_query_pipe(
-            forge_factory, rule["searchQuery"], parameters)
+            forge_factory, rule["searchQuery"], parameters, debug)
         return res
     else:
         warnings.warn(

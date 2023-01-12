@@ -14,7 +14,7 @@ def set_sparql_view(forge, view):
         (views_endpoint, quote_plus(view), "sparql"))
 
 
-def execute_sparql_query(forge, query, parameters, custom_sparql_view=None):
+def execute_sparql_query(forge, query, parameters, custom_sparql_view=None, debug=False):
     if custom_sparql_view is not None:
         view_id = (
             custom_sparql_view.get("id")
@@ -24,7 +24,7 @@ def execute_sparql_query(forge, query, parameters, custom_sparql_view=None):
         set_sparql_view(forge, view_id)
     query = Template(
         query["hasBody"]).substitute(**parameters)
-    return forge.as_json(forge.sparql(query, limit=None))
+    return forge.as_json(forge.sparql(query, limit=None, debug=debug))
 
 
 def check_sparql_premise(forge, query, parameters, custom_sparql_view=None):
