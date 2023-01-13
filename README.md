@@ -61,28 +61,47 @@ other than maybe "resultParameterMapping")</span>
 
 - QueryType = "SimilarityQuery"
 
-        {
-        
-                "type": QueryType
-                
-                "hasParameter": [Parameter] or Parameter
-                
-                "queryConfiguration": QueryConfiguration
-                
-                "k": int
-                
-                "searchTargetParameter": str
-        
-        }
+       {
+       
+              "type": QueryType
+              
+              "hasParameter": [Parameter] or Parameter
+              
+              "queryConfiguration": QueryConfiguration
+              
+              "k": int
+              
+              "searchTargetParameter": str
+       
+       }
 
 - QueryType = "ForgeSearchQuery"
 
        {
               "type": QueryType
+
+              "hasParameter": [Parameter] or Parameter
+
+              "queryConfiguration": QueryConfiguration
+
+              "targetParameter": str
+
+              "targetPath" : str
+
+              "pattern" : ParameterizedPattern
        }
 
 
 ---
+
+**ParameterizedPattern** 
+
+       {
+
+              "type": str
+              
+       }
+
 **ParameterMapping**
        
        {
