@@ -327,7 +327,7 @@ def check_premises(forge_factory, rule, parameters, debug=False):
         if premise_type == PremiseType.SPARQL_PREMISE:
             custom_sparql_view = config.get("sparqlView", None)
             passed = check_sparql_premise(
-                forge, premise, current_parameters, custom_sparql_view)
+                forge, premise, current_parameters, custom_sparql_view, debug=debug)
             if not passed:
                 satisfies = False
                 break
@@ -338,7 +338,7 @@ def check_premises(forge_factory, rule, parameters, debug=False):
             query = json.loads(
                 Template(json.dumps(premise["pattern"])).substitute(
                     **current_parameters))
-            resources = forge.search(query)
+            resources = forge.search(query, debug=debug)
             if not isinstance(resources, list):
                 resources = [resources]
             if target_param:
@@ -555,12 +555,12 @@ def apply_rule(forge_factory, rule, parameters, premise_check=True, debug=False)
         Parameter dictionary to use in premises and search queries.
     """
     if premise_check:
-        satisfies = check_premises(forge_factory, rule, parameters, debug)
+        satisfies = check_premises(forge_factory, rule, parameters, debug=debug)
     else:
         satisfies = True
     if satisfies:
         res = execute_query_pipe(
-            forge_factory, rule["searchQuery"], parameters, debug)
+            forge_factory, rule["searchQuery"], parameters, debug=debug)
         return res
     else:
         warnings.warn(

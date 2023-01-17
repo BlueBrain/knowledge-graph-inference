@@ -27,9 +27,9 @@ def execute_sparql_query(forge, query, parameters, custom_sparql_view=None, debu
     return forge.as_json(forge.sparql(query, limit=None, debug=debug))
 
 
-def check_sparql_premise(forge, query, parameters, custom_sparql_view=None):
+def check_sparql_premise(forge, query, parameters, custom_sparql_view=None, debug=False):
     results = execute_sparql_query(
-        forge, query, parameters, custom_sparql_view)
+        forge, query, parameters, custom_sparql_view, debug=debug)
     if len(results) > 0:
         return True
     return False
