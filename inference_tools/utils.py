@@ -22,6 +22,8 @@ from inference_tools.exceptions import (InferenceToolsWarning,
                                         QueryTypeException,
                                         InvalidParameterException)
 
+from kgforge.core import KnowledgeGraphForge
+
 from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
     
@@ -65,6 +67,28 @@ def _follow_path(json_resource, path):
         value = value[el]
     return value
 
+
+def _allocate_forge_session(org, project, config_file_path, endpoint=None, searchendpoints=None, token_file_path=None):
+    
+    if token_file_path is not None: 
+        with open(token_file_path) as f:
+            TOKEN = f.read()
+    else: 
+        TOKEN = getpass.getpass()
+        
+    ENDPOINT = endpoint if endpoint else "https://bbp.epfl.ch/nexus/v1"  
+    
+    return KnowledgeGraphForge(
+        config_file_path,
+        endpoint=ENDPOINT,
+        token=TOKEN, 
+        bucket=f"{org}/{project}", 
+        searchendpoints=searchendpoints,
+        debug=True
+    )
+
+    
+    
 
 def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
     """
