@@ -628,7 +628,7 @@ def fetch_rules(forge, rule_view_id, resource_types=None):
             }
         """)
     else:
-        resource_type_repr = "".join([f"\"{t}\"" for t in resource_types])
+        resource_type_repr = ",".join([f"\"{t}\"" for t in resource_types])
         rules = forge.elastic(f"""{{
           "query": {{
             "bool": {{
