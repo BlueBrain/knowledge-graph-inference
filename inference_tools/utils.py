@@ -25,6 +25,7 @@ from inference_tools.exceptions import (InferenceToolsWarning,
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.type import (ParameterType, QueryType, PremiseType)
+import getpass
 
     
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
