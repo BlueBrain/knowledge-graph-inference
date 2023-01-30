@@ -6,3 +6,4 @@ seu_morphologies/*
 *.egg-info/*
 **/__pycache__/
 data/morphologies/
+build/

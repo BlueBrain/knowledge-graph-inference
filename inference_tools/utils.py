@@ -10,8 +10,6 @@ from inference_tools.query.sparql import (set_sparql_view,
                                           check_sparql_premise,
                                           execute_sparql_query)
 from inference_tools.query.elastic_search import (set_elastic_view,
-                                                  get_elastic_view_endpoint,
-                                                  set_elastic_view_endpoint,
                                                   execute_es_query)
 from inference_tools.exceptions import (InferenceToolsWarning,
                                         MissingParameterException,
@@ -20,7 +18,8 @@ from inference_tools.exceptions import (InferenceToolsWarning,
                                         PremiseTypeException,
                                         QueryException,
                                         QueryTypeException,
-                                        InvalidParameterException)
+                                        InvalidParameterException,
+                                        IncompleteRuleWarning)
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -348,7 +347,7 @@ def check_premises(forge_factory, rule, parameters, debug=False):
                     forge, premise["hasParameter"], parameters, premise_type)
             except MissingParameterException as e:
                 warnings.warn(
-                    "Premise is not satified, one or more parameters " +
+                    "Premise is not satisfied, one or more parameters " +
                     f"are missing. See the following exception: {e}",
                     MissingParameterWarning)
                 satisfies = False
@@ -598,57 +597,75 @@ def apply_rule(forge_factory, rule, parameters, premise_check=True, debug=False)
             InferenceToolsWarning)
 
 
-def fetch_rules(forge, rule_view_id, resource_types=None):
-    """Get all the rules using provided view.
 
-    Parameters
-    ----------
-    forge : KnowledgeGraphForge
-        Instance of a forge session
-    rule_view_id : str
-        Id of the view to use when retrieving rules
-    resource_types : list, optional
-        List of resource types to fetch the rules for
+def get_premise_parameters(rule):
+    if "premise" not in rule:
+        return {}
 
-    Returns
-    -------
-    rules : list of dict
-        Result rule payloads
-    """
-    old_endpoint = get_elastic_view_endpoint(forge)
-    set_elastic_view(forge, rule_view_id)
-    if resource_types is None:
-        rules = forge.elastic("""
-            {
-              "query": {
-                "term": {
-                  "_deprecated": false
-                }
-              }
-            }
-        """)
-    else:
-        resource_type_repr = ",".join([f"\"{t}\"" for t in resource_types])
-        rules = forge.elastic(f"""{{
-          "query": {{
-            "bool": {{
-                "must": [
-                    {{
-                       "terms": {{"targetResourceType": [{resource_type_repr}]}}
-                    }},
-                    {{
-                        "term": {{"_deprecated": false}}
-                    }}
-                ]
-             }}
-           }}
-        }}""")
+    premise_params = {}
 
-    set_elastic_view_endpoint(forge, old_endpoint)
+    if isinstance(rule["premise"], dict):
+        rule["premise"] = [rule["premise"]]
+    for premise in rule["premise"]:
+        params = (
+            premise["hasParameter"]
+            if isinstance(premise["hasParameter"], list)
+            else [premise["hasParameter"]]
+        )
+        for p in params:
+            premise_params[p["name"]] = p
 
-    rules = forge.as_json(rules)
-    return rules
+    return premise_params
 
+def get_query_pipe_params(query):
+
+    def _add_input_params(input_params, all_params, prev_output_params=None):
+        if prev_output_params is None:
+            prev_output_params = []
+
+        new_params = (
+            input_params
+            if isinstance(input_params, list)
+            else [input_params]
+        )
+        for p in new_params:
+            if p["name"] not in prev_output_params:
+                all_params[p["name"]] = p
+
+    def _get_output_params(query):
+        param_mapping = query.get("resultParameterMapping", [])
+        result_params = (
+            param_mapping
+            if isinstance(param_mapping, list)
+            else [param_mapping]
+        )
+        return [p["parameterName"] for p in result_params]
+
+    def _get_head_rest(query):
+        try:
+            query_type = _safe_get_type(query)
+        except TypeError:
+            raise QueryException(
+                "Unknown query type")
+
+        if query_type == "QueryPipe":
+            return query["head"], query["rest"]
+        else:
+            return query, None
+
+    params = {}
+
+    head, rest = _get_head_rest(query)
+    _add_input_params(head.get("hasParameter", []), params)
+    output_params = _get_output_params(head)
+
+    while rest is not None:
+        head, rest = _get_head_rest(rest)
+        _add_input_params(
+            head.get("hasParameter", []), params, output_params)
+        output_params = _get_output_params(head)
+
+    return params
 
 def get_rule_parameters(rule):
     """Get parameters of the input rule.
@@ -664,76 +681,16 @@ def get_rule_parameters(rule):
         Dictionary with all the input parameters. Keys are parameter names,
         values are full parameter payloads.
     """
-    def _add_input_params(input_params, all_params, prev_output_params=None):
-        if prev_output_params is None:
-            prev_output_params = []
-
-        new_params = (
-            input_params
-            if isinstance(input_params, list)
-            else [input_params]
-        )
-        for p in new_params:
-            if p["name"] not in prev_output_params:
-                all_params[p["name"]] = p
- 
-    def _get_output_params(query):
-        param_mapping = query.get("resultParameterMapping", [])
-        result_params = (
-            param_mapping
-            if isinstance(param_mapping, list)
-            else [param_mapping]
-        )
-        return [p["parameterName"] for p in result_params]
-    
-    def _get_head_rest(query):
-        head = None
-        rest = None
-
-        try:
-            query_type = _safe_get_type(query)
-        except TypeError:
-            raise QueryException(
-                "Unknown query type")
-
-        if query_type == "QueryPipe":
-            head = query["head"]
-            rest = query["rest"]
-        else:
-            head = query
-        return head, rest
-    
-    def _get_pipe_params(query):
-        params = {}
-        
-        head, rest = _get_head_rest(query)
-        _add_input_params(head.get("hasParameter", []), params)
-        output_params = _get_output_params(head)
-
-        while rest is not None:
-            head, rest = _get_head_rest(rest)
-            _add_input_params(
-                head.get("hasParameter", []), params, output_params)
-            output_params = _get_output_params(head)
-
-        return params
 
     # Get premise parameters
-    premise_params = {}
-    if "premise" in rule:
-        if isinstance(rule["premise"], dict):
-            rule["premise"] = [rule["premise"]]
-        for premise in rule["premise"]:
-            params = (
-                premise["hasParameter"]
-                if isinstance(premise["hasParameter"], list)
-                else [premise["hasParameter"]]
-            )
-            for p in params:
-                premise_params[p["name"]] = p
+    premise_params = get_premise_parameters(rule)
 
     # Get query parameters
-    search_params = _get_pipe_params(rule["searchQuery"])
+    if "searchQuery" in rule:
+        search_params = get_query_pipe_params(rule["searchQuery"])
+    else:
+        raise IncompleteRuleWarning(
+            f'The rule {rule["name"]} has been created with missing mandatory information')
 
     all_params = {**premise_params, **search_params}
     return all_params

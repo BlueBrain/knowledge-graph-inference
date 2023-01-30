@@ -7,17 +7,21 @@ class MissingParameterException(InferenceToolsException):
     """Exception for missing query/premise parameters."""
     pass
 
+
 class InvalidParameterException(InferenceToolsException):
     """Exception for invalid query/premise parameters."""
     pass
+
 
 class PremiseException(InferenceToolsException):
     """Exception in premise checking."""
     pass
 
+
 class PremiseTypeException(InferenceToolsException):
     """Exception in premise checking."""
     pass
+
 
 class QueryException(InferenceToolsException):
     """Generic exception in querying."""
@@ -46,4 +50,8 @@ class SearchWarning(UserWarning):
 
 class MissingParameterWarning(UserWarning):
     """Missing parameter warning."""
+    pass
+
+
+class IncompleteRuleWarning(UserWarning):
     pass
