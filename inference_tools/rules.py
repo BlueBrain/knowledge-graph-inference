@@ -3,7 +3,7 @@ from inference_tools.query.elastic_search import (set_elastic_view,
                                                   set_elastic_view_endpoint)
 from inference_tools.query.sparql import execute_sparql_query
 from inference_tools.utils import _build_parameter_map
-from inference_tools.type import QueryType
+from inference_tools.type import QueryType, ParameterType
 
 
 def get_resource_type_descendants(forge, types):
@@ -20,13 +20,13 @@ def get_resource_type_descendants(forge, types):
     current_parameters = _build_parameter_map(
         forge, [
             {
-                "type": "sparql_value_uri_list",
+                "type": ParameterType.SPARQL_VALUE_URI_LIST.value,
                 "name": "types"
             }
         ], {"types": types}, QueryType.SPARQL_QUERY, multi=False)
 
     res = execute_sparql_query(
-        forge, query, current_parameters, custom_sparql_view=None, debug=False)
+        forge, query, current_parameters, custom_sparql_view=None, debug=True)
 
     return [obj["label"] for obj in res]
 
@@ -37,13 +37,16 @@ def fetch_rules(forge_rules, forge_datamodels, rule_view_id, resource_types=None
 
     Parameters
     ----------
-    forge : KnowledgeGraphForge
-        Instance of a forge session
+    forge_rules : KnowledgeGraphForge
+        Instance of a forge session connected to a rules bucket
+    forge_datamodels : KnowledgeGraphForge
+        Instance of a forge session connected to a datamodels bucket
     rule_view_id : str
-        Id of the view to use when retrieving rules
+        id of the view to use when retrieving rules
     resource_types : list, optional
         List of resource types to fetch the rules for
-
+    resource_types_descendants: bool, optional
+        Whether the rule's resource type can be a parent of the queried resource types
     Returns
     -------
     rules : list of dict
