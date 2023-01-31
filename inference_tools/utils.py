@@ -508,20 +508,22 @@ def get_premise_parameters(rule):
 
 
 def get_query_pipe_params(query):
-    def _add_input_params(input_params, all_params, prev_output_params=None):
+
+    # TODO bug: if prev_output_parameters comes from 2 steps above in the query pipe it doesn't work
+    def _get_input_params(input_params, prev_output_params=None):
+
         if prev_output_params is None:
             prev_output_params = []
 
         new_params = _enforce_list(input_params)
 
-        for p in new_params:
-            if p["name"] not in prev_output_params:
-                all_params[p["name"]] = p
+        return dict([(p["name"], p) for p in new_params if p["name"] not in prev_output_params])
 
     def _get_output_params(query):
         param_mapping = query.get("resultParameterMapping", [])
-        result_params = _enforce_list(param_mapping)
-        return [p["parameterName"] for p in result_params]
+        if len(param_mapping) == 0:
+            return []
+        return [p["parameterName"] for p in _enforce_list(param_mapping)]
 
     def _get_head_rest(query):
         try:
@@ -534,19 +536,16 @@ def get_query_pipe_params(query):
         else:
             return query, None
 
-    params = {}
-
-    head, rest = _get_head_rest(query)
-    _add_input_params(head.get("hasParameter", []), params)
-    output_params = _get_output_params(head)
+    input_params = {}
+    output_params = []
+    rest = query
 
     while rest is not None:
         head, rest = _get_head_rest(rest)
-        _add_input_params(
-            head.get("hasParameter", []), params, output_params)
-        output_params = _get_output_params(head)
+        input_params.update(_get_input_params(head.get("hasParameter", []), output_params))
+        output_params += _get_output_params(head)
 
-    return params
+    return input_params
 
 
 def get_rule_parameters(rule):
