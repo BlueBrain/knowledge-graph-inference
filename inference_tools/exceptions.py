@@ -39,9 +39,9 @@ class InvalidValueException(InferenceToolsException):
         super().__init__(self.message)
 
 
-class UnsupportedParameterTypeException(InferenceToolsException):
-    def __init__(self, parameter_type):
-        self.message = f"Missing implementation for parameter type {parameter_type.value}"
+class UnsupportedTypeException(InferenceToolsException):
+    def __init__(self, parameter_type, type_type):
+        self.message = f"Missing implementation for {type_type} {parameter_type.value}"
 
         super().__init__(self.message)
 

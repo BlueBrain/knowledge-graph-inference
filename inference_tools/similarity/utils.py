@@ -57,9 +57,14 @@ def get_embedding_vector(forge, search_target):
           }
         }
     """
-    vector_query = Template(vector_query).substitute(
-        {"_searchTarget": search_target})
+    vector_query = Template(vector_query).substitute({"_searchTarget": search_target})
+
     result = forge.elastic(vector_query)
+
+    if len(result) == 0:
+        raise SimilaritySearchException(
+            f"Could not get embedding vector for {search_target}")
+
     result = forge.as_json(result)[0]
     vector_id = result["@id"]
     vector = result["embedding"]
@@ -189,7 +194,11 @@ def query_similar_resources(forge_factory, forge, query, config, parameters, k):
     target_parameter = query.get("searchTargetParameter", None)
     if target_parameter is None:
         raise SimilaritySearchException("Target parameter is not specified")
-    search_target = parameters[target_parameter]
+
+    search_target = parameters.get(target_parameter, None)
+    if search_target is None:
+        raise SimilaritySearchException("Target parameter value is not specified")
+
     vector_id, vector = get_embedding_vector(forge, search_target)
 
     # TODO: Retrieve score formula from the model

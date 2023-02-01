@@ -20,11 +20,20 @@ def _follow_path(json_resource, path):
     """Follow a path in a JSON-resource."""
     value = json_resource
     path = path.split(".")
+
     for el in path:
         if el not in value:
-            raise InferenceToolsException(
-                f"Invalid path for retrieving results: '{el}' "
-                "is not in the path.")
+            ex = InferenceToolsException(
+                f"Invalid path for retrieving results: '{el}' is not in the path.")
+
+            if el != "@id":
+                raise ex
+
+            if "id" in value:
+                el = "id"
+            else:
+                raise ex
+
         value = value[el]
     return value
 

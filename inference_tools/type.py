@@ -1,6 +1,6 @@
 from enum import Enum
 from inference_tools.helper_functions import _enforce_unique, _expand_uri
-from inference_tools.exceptions import UnsupportedParameterTypeException, InvalidParameterTypeException
+from inference_tools.exceptions import UnsupportedTypeException, InvalidParameterTypeException
 
 
 class ParameterType(Enum):
@@ -89,7 +89,7 @@ def format_parameter(provided_value, parameter_type, query_type, forge):
             format_string, join_string, expand, wrap_string = "(<{}>)", "\n", True, None
 
         else:
-            raise UnsupportedParameterTypeException(parameter_type)
+            raise UnsupportedTypeException(parameter_type, "parameter type")
 
         return format_list_value(provided_value, expand=expand, format_string=format_string,
                                  join_string=join_string, wrap_string=wrap_string)
@@ -118,6 +118,6 @@ def format_parameter(provided_value, parameter_type, query_type, forge):
             else:
                 format_string, expand = None, True
         else:
-            raise UnsupportedParameterTypeException(parameter_type)
+            raise UnsupportedTypeException(parameter_type, "parameter type")
 
         return format_value(format_string, value, expand)

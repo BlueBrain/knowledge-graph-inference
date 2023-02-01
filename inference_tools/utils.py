@@ -15,6 +15,7 @@ from inference_tools.exceptions import (InferenceToolsWarning,
                                         InvalidValueException,
                                         IncompleteObjectException,
                                         InvalidParameterTypeException,
+                                        UnsupportedTypeException,
                                         ObjectType
                                         )
 
@@ -47,15 +48,28 @@ def _allocate_forge_session(org, project, config_file_path, endpoint=None, searc
 
     ENDPOINT = endpoint if endpoint else "https://bbp.epfl.ch/nexus/v1"
 
-    return KnowledgeGraphForge(
-        config_file_path,
-        endpoint=ENDPOINT,
-        token=TOKEN,
-        bucket=f"{org}/{project}",
-        searchendpoints=searchendpoints,
-        debug=True
-    )
+    bucket = f"{org}/{project}"
 
+    DEBUG = False
+
+    if searchendpoints:
+
+        return KnowledgeGraphForge(
+            config_file_path,
+            endpoint=ENDPOINT,
+            token=TOKEN,
+            bucket=bucket,
+            searchendpoints=searchendpoints,
+            debug=DEBUG
+        )
+    else:
+        return KnowledgeGraphForge(
+            config_file_path,
+            endpoint=ENDPOINT,
+            token=TOKEN,
+            bucket=bucket,
+            debug=DEBUG
+        )
 
 def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
     """
@@ -230,7 +244,6 @@ def check_premises(forge_factory, rule, parameters, debug=False):
         except ValueError:
             raise InvalidValueException(attribute="premise type", value=premise_type)
 
-        current_parameters = dict()
         if "hasParameter" in premise:
             try:
                 current_parameters = _build_parameter_map(
@@ -242,6 +255,8 @@ def check_premises(forge_factory, rule, parameters, debug=False):
                     InferenceToolsWarning)
                 satisfies = False
                 break
+        else:
+            current_parameters = dict()
 
         if premise_type == PremiseType.SPARQL_PREMISE:
             custom_sparql_view = config.get("sparqlView", None)
@@ -277,8 +292,9 @@ def check_premises(forge_factory, rule, parameters, debug=False):
                     satisfies = False
                     break
         elif premise_type == PremiseType.ELASTIC_SEARCH_PREMISE:
-            print(premise)
-            # TODO
+            raise UnsupportedTypeException(premise_type.value, "premise type")  # TODO
+        else:
+            raise UnsupportedTypeException(premise_type.value, "premise type")
 
         _restore_default_views(forge)
 
@@ -320,6 +336,8 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
         JSON-representation of a query
     parameters : dict, optional
         Parameter dictionary to use in the query.
+    last_query: bool, optional
+    debug: bool, optional
 
     Returns
     -------
@@ -327,6 +345,7 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
         List of the result resources
     """
     config = query.get("queryConfiguration", None)
+
     if config is None:
         raise IncompleteObjectException(object_type=ObjectType.QUERY, attribute="queryConfiguration")
 
@@ -349,7 +368,6 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
         raise InvalidValueException(attribute="query type", value=query_type)
 
     if "hasParameter" in query:
-
         multi = has_multi_predicate_object_pairs(query["hasParameter"], parameters)
         if multi:
             if query_type == QueryType.SPARQL_QUERY:
@@ -367,8 +385,6 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
                 f"are missing. See the following exception: {e}")
     else:
         current_parameters = dict()
-
-    resources = None
 
     if query_type == QueryType.SPARQL_QUERY:
         custom_sparql_view = config.get("sparqlView", None)
@@ -391,9 +407,11 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
             forge, query, current_parameters, custom_es_view)
         if last_query:
             resources = [
-                {"id": el["@id"]}
+                {"id": el["@id"] if "@id" in el else el["id"]}
                 for el in resources
             ]
+    else:
+        raise UnsupportedTypeException(query_type.value, "query type")
 
     _restore_default_views(forge)
     return resources
@@ -416,6 +434,8 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
         Input parameter dictionary to use in the queries.
     rest : dict, optional
         JSON-representation of the remaining query or query pipe
+    debug: bool, optional
+        Whether to run queries in debug mode
     """
     if rest is None:
         try:
@@ -435,9 +455,9 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
         # Compute new parameters combining old parameters and the result
         new_parameters = {**parameters}
 
-        resultParameterMapping = _enforce_list(head["resultParameterMapping"])
+        result_parameter_mapping = _enforce_list(head["resultParameterMapping"])
 
-        for mapping in resultParameterMapping:
+        for mapping in result_parameter_mapping:
             if isinstance(result, list):
                 new_parameters[mapping["parameterName"]] = [
                     _follow_path(el, mapping["path"]) for el in result
@@ -500,16 +520,15 @@ def get_premise_parameters(rule):
     premise_params = {}
 
     for premise in premises:
-        params = _enforce_list(premise["hasParameter"])
-        for p in params:
-            premise_params[p["name"]] = p
+        if "hasParameter" in premise:
+            params = _enforce_list(premise["hasParameter"])
+            premise_i_params = dict([(p["name"], p) for p in params])
+            premise_params.update(premise_i_params)
 
     return premise_params
 
 
 def get_query_pipe_params(query):
-
-    # TODO bug: if prev_output_parameters comes from 2 steps above in the query pipe it doesn't work
     def _get_input_params(input_params, prev_output_params=None):
 
         if prev_output_params is None:
