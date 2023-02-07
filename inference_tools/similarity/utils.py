@@ -6,8 +6,7 @@ import pandas as pd
 from string import Template
 from collections import defaultdict, namedtuple
 
-from inference_tools.query.elastic_search import (set_elastic_view,
-                                                  get_all_documents)
+from inference_tools.query.ElasticSearch import ElasticSearch
 from inference_tools.exceptions import SimilaritySearchException
 
 FORMULAS = {
@@ -188,7 +187,7 @@ def query_similar_resources(forge_factory, forge, query, config, parameters, k):
     if view_id is None:
         raise SimilaritySearchException(
             "Similarity search view is not defined")
-    set_elastic_view(forge, view_id)
+    ElasticSearch.set_elastic_view(forge, view_id)
 
     # Get search target vector
     target_parameter = query.get("searchTargetParameter", None)
@@ -248,7 +247,7 @@ def get_score_stats(forge, config, boosted=False):
     if view_id is None:
         raise SimilaritySearchException(
             "Statistics view is not defined")
-    set_elastic_view(forge, view_id)
+    ElasticSearch.set_elastic_view(forge, view_id)
     boosted_str = "true" if boosted else "false"
     statistics = forge.elastic(f"""
         {{
@@ -292,7 +291,7 @@ def get_boosting_factors(forge, config):
     if view_id is None:
         raise SimilaritySearchException(
             "Boosing view is not defined")
-    set_elastic_view(forge, view_id)
+    ElasticSearch.set_elastic_view(forge, view_id)
     factors = forge.elastic("""
        {
           "size": 10000,
@@ -383,7 +382,7 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
                 if view_id is None:
                     raise SimilaritySearchException(
                         "Similarity search view is not defined")
-                set_elastic_view(forge[i], view_id)
+                ElasticSearch.set_elastic_view(forge[i], view_id)
 
                 vector_id, neighbors = query_similar_resources(
                     forge_factory, forge[i], query, individual_config,
@@ -438,8 +437,8 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
 
 def compute_statistics(forge, view_id, score_formula, boosting=None):
     """Compute similarity score statistics given a view."""
-    set_elastic_view(forge, view_id)
-    all_vectors = get_all_documents(forge)
+    ElasticSearch.set_elastic_view(forge, view_id)
+    all_vectors = ElasticSearch.get_all_documents(forge)
 
     scores = []
     for vector_resource in all_vectors:
@@ -502,8 +501,8 @@ def compute_boosting_factors(forge, view_id, stats, formula,
     """Compute boosting factors for all vectors."""
     boosting_factors = dict()
     # Compute local similarity deviations for points
-    set_elastic_view(forge, view_id)
-    all_vectors = get_all_documents(forge)
+    ElasticSearch.set_elastic_view(forge, view_id)
+    all_vectors = ElasticSearch.get_all_documents(forge)
 
     for vector_resource in all_vectors:
         vector_resource = forge.as_json([vector_resource])[0]

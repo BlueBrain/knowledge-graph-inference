@@ -1,42 +1,39 @@
 """Collection of utils for performing various inference queries."""
-import json
+
 import warnings
 
-from string import Template
+from inference_tools.query.ElasticSearch import ElasticSearch
+from inference_tools.query.Sparql import Sparql
+from inference_tools.query.Forge import Forge
 
 from inference_tools.similarity.utils import execute_similarity_query
-from inference_tools.query.sparql import (set_sparql_view,
-                                          check_sparql_premise,
-                                          execute_sparql_query)
-from inference_tools.query.elastic_search import (set_elastic_view,
-                                                  execute_es_query)
+
 from inference_tools.exceptions import (InferenceToolsWarning,
                                         InferenceToolsException,
                                         InvalidValueException,
                                         IncompleteObjectException,
                                         InvalidParameterTypeException,
                                         UnsupportedTypeException,
+                                        MissingPremiseParameterValue,
+                                        InvalidParameterSpecificationException,
                                         ObjectType
                                         )
 
-from inference_tools.helper_functions import _enforce_unique, _enforce_list, _safe_get_type, _follow_path
+from multi_predicate_object_pair import (
+    multi_predicate_object_pairs_parameter_rewriting,
+    multi_predicate_object_pairs_query_rewriting,
+    has_multi_predicate_object_pairs
+)
 
-from inference_tools.type import (ParameterType, QueryType, PremiseType, format_parameter)
+from inference_tools.helper_functions import _enforce_unique, _enforce_list, _safe_get_type_attribute, _follow_path
+
+from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
 from kgforge.core import KnowledgeGraphForge
-
+from inference_tools.Parameter import Parameter
+from inference_tools.PremiseExecution import PremiseExecution
 
 import getpass
-
-DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
-DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
-
-
-def _restore_default_views(forge):
-    forge = _enforce_list(forge)
-    for f in forge:
-        set_sparql_view(f, DEFAULT_SPARQL_VIEW)
-        set_elastic_view(f, DEFAULT_ES_VIEW)
 
 
 def _allocate_forge_session(org, project, config_file_path, endpoint=None, searchendpoints=None, token_file_path=None):
@@ -71,85 +68,6 @@ def _allocate_forge_session(org, project, config_file_path, endpoint=None, searc
             debug=DEBUG
         )
 
-def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
-    """
-    Checks whether within the rule parameters (parameter specification),
-    a parameter of type MultiPredicateObjectPair exists.
-
-    @param parameter_spec: the parameter specification of a rule
-    @param parameter_values: the parameter values specified by the user
-    @return: If a parameter of this type exists, returns the name of the parameter,
-        its index within the parameters specifications array, and
-        the number of predicate-object pairs specified by the user in the parameter values
-        else returns None
-    """
-
-    parameter_spec = _enforce_list(parameter_spec)
-
-    try:
-        types = [_safe_get_type(p) for p in parameter_spec]
-        try:
-            idx = types.index(ParameterType.MULTI_PREDICATE_OBJECT_PAIR.value)
-            spec = parameter_spec[idx]
-            name = spec["name"]
-            nb_multi = len(parameter_values[name])
-
-            return idx, name, nb_multi
-
-        except ValueError:
-            pass
-    except TypeError:
-        pass
-
-    return None
-
-
-def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parameter_values):
-    """
-    Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user of the rule to
-     add additional properties of an entity to retrieve in a SPARQL query's WHERE statement.
-    They are injected into the query, as such, each predicate and object become query parameters.
-    These type-value pairs are split into:
-    - an entry into the parameter specifications with
-         - name: the MultiPredicateObject parameter name concatenated
-        with "object" or "predicate" and the object-predicate pair index,
-         - type: the type component of the type-value pair
-    - an entry into the parameter values with:
-        - name: the MultiPredicateObject parameter name concatenated
-        with "object" or "predicate" and the object-pair pair index,
-        - value: the value component of the type-value pair
-
-    @param idx: The index in the parameter specifications of the parameter of type MultiPredicateObjectPair
-    @param parameter_spec: the parameter specifications of the rule
-    @param parameter_values: the parameter values as specified by the user
-    @return: new parameter specifications and values, with the information specified by the user in the
-    parameter values appropriately reorganized in the parameter specifications and parameter values so that future
-    steps can treat these parameters the way standard ParameterType.s are being treated
-    """
-    spec = parameter_spec[idx]
-    del parameter_spec[idx]
-    name = spec["name"]
-    provided_value = parameter_values[name]
-    del parameter_values[name]
-
-    for (i, pair) in enumerate(provided_value):
-        ((predicate_value, predicate_type),
-         (object_value, object_type)) = pair
-
-        name_desc = ["predicate", "object"]
-        values = [predicate_value, object_value]
-        types = [predicate_type, object_type]
-
-        for j in range(2):
-            constructed_name = "{}_{}_{}".format(name, str(i), name_desc[j])
-            parameter_spec.append({
-                "type": types[j],
-                "name": constructed_name
-            })
-            parameter_values[constructed_name] = values[j]
-
-    return parameter_spec, parameter_values
-
 
 def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, multi=None):
     """Build parameter values given query specification."""
@@ -158,46 +76,28 @@ def _build_parameter_map(forge, parameter_spec, parameter_values, query_type, mu
 
     parameter_spec = _enforce_list(parameter_spec)
 
-    for spec in parameter_spec:
-        optional = spec.get("optional")
-        if not optional and spec["name"] not in parameter_values:
-            raise InferenceToolsException(
-                f"Parameter value '{spec['name']}' is not specified")
-
-    param_map = {}
-
-    if multi:
+    if multi:  # irrelevant for premises, just sparql queries
         (idx, name, nb_multi) = multi
         parameter_spec, parameter_values = multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec,
                                                                                             parameter_values)
+    try:
+        parameter_spec_class: [Parameter] = [Parameter(spec) for spec in parameter_spec]
+    except (IncompleteObjectException, InvalidValueException):
+        raise InvalidParameterSpecificationException()
 
-    for p in parameter_spec:
-
-        name = p["name"]
-
+    if type(query_type) is PremiseType:
         try:
-            parameter_type = _safe_get_type(p)
-        except TypeError:
-            raise IncompleteObjectException(name=name, attribute="type", object_type=ObjectType.PARAMETER)
+            [p.get_value(parameter_values) for p in parameter_spec_class]
+        except IncompleteObjectException as e:
+            raise MissingPremiseParameterValue(e.name)
+            # to raise if a premise can't be ran due to one or many of its parameters missing
 
-        provided_value = parameter_values.get(name)
+    param_map = [(
+        p.name,
+        p.format_parameter(p.get_value(parameter_values), query_type, forge)
+    ) for p in parameter_spec_class if p.get_value(parameter_values)]  # if filters out optional ones
 
-        if provided_value is None:
-            continue
-
-        try:
-            parameter_type = ParameterType(parameter_type)
-
-            param_map[name] = format_parameter(provided_value, parameter_type, query_type, forge)
-
-        except ValueError:
-            warnings.warn("Unknown parameter type {}"
-                          .format(parameter_type), InferenceToolsWarning)
-
-            param_map[name] = provided_value
-            continue
-
-    return param_map
+    return dict(param_map)
 
 
 def check_premises(forge_factory, rule, parameters, debug=False):
@@ -219,109 +119,90 @@ def check_premises(forge_factory, rule, parameters, debug=False):
     -------
     satisfies : bool
     """
-    satisfies = True
 
     if "premise" not in rule:
-        return satisfies
+        return True
 
     premises = _enforce_list(rule["premise"])
 
+    flags = []
+
     for premise in premises:
 
-        config = premise.get("queryConfiguration", None)
-        if config is None:
-            raise IncompleteObjectException(object_type=ObjectType.PREMISE, attribute="queryConfiguration")
+        config = _get_query_configuration(premise, ObjectType.PREMISE)
 
         forge = forge_factory(config['org'], config['project'])
 
-        try:
-            premise_type = _safe_get_type(premise)
-        except TypeError:
-            raise IncompleteObjectException(object_type=ObjectType.PREMISE, attribute="type")
-
-        try:
-            premise_type = PremiseType(premise_type)
-        except ValueError:
-            raise InvalidValueException(attribute="premise type", value=premise_type)
+        premise_type = _get_type(premise, ObjectType.PREMISE, PremiseType)
 
         if "hasParameter" in premise:
             try:
                 current_parameters = _build_parameter_map(
                     forge, premise["hasParameter"], parameters, premise_type)
-            except InferenceToolsException as e:
-                warnings.warn(
-                    "Premise is not satisfied, one or more parameters " +
-                    f"are missing. See the following exception: {e}",
-                    InferenceToolsWarning)
-                satisfies = False
+            except MissingPremiseParameterValue:
+                flags.append(PremiseExecution.MISSING_PARAMETER)
+                continue
+            except InvalidParameterSpecificationException as e2:
+                warnings.warn(e2.message, InferenceToolsWarning)
+                flags.append(PremiseExecution.ERROR)
+                # TODO invalid premise, independently from input params
                 break
         else:
             current_parameters = dict()
 
-        if premise_type == PremiseType.SPARQL_PREMISE:
-            custom_sparql_view = config.get("sparqlView", None)
-            passed = check_sparql_premise(
-                forge, premise, current_parameters, custom_sparql_view, debug=debug)
-            if not passed:
-                satisfies = False
+        sources = {
+            PremiseType.SPARQL_PREMISE.value: Sparql,
+            PremiseType.FORGE_SEARCH_PREMISE.value: Forge,
+            PremiseType.ELASTIC_SEARCH_PREMISE.value: ElasticSearch
+        }
+
+        if premise_type.value in sources.keys():
+
+            source = sources[premise_type.value]
+
+            flag = source.check_premise(
+                forge=forge,
+                premise=premise,
+                parameters=current_parameters,
+                config=config,
+                debug=debug
+            )
+
+            source.restore_default_views(forge)
+
+            flags.append(flag)
+            if flag == PremiseExecution.FAIL:
                 break
-
-        elif premise_type == PremiseType.FORGE_SEARCH_PREMISE:
-            target_param = premise.get("targetParameter", None)
-            target_path = premise.get("targetPath", None)
-            query = json.loads(
-                Template(json.dumps(premise["pattern"])).substitute(
-                    **current_parameters))
-            resources = forge.search(query, debug=debug)
-
-            resources = _enforce_list(resources)
-
-            if target_param:
-                if target_path:
-                    matched_values = [
-                        _follow_path(forge.as_json(r), target_path)
-                        for r in resources
-                    ]
-                else:
-                    matched_values = [r.id for r in resources]
-                if current_parameters[target_param] not in matched_values:
-                    satisfies = False
-                    break
-            else:
-                if len(resources) == 0:
-                    satisfies = False
-                    break
-        elif premise_type == PremiseType.ELASTIC_SEARCH_PREMISE:
-            raise UnsupportedTypeException(premise_type.value, "premise type")  # TODO
         else:
             raise UnsupportedTypeException(premise_type.value, "premise type")
 
-        _restore_default_views(forge)
+    if all([flag == PremiseExecution.SUCCESS for flag in flags]):
+        # All premises are successful
+        return True
+    if any([flag == PremiseExecution.FAIL for flag in flags]):
+        # One premise has failed
+        return False
+    if all([flag == PremiseExecution.MISSING_PARAMETER for flag in flags]) and len(parameters) == 0:
+        # Nothing is provided, all premises are missing parameters
+        return True
+    if all([flag == PremiseExecution.MISSING_PARAMETER for flag in flags]) and len(parameters) > 0:
+        # Things are provided, all premises are missing parameters
+        return False
+    if all([flag in [PremiseExecution.MISSING_PARAMETER, PremiseExecution.SUCCESS] for flag in flags]):
+        # Some premises are successful, some are missing parameters
+        return True
 
-    return satisfies
+    print(flags)
+
+    return False
 
 
-def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
-    """
-    Rewrite the query in order to have the line where the parameter of name "name"
-    duplicated for as many predicate-pairs there are and two parameters on each line,
-    one for the predicate, one for the object, with a parameter naming following the one of
-    @see multi_predicate_object_pairs_parameter_rewriting
+def _get_query_configuration(obj, obj_type):
+    config = obj.get("queryConfiguration", None)
 
-    @param name: the name of the MultiPredicateObjectPairs parameter
-    @param nb_multi: the number of predicate-object pairs, and therefore of
-     duplication of the line where the parameter is located
-    @param query_body: the query body where the rewriting of parameter placeholders is done
-    @return: the rewritten query body
-    """
-    query_split = query_body.split("\n")
-    to_find = "${}".format(name)
-    index = next(i for i, line in enumerate(query_split) if to_find in line)
-    replacement = lambda name, nb: "${}_{}_{} ${}_{}_{}".format(name, nb, "predicate", name, nb, "object")
-    new_lines = [query_split[index].replace(to_find, replacement(name, i)) for i in range(nb_multi)]
-    query_split[index] = "\n".join(new_lines)
-    query_body = "\n".join(query_split)
-    return query_body
+    if config is None:
+        raise IncompleteObjectException(object_type=obj_type, attribute="queryConfiguration")
+    return config
 
 
 def execute_query(forge_factory, query, parameters, last_query=False, debug=False):
@@ -344,10 +225,7 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
     resources : list
         List of the result resources
     """
-    config = query.get("queryConfiguration", None)
-
-    if config is None:
-        raise IncompleteObjectException(object_type=ObjectType.QUERY, attribute="queryConfiguration")
+    config = _get_query_configuration(query, ObjectType.QUERY)
 
     if isinstance(config, list):
         forge = [
@@ -357,15 +235,7 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
     else:
         forge = forge_factory(config["org"], config["project"])
 
-    try:
-        query_type = _safe_get_type(query)
-    except TypeError:
-        raise IncompleteObjectException(object_type=ObjectType.QUERY, attribute="type")
-
-    try:
-        query_type = QueryType(query_type)
-    except ValueError:
-        raise InvalidValueException(attribute="query type", value=query_type)
+    query_type = _get_type(query, ObjectType.QUERY, QueryType)
 
     if "hasParameter" in query:
         multi = has_multi_predicate_object_pairs(query["hasParameter"], parameters)
@@ -386,35 +256,57 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
     else:
         current_parameters = dict()
 
-    if query_type == QueryType.SPARQL_QUERY:
-        custom_sparql_view = config.get("sparqlView", None)
-        resources = execute_sparql_query(
-            forge, query, current_parameters, custom_sparql_view, debug=debug)
+    sources = {
+        QueryType.SPARQL_QUERY.value: Sparql,
+        QueryType.FORGE_SEARCH_QUERY.value: Forge,
+        QueryType.ELASTIC_SEARCH_QUERY.value: ElasticSearch
+    }
 
-    elif query_type == QueryType.FORGE_SEARCH_QUERY:
-        query = json.loads(
-            Template(json.dumps(query["pattern"])).substitute(
-                **current_parameters))
-        resources = forge.search(query)
+    if query_type.value in sources.keys():
 
-    elif query_type == QueryType.SIMILARITY_QUERY:
-        resources = execute_similarity_query(
-            forge_factory, forge, query, current_parameters)
+        source = sources[query_type.value]
 
-    elif query_type == QueryType.ELASTIC_SEARCH_QUERY:
-        custom_es_view = config.get("elasticSearchView", None)
-        resources = execute_es_query(
-            forge, query, current_parameters, custom_es_view)
-        if last_query:
+        resources = source.execute_query(
+            forge=forge,
+            query=query,
+            parameters=current_parameters,
+            config=config,
+            debug=debug
+        )
+
+        if query_type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
             resources = [
                 {"id": el["@id"] if "@id" in el else el["id"]}
                 for el in resources
             ]
+
+        source.restore_default_views(forge)
+
+    elif query_type == QueryType.SIMILARITY_QUERY:
+        resources = execute_similarity_query(
+            forge=forge,
+            query=query,
+            parameters=current_parameters,
+            forge_factory=forge_factory,
+        )
     else:
         raise UnsupportedTypeException(query_type.value, "query type")
 
-    _restore_default_views(forge)
     return resources
+
+
+def _get_type(obj, obj_type, type_type):
+    try:
+        type_value = _safe_get_type_attribute(obj)
+    except TypeError:
+        raise IncompleteObjectException(object_type=obj_type, attribute="type")
+
+    try:
+        type_value = type_type(type_value)
+    except ValueError:
+        raise InvalidValueException(attribute=f"{obj_type.value} type", value=type_value)
+
+    return type_value
 
 
 def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
@@ -439,7 +331,7 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
     """
     if rest is None:
         try:
-            head_type = _safe_get_type(head)
+            head_type = _safe_get_type_attribute(head)
         except TypeError:
             raise IncompleteObjectException(attribute="head type", object_type=ObjectType.QUERY_PIPE)
 
@@ -467,7 +359,7 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
                     result[mapping["path"]]
 
         try:
-            rest_type = _safe_get_type(rest)
+            rest_type = _safe_get_type_attribute(rest)
         except TypeError:
             raise IncompleteObjectException(attribute="rest type", object_type=ObjectType.QUERY_PIPE)
 
@@ -538,33 +430,33 @@ def get_query_pipe_params(query):
 
         return dict([(p["name"], p) for p in new_params if p["name"] not in prev_output_params])
 
-    def _get_output_params(query):
-        param_mapping = query.get("resultParameterMapping", [])
+    def _get_output_params(sub_query):
+        param_mapping = sub_query.get("resultParameterMapping", [])
         if len(param_mapping) == 0:
             return []
         return [p["parameterName"] for p in _enforce_list(param_mapping)]
 
-    def _get_head_rest(query):
+    def _get_head_rest(sub_query):
         try:
-            query_type = _safe_get_type(query)
+            query_type = _safe_get_type_attribute(sub_query)
         except TypeError:
             raise IncompleteObjectException(object_type=ObjectType.QUERY, attribute="type")
 
         if query_type == "QueryPipe":
-            return query["head"], query["rest"]
+            return sub_query["head"], sub_query["rest"]
         else:
-            return query, None
+            return sub_query, None
 
-    input_params = {}
-    output_params = []
+    input_parameters = {}
+    output_parameters = []
     rest = query
 
     while rest is not None:
         head, rest = _get_head_rest(rest)
-        input_params.update(_get_input_params(head.get("hasParameter", []), output_params))
-        output_params += _get_output_params(head)
+        input_parameters.update(_get_input_params(head.get("hasParameter", []), output_parameters))
+        output_parameters += _get_output_params(head)
 
-    return input_params
+    return input_parameters
 
 
 def get_rule_parameters(rule):

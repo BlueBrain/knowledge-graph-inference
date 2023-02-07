@@ -5,15 +5,16 @@ def _expand_uri(forge, uri):
     return forge._model.context().expand(uri)
 
 
-def _safe_get_type(query):
-    query_type = (
-        query.get("type", None)
-        if query.get("type", None)
-        else query.get("@type", None)
-    )
-    if query_type is None:
-        raise TypeError
-    return query_type
+def _safe_get_type_attribute(obj):
+    type = obj.get("type", None)
+    if type:
+        return type
+
+    type = obj.get("@type", None)
+    if type:
+        return type
+
+    raise TypeError
 
 
 def _follow_path(json_resource, path):
@@ -28,11 +29,11 @@ def _follow_path(json_resource, path):
 
             if el != "@id":
                 raise ex
-
-            if "id" in value:
-                el = "id"
             else:
-                raise ex
+                if "id" in value:
+                    el = "id"
+                else:
+                    raise ex
 
         value = value[el]
     return value

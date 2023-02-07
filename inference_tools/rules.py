@@ -1,7 +1,7 @@
-from inference_tools.query.elastic_search import (set_elastic_view,
-                                                  get_elastic_view_endpoint,
-                                                  set_elastic_view_endpoint)
-from inference_tools.query.sparql import execute_sparql_query
+from inference_tools.query.ElasticSearch import (set_elastic_view,
+                                                 get_elastic_view_endpoint,
+                                                 set_elastic_view_endpoint)
+from inference_tools.query.Sparql import execute_sparql_query
 from inference_tools.utils import _build_parameter_map
 from inference_tools.type import QueryType, ParameterType
 
@@ -26,7 +26,7 @@ def get_resource_type_descendants(forge, types):
         ], {"types": types}, QueryType.SPARQL_QUERY, multi=False)
 
     res = execute_sparql_query(
-        forge, query, current_parameters, custom_sparql_view=None, debug=True)
+        forge, query, current_parameters, custom_sparql_view=None, debug=False)
 
     return [obj["label"] for obj in res]
 
