@@ -1,9 +1,8 @@
-from inference_tools.query.ElasticSearch import (set_elastic_view,
-                                                 get_elastic_view_endpoint,
-                                                 set_elastic_view_endpoint)
-from inference_tools.query.Sparql import execute_sparql_query
 from inference_tools.utils import _build_parameter_map
 from inference_tools.type import QueryType, ParameterType
+from inference_tools.query.Sparql import Sparql
+from inference_tools.query.ElasticSearch import ElasticSearch
+from inference_tools.helper_functions import _to_symbol
 
 
 def get_resource_type_descendants(forge, types):
@@ -25,10 +24,10 @@ def get_resource_type_descendants(forge, types):
             }
         ], {"types": types}, QueryType.SPARQL_QUERY, multi=False)
 
-    res = execute_sparql_query(
-        forge, query, current_parameters, custom_sparql_view=None, debug=False)
+    res = Sparql.execute_query(forge, query, current_parameters, debug=False)
 
     return [obj["label"] for obj in res]
+
 
 
 def fetch_rules(forge_rules, forge_datamodels, rule_view_id, resource_types=None,
@@ -52,8 +51,8 @@ def fetch_rules(forge_rules, forge_datamodels, rule_view_id, resource_types=None
     rules : list of dict
         Result rule payloads
     """
-    old_endpoint = get_elastic_view_endpoint(forge_rules)
-    set_elastic_view(forge_rules, rule_view_id)
+    old_endpoint = ElasticSearch.get_elastic_view_endpoint(forge_rules)
+    ElasticSearch.set_elastic_view(forge_rules, rule_view_id)
     if resource_types is None:
         rules = forge_rules.elastic("""
             {
@@ -69,7 +68,7 @@ def fetch_rules(forge_rules, forge_datamodels, rule_view_id, resource_types=None
         if resource_types_descendants:
             resource_types = get_resource_type_descendants(forge_datamodels, resource_types)
 
-        resource_type_repr = ",".join([f"\"{t}\"" for t in resource_types])
+        resource_type_repr = ",".join([f"\"{_to_symbol(forge_rules, t)}\"" for t in resource_types])
 
         rules = forge_rules.elastic(f"""{{
           "query": {{
@@ -86,7 +85,11 @@ def fetch_rules(forge_rules, forge_datamodels, rule_view_id, resource_types=None
            }}
         }}""")
 
-    set_elastic_view_endpoint(forge_rules, old_endpoint)
+    ElasticSearch.set_elastic_view_endpoint(forge_rules, old_endpoint)
 
-    rules = forge_rules.as_json(rules)
-    return rules
+    def jsonify(element):
+        temp = forge_rules.as_json(element)
+        temp["nexus_link"] = element._store_metadata._self
+        return temp
+
+    return [jsonify(rule) for rule in rules]

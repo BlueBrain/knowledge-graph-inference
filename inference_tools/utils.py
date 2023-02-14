@@ -19,7 +19,7 @@ from inference_tools.exceptions import (InferenceToolsWarning,
                                         ObjectType
                                         )
 
-from multi_predicate_object_pair import (
+from inference_tools.multi_predicate_object_pair import (
     multi_predicate_object_pairs_parameter_rewriting,
     multi_predicate_object_pairs_query_rewriting,
     has_multi_predicate_object_pairs

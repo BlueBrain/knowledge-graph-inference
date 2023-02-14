@@ -5,6 +5,13 @@ def _expand_uri(forge, uri):
     return forge._model.context().expand(uri)
 
 
+def _shrink_uri(forge, uri):
+    return forge._model.context().shrink(uri)
+
+
+def _to_symbol(forge, uri):
+    return forge._model.context().to_symbol(uri)
+
 def _safe_get_type_attribute(obj):
     type = obj.get("type", None)
     if type:

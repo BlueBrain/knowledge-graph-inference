@@ -1,5 +1,5 @@
-from helper_functions import _enforce_list, _safe_get_type_attribute
-from type import ParameterType
+from inference_tools.helper_functions import _enforce_list, _safe_get_type_attribute
+from inference_tools.type import ParameterType
 
 
 def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):

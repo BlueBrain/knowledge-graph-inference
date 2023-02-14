@@ -13,8 +13,8 @@ DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparq
 class Sparql(Source):
 
     @staticmethod
-    def execute_query(forge, query, parameters, config, debug=False):
-        custom_sparql_view = config.get("sparqlView", None)
+    def execute_query(forge, query, parameters, config=None, debug=False):
+        custom_sparql_view = config.get("sparqlView", None) if config else None
 
         if custom_sparql_view is not None:
             view_id = (

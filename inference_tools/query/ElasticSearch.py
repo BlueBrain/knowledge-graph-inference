@@ -14,9 +14,9 @@ DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSe
 class ElasticSearch(Source):
 
     @staticmethod
-    def execute_query(forge, query, parameters, config, debug=False):
+    def execute_query(forge, query, parameters, config=None, debug=False):
 
-        custom_es_view = config.get("elasticSearchView", None)
+        custom_es_view = config.get("elasticSearchView", None) if config else None
         if custom_es_view is not None:
             view_id = (
                 custom_es_view.get("id")
