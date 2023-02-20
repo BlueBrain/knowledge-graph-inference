@@ -12,15 +12,18 @@ def _shrink_uri(forge, uri):
 def _to_symbol(forge, uri):
     return forge._model.context().to_symbol(uri)
 
+
 def _safe_get_type_attribute(obj):
-    type = obj.get("type", None)
+    type = obj["type"] if "type" in obj else (obj["@type"] if "@type" in obj else None)
     if type:
         return type
+    raise TypeError
 
-    type = obj.get("@type", None)
-    if type:
-        return type
 
+def _safe_get_id_attribute(obj):
+    id = obj["id"] if "id" in obj else (obj["@id"] if "@id" in obj else None)
+    if id:
+        return id
     raise TypeError
 
 

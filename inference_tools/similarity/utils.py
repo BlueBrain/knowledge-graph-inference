@@ -6,6 +6,7 @@ import pandas as pd
 from string import Template
 from collections import defaultdict, namedtuple
 
+from inference_tools.helper_functions import _safe_get_id_attribute
 from inference_tools.query.ElasticSearch import ElasticSearch
 from inference_tools.exceptions import SimilaritySearchException
 
@@ -65,7 +66,7 @@ def get_embedding_vector(forge, search_target):
             f"Could not get embedding vector for {search_target}")
 
     result = forge.as_json(result)[0]
-    vector_id = result["@id"]
+    vector_id = _safe_get_id_attribute(result)
     vector = result["embedding"]
     return vector_id, vector
 
@@ -305,7 +306,7 @@ def get_boosting_factors(forge, config):
     boosting_factors = {}
     for el in factors:
         json_el = forge.as_json([el])[0]
-        boosting_factors[json_el["derivation"]["entity"]["@id"]] =\
+        boosting_factors[_safe_get_id_attribute(json_el["derivation"]["entity"])] =\
             json_el["value"]
     return boosting_factors
 
@@ -351,7 +352,7 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
         _, neighbors = query_similar_resources(
             forge_factory, forge, query, config, parameters, k)
         neighbors = [
-            {"id": n["derivation"]["entity"]["@id"]}
+            {"id": _safe_get_id_attribute(n["derivation"]["entity"])}
             for _, n in neighbors
         ]
     else:
@@ -416,7 +417,7 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
                 boosted_min, boosted_max = all_boosted_stats[i]
 
             for score, n in neighbor_collection:
-                resource_id = n["derivation"]["entity"]["@id"]
+                resource_id = _safe_get_id_attribute(n["derivation"]["entity"])
                 score = score * boosting_factor
                 score = (score - boosted_min) / (boosted_max - boosted_min)
                 combined_results[resource_id].append(score)
@@ -444,7 +445,7 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
     for vector_resource in all_vectors:
         vector_resource = forge.as_json([vector_resource])[0]
         vector = vector_resource["embedding"]
-        vector_id = vector_resource["@id"]
+        vector_id = _safe_get_id_attribute(vector_resource)
         neighbors = get_neighbors(
             forge, vector, vector_id,
             k=len(all_vectors), score_formula=score_formula)
@@ -487,7 +488,7 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
     result = forge.elastic(query)
     scores = set()
     for el in result:
-        if point_id != forge.as_json([el])[0]["@id"]:
+        if point_id != _safe_get_id_attribute(forge.as_json([el])[0]):
             # Min/max normalization of the score
             score = (el._store_metadata._score - score_min) / (
                 score_max - score_min)
@@ -506,7 +507,7 @@ def compute_boosting_factors(forge, view_id, stats, formula,
 
     for vector_resource in all_vectors:
         vector_resource = forge.as_json([vector_resource])[0]
-        point_id = vector_resource["@id"]
+        point_id = _safe_get_id_attribute(vector_resource)
         vector = vector_resource["embedding"]
         boosting_factors[point_id] = 1 + compute_score_deviation(
             forge, point_id, vector, stats.min, stats.max,

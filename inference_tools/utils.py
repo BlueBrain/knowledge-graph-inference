@@ -25,7 +25,13 @@ from inference_tools.multi_predicate_object_pair import (
     has_multi_predicate_object_pairs
 )
 
-from inference_tools.helper_functions import _enforce_unique, _enforce_list, _safe_get_type_attribute, _follow_path
+from inference_tools.helper_functions import (
+    _enforce_unique,
+    _enforce_list,
+    _safe_get_type_attribute,
+    _follow_path,
+    _safe_get_id_attribute
+)
 
 from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
@@ -276,7 +282,7 @@ def execute_query(forge_factory, query, parameters, last_query=False, debug=Fals
 
         if query_type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
             resources = [
-                {"id": el["@id"] if "@id" in el else el["id"]}
+                {"id": _safe_get_id_attribute(el) }
                 for el in resources
             ]
 
