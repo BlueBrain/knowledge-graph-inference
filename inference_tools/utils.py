@@ -350,6 +350,9 @@ def execute_query_pipe(forge_factory, head, parameters, rest=None, debug=False):
     else:
         result = execute_query(forge_factory, head, parameters, debug=debug)
 
+        if not result:
+            return []
+
         # Compute new parameters combining old parameters and the result
         new_parameters = {**parameters}
 

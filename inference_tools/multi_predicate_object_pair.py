@@ -20,7 +20,10 @@ def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
     index = next(i for i, line in enumerate(query_split) if to_find in line)
     replacement = lambda name, nb: "${}_{}_{} ${}_{}_{}".format(name, nb, "predicate", name, nb, "object")
     new_lines = [query_split[index].replace(to_find, replacement(name, i)) for i in range(nb_multi)]
-    query_split[index] = "\n".join(new_lines)
+    if len(new_lines) == 0:
+        del query_split[index]
+    else:
+        query_split[index] = "\n".join(new_lines)
     query_body = "\n".join(query_split)
     return query_body
 
@@ -46,6 +49,8 @@ def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
             idx = types.index(ParameterType.MULTI_PREDICATE_OBJECT_PAIR.value)
             spec = parameter_spec[idx]
             name = spec["name"]
+            if name not in parameter_values:
+                return idx, name, 0
             nb_multi = len(parameter_values[name])
 
             return idx, name, nb_multi
@@ -83,6 +88,9 @@ def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parame
     spec = parameter_spec[idx]
     del parameter_spec[idx]
     name = spec["name"]
+
+    if name not in parameter_values:
+        return parameter_spec, parameter_values
     provided_value = parameter_values[name]
     del parameter_values[name]
 
