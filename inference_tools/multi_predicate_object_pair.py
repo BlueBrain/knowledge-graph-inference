@@ -49,7 +49,7 @@ def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
             idx = types.index(ParameterType.MULTI_PREDICATE_OBJECT_PAIR.value)
             spec = parameter_spec[idx]
             name = spec["name"]
-            if name not in parameter_values:
+            if name not in parameter_values or parameter_values[name] is None:
                 return idx, name, 0
             nb_multi = len(parameter_values[name])
 
@@ -94,20 +94,21 @@ def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parame
     provided_value = parameter_values[name]
     del parameter_values[name]
 
-    for (i, pair) in enumerate(provided_value):
-        ((predicate_value, predicate_type),
-         (object_value, object_type)) = pair
+    if provided_value is not None:
+        for (i, pair) in enumerate(provided_value):
+            ((predicate_value, predicate_type),
+             (object_value, object_type)) = pair
 
-        name_desc = ["predicate", "object"]
-        values = [predicate_value, object_value]
-        types = [predicate_type, object_type]
+            name_desc = ["predicate", "object"]
+            values = [predicate_value, object_value]
+            types = [predicate_type, object_type]
 
-        for j in range(2):
-            constructed_name = "{}_{}_{}".format(name, str(i), name_desc[j])
-            parameter_spec.append({
-                "type": types[j],
-                "name": constructed_name
-            })
-            parameter_values[constructed_name] = values[j]
+            for j in range(2):
+                constructed_name = "{}_{}_{}".format(name, str(i), name_desc[j])
+                parameter_spec.append({
+                    "type": types[j],
+                    "name": constructed_name
+                })
+                parameter_values[constructed_name] = values[j]
 
     return parameter_spec, parameter_values
