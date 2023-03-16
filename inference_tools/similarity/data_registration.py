@@ -1,6 +1,4 @@
 """Utils for registering similarity-related resources in Nexus."""
-
-import jwt
 import os
 import sys
 import uuid
@@ -8,7 +6,7 @@ import warnings
 
 from collections import namedtuple
 
-from .utils import FORMULAS
+import jwt
 
 from kgforge.core import KnowledgeGraphForge
 from kgforge.specializations.resources import Dataset
@@ -16,6 +14,8 @@ from kgforge.specializations.mappings import DictionaryMapping
 
 from bluegraph.downstream import EmbeddingPipeline
 from bluegraph.core import GraphElementEmbedder
+
+from .utils import FORMULAS
 
 
 BucketConfiguration = namedtuple(
@@ -112,11 +112,11 @@ def push_model(forge, name, description, label, distribution,
         model_resource = result[0]
         return update_model_distribution(
             forge, model_resource, distribution, dimension)
-    else:
-        print("Registering new model...")
-        return register_model(
-            forge, name, description, label, distribution,
-            similarity, dimension, bluegraph_version)
+
+    print("Registering new model...")
+    return register_model(
+        forge, name, description, label, distribution,
+        similarity, dimension, bluegraph_version)
 
 
 def register_embeddings(forge, vectors, model_id, model_revision, tag, mapping_path):
@@ -145,7 +145,8 @@ def register_embeddings(forge, vectors, model_id, model_revision, tag, mapping_p
             vector_resource.generation.activity.used.hasSelector =\
                 forge.from_json({
                     "type": "FragmentSelector",
-                    "conformsTo": "https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch",
+                    "conformsTo":
+                        "https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch",
                     "value": f"?rev={model_revision}"
                 })
             updated_embeddings.append(vector_resource)
@@ -352,7 +353,7 @@ def load_embedding_models(forge_models, model_ids,
 
         # If revision is not provided by the user, fetch the latest
         if model_revision is None:
-            model_revision = model_resource._store_metadata._rev 
+            model_revision = model_resource._store_metadata._rev
             model_revisions[model_id] = model_revision
 
         tag = f"{model_id.split('/')[-1]}?rev={model_revision}"
@@ -392,7 +393,9 @@ def push_embedding_vectors(forge_sessions, data_buckets, model_ids,
                             resource.id].tolist()[0].tolist()
                     else:
                         warnings.warn(
-                            f"\tEmbedding vector for '{resource.id}' in '{bucket_config}' was not computed")
+                            f"\tEmbedding vector for '{resource.id}' in"
+                            f" '{bucket_config}' was not computed")
+
             embedding_bucket = data_buckets[bucket_config]
             forge = forge_sessions[embedding_bucket]
             print(

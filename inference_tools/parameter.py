@@ -1,3 +1,7 @@
+from typing import Dict, Any, List, Union, Optional
+
+from kgforge.core import KnowledgeGraphForge
+
 from inference_tools.helper_functions import _enforce_unique, _expand_uri
 from inference_tools.exceptions import (
     UnsupportedTypeException,
@@ -11,6 +15,10 @@ from inference_tools.type import ParameterType, PremiseType, QueryType
 
 
 class Parameter:
+    """
+        Rule input parameter specification
+    """
+
     def __init__(self, dict_spec):
         self.name = dict_spec.get("name")
         self.optional: bool = dict_spec.get("optional")
@@ -19,117 +27,196 @@ class Parameter:
 
         try:
             parameter_type = _safe_get_type_attribute(dict_spec)
-        except TypeError:
-            raise IncompleteObjectException(name=self.name, attribute="type", object_type=ObjectType.PARAMETER)
+        except TypeError as e:
+            raise IncompleteObjectException(name=self.name, attribute="type",
+                                            object_type=ObjectType.PARAMETER) from e
 
         try:
             self.type: ParameterType = ParameterType(parameter_type)
-        except ValueError:
-            raise InvalidValueException(attribute="parameter type", value=parameter_type)
+        except ValueError as e:
+            raise InvalidValueException(attribute="parameter type", value=parameter_type) from e
 
-    def get_value(self, parameter_values):
+    def get_value(self, parameter_values: Dict[str, str]) -> Any:
+        """
+        From the parameter values specified by the user, retrieves the value associated with
+        this input parameter specification by its name
+        @param parameter_values: the parameter values specified by the user
+        @type parameter_values: Dict[str, str]
+        @return: the parameter value corresponding to this parameter specification
+        @rtype: Any
+        """
         if self.name in parameter_values and parameter_values[self.name]:
             return parameter_values[self.name]
-        elif self.default:
+        if self.default:
             return self.default
-        elif self.optional:
+        if self.optional:
             return None
-        raise IncompleteObjectException(name=self.name, attribute="value", object_type=ObjectType.PARAMETER)
+        raise IncompleteObjectException(name=self.name, attribute="value",
+                                        object_type=ObjectType.PARAMETER)
 
-    def format_parameter(self, provided_value, query_type, forge):
-        parameter_type = self.type
 
-        sparql_valid = [
+class ParameterFormatter:
+    """
+    Formatter of input parameter value
+    """
+
+    def __init__(self, expand_uri: bool, format_string: Optional[str],
+                 join_string: Optional[str] = None, wrap_string: Optional[str] = None):
+        """
+        @param format_string: the string that will format each individual value
+        @type format_string: Optional[str]
+        @param join_string: the string that will join all elements of the list of values
+        @type join_string: Optional[str]
+        @param wrap_string: the string that will wrap around the joined list of values
+        @type wrap_string: Optional[str]
+        @param expand_uri: whether the individual values are uris that need to be expanded or not
+        @type expand_uri: bool
+        """
+        self.expand_uri: bool = expand_uri
+        self.format_string: Optional[str] = format_string
+        self.join_string: Optional[str] = join_string
+        self.wrap_string: Optional[str] = wrap_string
+
+    def format_list_value(self, value: List[str], forge: KnowledgeGraphForge) -> str:
+        """
+        Formats the value provided by the user for the input parameter, the value being a list.
+        Each individual item is being optionally expanded as an uri, then formatted by a
+        format string, then joined by a join string, then wrapped by a wrap string.
+
+        @param forge: a forge instance to expand uris if expand_uri is True
+        @type forge: KnowledgeGraphForge
+        @param value: a user specified value for the parameter
+        @type value: List[str]
+        @return: the user value formatted
+        @rtype: str
+        """
+
+        final_value = self.format_value(value=value, forge=forge)
+
+        if self.join_string is not None:
+            final_value = self.join_string.join(final_value)
+
+        if self.wrap_string is not None:
+            final_value = self.wrap_string.format(final_value)
+
+        return final_value
+
+    def format_value(self, value: Union[str, List[str]],
+                     forge: KnowledgeGraphForge) \
+            -> Union[str, List[str]]:
+        """
+        Formats a value by optionally expanding it as an uri, and then applying a format string.
+        If multiple values are specified, this logic is applied to all of them.
+
+        @param forge: a forge instance, to expand uris if necessary
+        @type forge: KnowledgeGraphForge
+        @param value: a value or a list of values to format
+        @type value: Union[str, List[str]]
+        @return: the user value formatted
+        @rtype: Union[str, List[str]]
+        """
+
+        def format_singular(x):
+            if self.expand_uri:
+                x = _expand_uri(forge, x)
+            return self.format_string.format(x) if self.format_string is not None else x
+
+        return [format_singular(el) for el in value] \
+            if isinstance(value, list) else format_singular(value)
+
+    @staticmethod
+    def format_parameter(parameter_type: ParameterType, provided_value: Any, query_type: QueryType,
+                         forge: KnowledgeGraphForge) -> str:
+        """
+        Formats the user provided value following the formatting associated with the parameter type
+        @param parameter_type: the type of the parameter whose user input value is being formatted
+        @type parameter_type: ParameterType
+        @param provided_value: the user input value for the parameter
+        @type provided_value: Any
+        @param query_type: the query type of the query where the parameter is specified
+        @type query_type: QueryType
+        @param forge: a forge instance to expand uris if the parameter type calls for it
+        @type forge: KnowledgeGraphForge
+        @return: the formatted parameter value
+        @rtype: str
+        """
+
+        sparql_types = [
             PremiseType.SPARQL_PREMISE,
             QueryType.SPARQL_QUERY
         ]
 
-        def format_value(format_str, value, expand_uri=False):
-            def format_singular(x):
-                if expand_uri:
-                    x = _expand_uri(forge, x)
-                return format_str.format(x) if format_str else x
-
-            return [format_singular(el) for el in value] if isinstance(value, list) else format_singular(value)
-
-        def format_list_value(value, format_string=None, join_string=None, wrap_string=None, expand=False):
-
-            final_value = value
-
-            if format_string:
-                final_value = format_value(format_string, final_value, expand_uri=expand)
-            if join_string:
-                final_value = join_string.join(final_value)
-            if wrap_string:
-                final_value = format_value(wrap_string, value=final_value, expand_uri=False)
-
-            return final_value
+        elastic_types = [
+            PremiseType.ELASTIC_SEARCH_PREMISE,
+            QueryType.ELASTIC_SEARCH_QUERY,
+            QueryType.SIMILARITY_QUERY
+        ]
 
         list_types = [ParameterType.LIST, ParameterType.URI_LIST, ParameterType.SPARQL_LIST,
                       ParameterType.SPARQL_VALUE_LIST, ParameterType.SPARQL_VALUE_URI_LIST]
 
+        list_formatters = {
+            ParameterType.LIST: ParameterFormatter(expand_uri=False, format_string="\"{}\"",
+                                                   join_string=", ", wrap_string=None),
+            ParameterType.URI_LIST: {
+                "sparql": ParameterFormatter(expand_uri=True, format_string="<{}>",
+                                             join_string=", ", wrap_string=None),
+                "not": ParameterFormatter(expand_uri=False, format_string="\"{}\"",
+                                          join_string=", ", wrap_string=None)
+            },
+
+            ParameterType.SPARQL_LIST: ParameterFormatter(expand_uri=False, format_string="<{}>",
+                                                          join_string=", ", wrap_string="({})"),
+
+            ParameterType.SPARQL_VALUE_LIST: ParameterFormatter(expand_uri=False,
+                                                                format_string="(\"{}\")",
+                                                                join_string="\n",
+                                                                wrap_string=None),
+
+            ParameterType.SPARQL_VALUE_URI_LIST: ParameterFormatter(expand_uri=True,
+                                                                    format_string="(<{}>)",
+                                                                    join_string="\n",
+                                                                    wrap_string=None)
+        }
+
         if parameter_type in list_types:
 
             provided_value = _enforce_list(provided_value)
+            formatter = list_formatters.get(parameter_type, None)
 
-            if parameter_type == ParameterType.LIST:
-                format_string, join_string, expand, wrap_string = "\"{}\"", ", ", False, None
-
-            elif parameter_type == ParameterType.URI_LIST:
-                if query_type in sparql_valid:
-                    format_string, join_string, expand, wrap_string = "<{}>", ", ", True, None
-
-                else:
-                    # TODO: figure out if we need to expand uris
-                    #  when doing ElasticSearch queries
-                    #  (hard to say in general because it depends on the indexing)
-                    format_string, join_string, expand, wrap_string = "\"{}\"", ", ", False, None
-
-            elif parameter_type == ParameterType.SPARQL_LIST:
-                format_string, join_string, expand, wrap_string = "<{}>", ", ", False, "({})"
-
-            elif parameter_type == ParameterType.SPARQL_VALUE_LIST:
-                if query_type not in sparql_valid:
-                    raise InvalidParameterTypeException(parameter_type, query_type)
-
-                format_string, join_string, expand, wrap_string = "(\"{}\")", "\n", False, None
-
-            elif parameter_type == ParameterType.SPARQL_VALUE_URI_LIST:
-                if query_type not in sparql_valid:
-                    raise InvalidParameterTypeException(parameter_type, query_type)
-
-                format_string, join_string, expand, wrap_string = "(<{}>)", "\n", True, None
-
-            else:
+            if formatter is None:
                 raise UnsupportedTypeException(parameter_type, "parameter type")
 
-            return format_list_value(value=provided_value, expand=expand, format_string=format_string,
-                                     join_string=join_string, wrap_string=wrap_string)
-        else:
+            if parameter_type in (ParameterType.SPARQL_LIST, ParameterType.SPARQL_VALUE_LIST,
+                                  ParameterType.SPARQL_VALUE_URI_LIST) and query_type not in \
+                    sparql_types:
+                raise InvalidParameterTypeException(parameter_type, query_type)
 
-            if parameter_type == ParameterType.STR:
-                value = _enforce_unique(provided_value)
-                format_string, expand = "\"{}\"", False
+            if parameter_type == ParameterType.URI_LIST:
+                formatter = formatter["sparql"] if query_type in sparql_types else formatter["not"]
 
-            elif parameter_type == ParameterType.PATH:
-                value = _enforce_unique(provided_value)
-                format_string, expand = None, False
+            return formatter.format_list_value(value=provided_value, forge=forge)
 
-            elif parameter_type == ParameterType.URI:
-                value = _enforce_unique(provided_value)
+        value_formatters = {
+            ParameterType.STR: ParameterFormatter(expand_uri=False, format_string="\"{}\""),
+            ParameterType.PATH: ParameterFormatter(expand_uri=False, format_string=None),
+            ParameterType.URI: {
+                "first": ParameterFormatter(expand_uri=True, format_string="\"{}\""),
+                "second": ParameterFormatter(expand_uri=True, format_string=None)
+            }
+        }
 
-                # TODO: figure out if we need to expand uris
-                #  when doing ElasticSearch queries
-                #  (hard to say in general because it depends on the indexing)
-                if query_type in [
-                    PremiseType.ELASTIC_SEARCH_PREMISE,
-                    QueryType.ELASTIC_SEARCH_QUERY,
-                    QueryType.SIMILARITY_QUERY
-                ]:
-                    format_string, expand = "\"{}\"", True
-                else:
-                    format_string, expand = None, True
-            else:
-                raise UnsupportedTypeException(parameter_type, "parameter type")
+        formatter = value_formatters.get(parameter_type, None)
 
-            return format_value(format_string, value, expand)
+        if formatter is None:
+            raise UnsupportedTypeException(parameter_type, "parameter type")
+
+        value = _enforce_unique(provided_value)
+
+        # TODO: figure out if we need to expand uris
+        #  when doing ElasticSearch queries
+        #  (hard to say in general because it depends on the indexing)
+        if parameter_type == ParameterType.URI:
+            formatter = formatter["first"] if query_type in elastic_types else formatter["second"]
+
+        return formatter.format_value(value=value, forge=forge)

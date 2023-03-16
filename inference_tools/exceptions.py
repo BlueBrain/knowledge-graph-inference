@@ -1,27 +1,19 @@
-from enum import Enum
+"""
+Exceptions
+"""
+from inference_tools.type import ObjectType
 
 
 class InferenceToolsException(Exception):
     """Generic exception."""
-    pass
 
 
 class InferenceToolsWarning(UserWarning):
     """Generic warning."""
-    pass
 
 
 class SimilaritySearchException(InferenceToolsException):
     """Exception in similarity search."""
-    pass
-
-
-class ObjectType(Enum):
-    QUERY_PIPE = "query pipe"
-    PARAMETER = "parameter"
-    RULE = "rule"
-    QUERY = "query"
-    PREMISE = "premise"
 
 
 class IncompleteObjectException(InferenceToolsException):
@@ -62,4 +54,4 @@ class MissingPremiseParameterValue(InferenceToolsException):
 class InvalidParameterSpecificationException(InferenceToolsException):
     def __init(self, message):
         self.message = message
-        super().__init__(self.message)
+        super().__init__(message)

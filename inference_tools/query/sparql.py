@@ -5,46 +5,45 @@ from string import Template
 from inference_tools.premise_execution import PremiseExecution
 
 from inference_tools.query.source import Source
-from inference_tools.helper_functions import _enforce_list
+from inference_tools.helper_functions import _enforce_list, _safe_get_id_attribute
 
-DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+DEFAULT_SPARQL_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
+# TODO get rid of the edit of views
 
 
 class Sparql(Source):
-
     @staticmethod
     def execute_query(forge, query, parameters, config=None, debug=False):
+
         custom_sparql_view = config.get("sparqlView", None) if config else None
 
         if custom_sparql_view is not None:
-            view_id = (
-                custom_sparql_view.get("id")
-                if custom_sparql_view.get("id")
-                else custom_sparql_view.get("@id")
-            )
-            Sparql.set_sparql_view(forge, view_id)
-        query = Template(
-            query["hasBody"]).substitute(**parameters)
+            Sparql.set_sparql_view(forge, _safe_get_id_attribute(custom_sparql_view))
+
+        query = Template(query["hasBody"]).substitute(**parameters)
+
         return forge.as_json(forge.sparql(query, limit=None, debug=debug))
 
     @staticmethod
     def check_premise(forge, premise, parameters, config, debug=False):
-        custom_sparql_view = config.get("sparqlView", None)
 
         results = Sparql.execute_query(
-            forge, premise, parameters, custom_sparql_view, debug=debug)
+            forge, premise, parameters, config, debug=debug)
 
         return PremiseExecution.SUCCESS if len(results) > 0 else PremiseExecution.FAIL
 
     @staticmethod
     def set_sparql_view(forge, view):
         """Set sparql view."""
+        org, project = Sparql.get_store(forge).bucket.split("/")[-2:]
         views_endpoint = "/".join((
-            forge._store.endpoint,
+            Sparql.get_store(forge).endpoint,
             "views",
-            quote_plus(forge._store.bucket.split("/")[0]),
-            quote_plus(forge._store.bucket.split("/")[1])))
-        forge._store.service.sparql_endpoint["endpoint"] = "/".join(
+            quote_plus(org),
+            quote_plus(project)
+        ))
+
+        Sparql.get_store(forge).service.sparql_endpoint["endpoint"] = "/".join(
             (views_endpoint, quote_plus(view), "sparql"))
 
     @staticmethod

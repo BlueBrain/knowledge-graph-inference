@@ -1,3 +1,7 @@
+"""
+Describes the states a premise can have after being ran
+"""
+
 from enum import Enum
 
 

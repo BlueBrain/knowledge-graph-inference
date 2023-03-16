@@ -1,14 +1,13 @@
-import requests
-
 from urllib.parse import quote_plus
-
 from string import Template
+import requests
 from inference_tools.query.source import Source
 from inference_tools.type import PremiseType
 from inference_tools.exceptions import UnsupportedTypeException
-from inference_tools.helper_functions import _enforce_list
+from inference_tools.helper_functions import _enforce_list, _safe_get_id_attribute
 
-DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
+# TODO get rid of the edit of views
 
 
 class ElasticSearch(Source):
@@ -17,14 +16,12 @@ class ElasticSearch(Source):
     def execute_query(forge, query, parameters, config=None, debug=False):
 
         custom_es_view = config.get("elasticSearchView", None) if config else None
+
         if custom_es_view is not None:
-            view_id = (
-                custom_es_view.get("id")
-                if custom_es_view.get("id")
-                else custom_es_view.get("@id")
-            )
-            ElasticSearch.set_elastic_view(forge, view_id)
+            ElasticSearch.set_elastic_view(forge, _safe_get_id_attribute(custom_es_view))
+
         query = Template(query["hasBody"]).substitute(**parameters)
+
         results = forge.as_json(forge.elastic(query, limit=10000, debug=debug))
         return results
 
@@ -35,19 +32,22 @@ class ElasticSearch(Source):
 
     @staticmethod
     def get_elastic_view_endpoint(forge):
-        return forge._store.service.elastic_endpoint["endpoint"]
+        return ElasticSearch.get_store(forge).service.elastic_endpoint["endpoint"]
 
     @staticmethod
     def set_elastic_view_endpoint(forge, endpoint):
-        forge._store.service.elastic_endpoint["endpoint"] = endpoint
+        ElasticSearch.get_store(forge).service.elastic_endpoint["endpoint"] = endpoint
 
     @staticmethod
     def set_elastic_view(forge, view):
+        org, project = ElasticSearch.get_store(forge).bucket.split("/")[-2:]
+
         views_endpoint = "/".join((
-            forge._store.endpoint,
+            ElasticSearch.get_store(forge).endpoint,
             "views",
-            quote_plus(forge._store.bucket.split("/")[0]),
-            quote_plus(forge._store.bucket.split("/")[1])))
+            quote_plus(org),
+            quote_plus(project)
+        ))
         endpoint = "/".join((views_endpoint, quote_plus(view), "_search"))
 
         ElasticSearch.set_elastic_view_endpoint(forge, endpoint)
@@ -67,7 +67,9 @@ class ElasticSearch(Source):
     @staticmethod
     def check_view_readiness(bucket_config, view_id, token):
         view_id = quote_plus(view_id)
-        url = f"{bucket_config.endpoint}/views/{bucket_config.org}/{bucket_config.proj}/{view_id}/statistics"
+        url = f"{bucket_config.endpoint}/views/{bucket_config.org}/" \
+              f"{bucket_config.proj}/{view_id}/statistics"
+
         r = requests.get(
             url,
             headers={"Authorization": f"Bearer {token}"}

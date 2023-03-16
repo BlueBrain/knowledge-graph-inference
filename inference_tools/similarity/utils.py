@@ -1,10 +1,10 @@
 """Collection of utils for performing similarity search."""
+from string import Template
+from collections import defaultdict, namedtuple
+
 import math
 import numpy as np
 import pandas as pd
-
-from string import Template
-from collections import defaultdict, namedtuple
 
 from inference_tools.helper_functions import _safe_get_id_attribute
 from inference_tools.query.elastic_search import ElasticSearch
@@ -500,7 +500,7 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
 def compute_boosting_factors(forge, view_id, stats, formula,
                              neighborhood_size=10):
     """Compute boosting factors for all vectors."""
-    boosting_factors = dict()
+    boosting_factors = {}
     # Compute local similarity deviations for points
     ElasticSearch.set_elastic_view(forge, view_id)
     all_vectors = ElasticSearch.get_all_documents(forge)

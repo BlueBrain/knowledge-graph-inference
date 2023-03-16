@@ -1,8 +1,10 @@
+from typing import Any, Dict, List
+
 from inference_tools.helper_functions import _enforce_list, _safe_get_type_attribute
 from inference_tools.type import ParameterType
 
 
-def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
+def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int, query_body: str):
     """
     Rewrite the query in order to have the line where the parameter of name "name"
     duplicated for as many predicate-pairs there are and two parameters on each line,
@@ -16,10 +18,13 @@ def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
     @return: the rewritten query body
     """
     query_split = query_body.split("\n")
-    to_find = "${}".format(name)
+    to_find = f"${name}"
     index = next(i for i, line in enumerate(query_split) if to_find in line)
-    replacement = lambda name, nb: "${}_{}_{} ${}_{}_{}".format(name, nb, "predicate", name, nb, "object")
-    new_lines = [query_split[index].replace(to_find, replacement(name, i)) for i in range(nb_multi)]
+
+    def replacement(nb):
+        return f"${name}_{nb}_{'predicate'} ${name}_{nb}_{'object'}"
+
+    new_lines = [query_split[index].replace(to_find, replacement(i)) for i in range(nb_multi)]
     if len(new_lines) == 0:
         del query_split[index]
     else:
@@ -28,7 +33,7 @@ def multi_predicate_object_pairs_query_rewriting(name, nb_multi, query_body):
     return query_body
 
 
-def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
+def has_multi_predicate_object_pairs(parameter_spec: List[Dict[str, Any]], parameter_values):
     """
     Checks whether within the rule parameters (parameter specification),
     a parameter of type MultiPredicateObjectPair exists.
@@ -63,10 +68,11 @@ def has_multi_predicate_object_pairs(parameter_spec, parameter_values):
     return None
 
 
-def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parameter_values):
+def multi_predicate_object_pairs_parameter_rewriting(idx: int, parameter_spec, parameter_values):
     """
-    Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user of the rule to
-     add additional properties of an entity to retrieve in a SPARQL query's WHERE statement.
+    Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user
+    of the rule to add additional properties of an entity to retrieve in a SPARQL query's WHERE
+    statement.
     They are injected into the query, as such, each predicate and object become query parameters.
     These type-value pairs are split into:
     - an entry into the parameter specifications with
@@ -78,12 +84,14 @@ def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parame
         with "object" or "predicate" and the object-pair pair index,
         - value: the value component of the type-value pair
 
-    @param idx: The index in the parameter specifications of the parameter of type MultiPredicateObjectPair
+    @param idx: The index in the parameter specifications of the parameter of type
+    MultiPredicateObjectPair
     @param parameter_spec: the parameter specifications of the rule
     @param parameter_values: the parameter values as specified by the user
-    @return: new parameter specifications and values, with the information specified by the user in the
-    parameter values appropriately reorganized in the parameter specifications and parameter values so that future
-    steps can treat these parameters the way standard ParameterType.s are being treated
+    @return: new parameter specifications and values, with the information specified
+    by the user in the parameter values appropriately reorganized in the parameter specifications
+    and parameter values so that future steps can treat these parameters the way standard
+     ParameterType.s are being treated
     """
     spec = parameter_spec[idx]
     del parameter_spec[idx]
@@ -99,16 +107,17 @@ def multi_predicate_object_pairs_parameter_rewriting(idx, parameter_spec, parame
             ((predicate_value, predicate_type),
              (object_value, object_type)) = pair
 
-            name_desc = ["predicate", "object"]
+            descriptions = ["predicate", "object"]
             values = [predicate_value, object_value]
             types = [predicate_type, object_type]
 
-            for j in range(2):
-                constructed_name = "{}_{}_{}".format(name, str(i), name_desc[j])
+            for type_, value, description in zip(types, values, descriptions):
+
+                constructed_name = f"{name}_{str(i)}_{description}"
                 parameter_spec.append({
-                    "type": types[j],
+                    "type": type_,
                     "name": constructed_name
                 })
-                parameter_values[constructed_name] = values[j]
+                parameter_values[constructed_name] = value
 
     return parameter_spec, parameter_values

@@ -1,29 +1,37 @@
+"""
+Helper functions
+"""
+
 from inference_tools.exceptions import InferenceToolsException
 
 
+def get_model(forge):
+    return forge._model
+
+
 def _expand_uri(forge, uri):
-    return forge._model.context().expand(uri)
+    return get_model(forge).context().expand(uri)
 
 
 def _shrink_uri(forge, uri):
-    return forge._model.context().shrink(uri)
+    return get_model(forge).context().shrink(uri)
 
 
 def _to_symbol(forge, uri):
-    return forge._model.context().to_symbol(uri)
+    return get_model(forge).context().to_symbol(uri)
 
 
 def _safe_get_type_attribute(obj):
-    type = obj["type"] if "type" in obj else (obj["@type"] if "@type" in obj else None)
-    if type:
-        return type
+    type_value = obj["type"] if "type" in obj else (obj["@type"] if "@type" in obj else None)
+    if type_value:
+        return type_value
     raise TypeError
 
 
 def _safe_get_id_attribute(obj):
-    id = obj["id"] if "id" in obj else (obj["@id"] if "@id" in obj else None)
-    if id:
-        return id
+    id_value = obj["id"] if "id" in obj else (obj["@id"] if "@id" in obj else None)
+    if id_value:
+        return id_value
     raise TypeError
 
 
@@ -39,11 +47,11 @@ def _follow_path(json_resource, path):
 
             if el != "@id":
                 raise ex
+
+            if "id" in value:
+                el = "id"
             else:
-                if "id" in value:
-                    el = "id"
-                else:
-                    raise ex
+                raise ex
 
         value = value[el]
     return value

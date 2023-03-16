@@ -105,7 +105,7 @@ STATS_VIEW_MAPPING = {
         },
         "@type": {
             "type": "keyword"
-        }, 
+        },
         "boosted": {
             "type": "boolean"
         },
