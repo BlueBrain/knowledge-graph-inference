@@ -1,9 +1,9 @@
 import json
 from inference_tools.helper_functions import _enforce_list, _follow_path
 from string import Template
-from inference_tools.PremiseExecution import PremiseExecution
+from inference_tools.premise_execution import PremiseExecution
 from inference_tools.exceptions import InferenceToolsException
-from inference_tools.query.Source import Source
+from inference_tools.query.source import Source
 
 
 class Forge(Source):

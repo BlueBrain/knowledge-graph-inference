@@ -2,9 +2,9 @@ from urllib.parse import quote_plus
 
 from string import Template
 
-from inference_tools.PremiseExecution import PremiseExecution
+from inference_tools.premise_execution import PremiseExecution
 
-from inference_tools.query.Source import Source
+from inference_tools.query.source import Source
 from inference_tools.helper_functions import _enforce_list
 
 DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"

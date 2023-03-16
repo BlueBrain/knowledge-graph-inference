@@ -1,7 +1,7 @@
 from inference_tools.utils import _build_parameter_map
 from inference_tools.type import QueryType, ParameterType
-from inference_tools.query.Sparql import Sparql
-from inference_tools.query.ElasticSearch import ElasticSearch
+from inference_tools.query.sparql import Sparql
+from inference_tools.query.elastic_search import ElasticSearch
 from inference_tools.helper_functions import _to_symbol
 
 

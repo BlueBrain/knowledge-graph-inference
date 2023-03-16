@@ -7,7 +7,7 @@ from string import Template
 from collections import defaultdict, namedtuple
 
 from inference_tools.helper_functions import _safe_get_id_attribute
-from inference_tools.query.ElasticSearch import ElasticSearch
+from inference_tools.query.elastic_search import ElasticSearch
 from inference_tools.exceptions import SimilaritySearchException
 
 FORMULAS = {

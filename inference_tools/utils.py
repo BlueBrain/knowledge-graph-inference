@@ -2,9 +2,9 @@
 
 import warnings
 
-from inference_tools.query.ElasticSearch import ElasticSearch
-from inference_tools.query.Sparql import Sparql
-from inference_tools.query.Forge import Forge
+from inference_tools.query.elastic_search import ElasticSearch
+from inference_tools.query.sparql import Sparql
+from inference_tools.query.forge import Forge
 
 from inference_tools.similarity.utils import execute_similarity_query
 
@@ -36,8 +36,8 @@ from inference_tools.helper_functions import (
 from inference_tools.type import (ParameterType, QueryType, PremiseType)
 
 from kgforge.core import KnowledgeGraphForge
-from inference_tools.Parameter import Parameter
-from inference_tools.PremiseExecution import PremiseExecution
+from inference_tools.parameter import Parameter
+from inference_tools.premise_execution import PremiseExecution
 
 import getpass
 

@@ -3,7 +3,7 @@ import requests
 from urllib.parse import quote_plus
 
 from string import Template
-from inference_tools.query.Source import Source
+from inference_tools.query.source import Source
 from inference_tools.type import PremiseType
 from inference_tools.exceptions import UnsupportedTypeException
 from inference_tools.helper_functions import _enforce_list
