@@ -1,13 +1,16 @@
 """
 Rule fetching
 """
-
-from typing import List, Optional
+from string import Template
+from typing import List, Optional, Dict
+import json
 from kgforge.core import KnowledgeGraphForge
-from inference_tools.utils import _build_parameter_map
+
+from inference_tools.datatypes.query import SparqlQueryBody
+from inference_tools.datatypes.rule import Rule
+from inference_tools.parameter_formatter import ParameterFormatter
 from inference_tools.type import QueryType, ParameterType
-from inference_tools.query.sparql import Sparql
-from inference_tools.query.elastic_search import ElasticSearch
+from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.helper_functions import _to_symbol
 
 
@@ -22,25 +25,22 @@ def get_resource_type_descendants(forge, types) -> List[str]:
     @return: a list of Resource labels that are descendants of the
     @rtype: List[str]
     """
-    query = {
-        "hasBody": """ 
+    query = SparqlQueryBody(""" 
             SELECT ?id ?label
             WHERE {
                 ?type rdfs:subClassOf* ?id .
                 ?id rdfs:label ?label
                 VALUES (?type) { $types } 
             }
-        """}
+        """)
 
-    current_parameters = _build_parameter_map(
-        forge, [
-            {
-                "type": ParameterType.SPARQL_VALUE_URI_LIST.value,
-                "name": "types"
-            }
-        ], {"types": types}, QueryType.SPARQL_QUERY, multi=False)
+    types = ParameterFormatter.format_parameter(
+        parameter_type=ParameterType.SPARQL_VALUE_URI_LIST,
+        provided_value=types, query_type=QueryType.SPARQL_QUERY, forge=forge
+    )
 
-    res = Sparql.execute_query(forge, query, current_parameters, debug=False)
+    query_body = Template(query).substitute(types=types)
+    res = forge.as_json(forge.sparql(query_body, limit=None, debug=False))
 
     return [obj["label"] for obj in res]
 
@@ -48,7 +48,7 @@ def get_resource_type_descendants(forge, types) -> List[str]:
 def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGraphForge,
                 rule_view_id: str,
                 resource_types: Optional[List[str]] = None,
-                resource_types_descendants: bool = True):
+                resource_types_descendants: bool = True) -> List[Rule]:
     """
     Get the rules using provided view, for an optional set of target resource types.
 
@@ -70,41 +70,45 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
 
     old_endpoint = ElasticSearch.get_elastic_view_endpoint(forge_rules)
     ElasticSearch.set_elastic_view(forge_rules, rule_view_id)
+
     if resource_types is None:
-        rules = forge_rules.elastic("""
+
+        q = json.dumps(
             {
               "query": {
                 "term": {
-                  "_deprecated": false
+                  "_deprecated": False
                 }
               }
             }
-        """)
+        )
+
     else:
 
         if resource_types_descendants:
             resource_types = get_resource_type_descendants(forge_datamodels, resource_types)
 
-        resource_type_repr = ",".join([f"\"{_to_symbol(forge_rules, t)}\"" for t in resource_types])
+        resource_type_repr = [_to_symbol(forge_rules, t) for t in resource_types]
 
-        rules = forge_rules.elastic(f"""{{
-          "query": {{
-            "bool": {{
+        q = json.dumps({
+          "query": {
+            "bool": {
                 "must": [
-                    {{
-                       "terms": {{"targetResourceType": [{resource_type_repr}]}}
-                    }},
-                    {{
-                        "term": {{"_deprecated": false}}
-                    }}
+                    {
+                       "terms": {"targetResourceType": resource_type_repr}
+                    },
+                    {
+                        "term": {"_deprecated": False}
+                    }
                 ]
-             }}
-           }}
-        }}""")
+             }
+           }
+        })
 
+    rules = forge_rules.elastic(q)
     ElasticSearch.set_elastic_view_endpoint(forge_rules, old_endpoint)
 
     return [
-        {**forge_rules.as_json(rule), "nexus_link": rule._store_metadata._self}
+        Rule({**forge_rules.as_json(rule), "nexus_link": rule._store_metadata._self})
         for rule in rules
     ]

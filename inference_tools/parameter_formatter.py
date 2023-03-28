@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Union, Optional
+from typing import Any, List, Union, Optional
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -6,53 +6,11 @@ from inference_tools.helper_functions import _enforce_unique, _expand_uri
 from inference_tools.exceptions import (
     UnsupportedTypeException,
     InvalidParameterTypeException,
-    IncompleteObjectException,
     InvalidValueException,
-    ObjectType
+    ObjectTypeStr
 )
-from inference_tools.helper_functions import _safe_get_type_attribute, _enforce_list
+from inference_tools.helper_functions import _enforce_list
 from inference_tools.type import ParameterType, PremiseType, QueryType
-
-
-class Parameter:
-    """
-        Rule input parameter specification
-    """
-
-    def __init__(self, dict_spec):
-        self.name = dict_spec.get("name")
-        self.optional: bool = dict_spec.get("optional")
-        self.default = dict_spec.get("default")
-        self.description = dict_spec.get("description")
-
-        try:
-            parameter_type = _safe_get_type_attribute(dict_spec)
-        except TypeError as e:
-            raise IncompleteObjectException(name=self.name, attribute="type",
-                                            object_type=ObjectType.PARAMETER) from e
-
-        try:
-            self.type: ParameterType = ParameterType(parameter_type)
-        except ValueError as e:
-            raise InvalidValueException(attribute="parameter type", value=parameter_type) from e
-
-    def get_value(self, parameter_values: Dict[str, str]) -> Any:
-        """
-        From the parameter values specified by the user, retrieves the value associated with
-        this input parameter specification by its name
-        @param parameter_values: the parameter values specified by the user
-        @type parameter_values: Dict[str, str]
-        @return: the parameter value corresponding to this parameter specification
-        @rtype: Any
-        """
-        if self.name in parameter_values and parameter_values[self.name]:
-            return parameter_values[self.name]
-        if self.default:
-            return self.default
-        if self.optional:
-            return None
-        raise IncompleteObjectException(name=self.name, attribute="value",
-                                        object_type=ObjectType.PARAMETER)
 
 
 class ParameterFormatter:
@@ -197,9 +155,17 @@ class ParameterFormatter:
 
             return formatter.format_list_value(value=provided_value, forge=forge)
 
+        if parameter_type == ParameterType.BOOL:
+            value = _enforce_unique(provided_value).lower()
+            if value not in ["true", "false"]:
+                raise InvalidValueException(attribute=ObjectTypeStr.PARAMETER.value, value=value,
+                                            rest="for an input parameter of type bool")
+            return value
+
         value_formatters = {
             ParameterType.STR: ParameterFormatter(expand_uri=False, format_string="\"{}\""),
             ParameterType.PATH: ParameterFormatter(expand_uri=False, format_string=None),
+            ParameterType.QUERY_BLOCK: ParameterFormatter(expand_uri=False, format_string=None),
             ParameterType.URI: {
                 "first": ParameterFormatter(expand_uri=True, format_string="\"{}\""),
                 "second": ParameterFormatter(expand_uri=True, format_string=None)

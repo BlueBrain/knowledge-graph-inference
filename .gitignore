@@ -7,3 +7,5 @@ seu_morphologies/*
 **/__pycache__/
 data/morphologies/
 build/
+draft/
+.pylintrc

@@ -1,10 +1,14 @@
-from typing import Any, Dict, List
+from typing import Dict, List, Optional, Tuple
 
-from inference_tools.helper_functions import _enforce_list, _safe_get_type_attribute
-from inference_tools.type import ParameterType
+from inference_tools.exceptions import InvalidParameterTypeException, MalformedRuleException
+
+from inference_tools.datatypes.parameter_specification import ParameterSpecification
+from inference_tools.datatypes.query import SparqlQueryBody, Query
+from inference_tools.type import ParameterType, QueryType
 
 
-def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int, query_body: str):
+def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int,
+                                                 query_body: SparqlQueryBody):
     """
     Rewrite the query in order to have the line where the parameter of name "name"
     duplicated for as many predicate-pairs there are and two parameters on each line,
@@ -14,26 +18,37 @@ def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int, query
     @param name: the name of the MultiPredicateObjectPairs parameter
     @param nb_multi: the number of predicate-object pairs, and therefore of
      duplication of the line where the parameter is located
-    @param query_body: the query body where the rewriting of parameter placeholders is done
+    @param query_body: the query body where the rewriting of parameter placeholders is
+    done
     @return: the rewritten query body
     """
     query_split = query_body.split("\n")
     to_find = f"${name}"
-    index = next(i for i, line in enumerate(query_split) if to_find in line)
+
+    try:
+        index = next(i for i, line in enumerate(query_split) if to_find in line)
+    except StopIteration:
+        raise MalformedRuleException(
+            "Multi predicate object pair parameter found in "
+            "specifications, but the parameter name is not found in the query")
 
     def replacement(nb):
         return f"${name}_{nb}_{'predicate'} ${name}_{nb}_{'object'}"
 
     new_lines = [query_split[index].replace(to_find, replacement(i)) for i in range(nb_multi)]
+
     if len(new_lines) == 0:
         del query_split[index]
     else:
         query_split[index] = "\n".join(new_lines)
+
     query_body = "\n".join(query_split)
-    return query_body
+
+    return SparqlQueryBody(query_body)
 
 
-def has_multi_predicate_object_pairs(parameter_spec: List[Dict[str, Any]], parameter_values):
+def has_multi_predicate_object_pairs(parameter_spec: List[ParameterSpecification],
+                                     parameter_values):
     """
     Checks whether within the rule parameters (parameter specification),
     a parameter of type MultiPredicateObjectPair exists.
@@ -45,35 +60,31 @@ def has_multi_predicate_object_pairs(parameter_spec: List[Dict[str, Any]], param
         the number of predicate-object pairs specified by the user in the parameter values
         else returns None
     """
-
-    parameter_spec = _enforce_list(parameter_spec)
+    types = [p.type for p in parameter_spec]
 
     try:
-        types = [_safe_get_type_attribute(p) for p in parameter_spec]
-        try:
-            idx = types.index(ParameterType.MULTI_PREDICATE_OBJECT_PAIR.value)
-            spec = parameter_spec[idx]
-            name = spec["name"]
-            if name not in parameter_values or parameter_values[name] is None:
-                return idx, name, 0
-            nb_multi = len(parameter_values[name])
+        idx = types.index(ParameterType.MULTI_PREDICATE_OBJECT_PAIR)
+        name = parameter_spec[idx].name
+        if name not in parameter_values or parameter_values[name] is None:
+            return idx, name, 0
 
-            return idx, name, nb_multi
+        return idx, name,  len(parameter_values[name])
 
-        except ValueError:
-            pass
-    except TypeError:
+    except ValueError:
         pass
 
     return None
 
 
-def multi_predicate_object_pairs_parameter_rewriting(idx: int, parameter_spec, parameter_values):
+def multi_predicate_object_pairs_parameter_rewriting(idx: int,
+                                                     parameter_spec: List[ParameterSpecification],
+                                                     parameter_values: Dict):
     """
     Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user
-    of the rule to add additional properties of an entity to retrieve in a SPARQL query's WHERE
-    statement.
-    They are injected into the query, as such, each predicate and object become query parameters.
+    of the rule to add additional properties of an entity to retrieve in a SPARQL query's
+    WHERE statement.
+    They are injected into the query, as such, each predicate and object become
+    query parameters.
     These type-value pairs are split into:
     - an entry into the parameter specifications with
          - name: the MultiPredicateObject parameter name concatenated
@@ -95,7 +106,7 @@ def multi_predicate_object_pairs_parameter_rewriting(idx: int, parameter_spec, p
     """
     spec = parameter_spec[idx]
     del parameter_spec[idx]
-    name = spec["name"]
+    name = spec.name
 
     if name not in parameter_values:
         return parameter_spec, parameter_values
@@ -114,10 +125,35 @@ def multi_predicate_object_pairs_parameter_rewriting(idx: int, parameter_spec, p
             for type_, value, description in zip(types, values, descriptions):
 
                 constructed_name = f"{name}_{str(i)}_{description}"
-                parameter_spec.append({
+                parameter_spec.append(ParameterSpecification({
                     "type": type_,
                     "name": constructed_name
-                })
+                }))
                 parameter_values[constructed_name] = value
+
+    return parameter_spec, parameter_values
+
+
+def multi_check(query: Query, parameter_values: Optional[Dict]) \
+        -> Tuple[List[ParameterSpecification], Dict]:
+
+    multi = has_multi_predicate_object_pairs(query.parameter_specifications, parameter_values)
+
+    if multi:
+        if query.type != QueryType.SPARQL_QUERY:
+            raise InvalidParameterTypeException(ParameterType.MULTI_PREDICATE_OBJECT_PAIR,
+                                                query.type)
+        (idx, name, nb_multi) = multi
+        query.body = multi_predicate_object_pairs_query_rewriting(name, nb_multi, query.body)
+
+        parameter_spec, parameter_values = multi_predicate_object_pairs_parameter_rewriting(
+            idx,
+            query.parameter_specifications,
+            parameter_values
+        )
+
+    else:
+        parameter_values = parameter_values
+        parameter_spec = query.parameter_specifications
 
     return parameter_spec, parameter_values

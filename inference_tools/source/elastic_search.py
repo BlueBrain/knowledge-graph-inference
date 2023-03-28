@@ -1,10 +1,17 @@
+import json
+from typing import Dict
 from urllib.parse import quote_plus
 from string import Template
 import requests
-from inference_tools.query.source import Source
+
+from kgforge.core import KnowledgeGraphForge
+
+from inference_tools.datatypes.query import ElasticSearchQuery
+from inference_tools.datatypes.query_configuration import ElasticSearchQueryConfiguration
+from inference_tools.source.source import Source, DEFAULT_LIMIT
 from inference_tools.type import PremiseType
 from inference_tools.exceptions import UnsupportedTypeException
-from inference_tools.helper_functions import _enforce_list, _safe_get_id_attribute
+from inference_tools.helper_functions import _enforce_list
 
 DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
 # TODO get rid of the edit of views
@@ -13,33 +20,36 @@ DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/da
 class ElasticSearch(Source):
 
     @staticmethod
-    def execute_query(forge, query, parameters, config=None, debug=False):
+    def execute_query(forge: KnowledgeGraphForge, query: ElasticSearchQuery,
+                      parameter_values: Dict,
+                      config: ElasticSearchQueryConfiguration, limit=DEFAULT_LIMIT,
+                      debug: bool = False):
 
-        custom_es_view = config.get("elasticSearchView", None) if config else None
+        if config.elastic_search_view is not None:
+            ElasticSearch.set_elastic_view(forge, config.elastic_search_view.id)
 
-        if custom_es_view is not None:
-            ElasticSearch.set_elastic_view(forge, _safe_get_id_attribute(custom_es_view))
+        query_body = Template(json.dumps(query.body)).substitute(**parameter_values)
 
-        query = Template(query["hasBody"]).substitute(**parameters)
-
-        results = forge.as_json(forge.elastic(query, limit=10000, debug=debug))
-        return results
+        return forge.as_json(forge.elastic(query_body, limit=limit, debug=debug))
 
     @staticmethod
-    def check_premise(forge, premise, parameters, config, debug=False):
+    def check_premise(forge: KnowledgeGraphForge, premise: ElasticSearchQuery,
+                      parameter_values: Dict,
+                      config: ElasticSearchQueryConfiguration, debug: bool = False):
+
         raise UnsupportedTypeException(PremiseType.ELASTIC_SEARCH_PREMISE, "premise type")
         # TODO implement
 
     @staticmethod
-    def get_elastic_view_endpoint(forge):
+    def get_elastic_view_endpoint(forge: KnowledgeGraphForge):
         return ElasticSearch.get_store(forge).service.elastic_endpoint["endpoint"]
 
     @staticmethod
-    def set_elastic_view_endpoint(forge, endpoint):
+    def set_elastic_view_endpoint(forge: KnowledgeGraphForge, endpoint: str):
         ElasticSearch.get_store(forge).service.elastic_endpoint["endpoint"] = endpoint
 
     @staticmethod
-    def set_elastic_view(forge, view):
+    def set_elastic_view(forge: KnowledgeGraphForge, view: str):
         org, project = ElasticSearch.get_store(forge).bucket.split("/")[-2:]
 
         views_endpoint = "/".join((
@@ -53,16 +63,15 @@ class ElasticSearch(Source):
         ElasticSearch.set_elastic_view_endpoint(forge, endpoint)
 
     @staticmethod
-    def get_all_documents(forge):
-        return forge.elastic("""
+    def get_all_documents(forge: KnowledgeGraphForge):
+        return forge.elastic(json.dumps(
             {
               "query": {
                   "term": {
-                      "_deprecated": false
+                      "_deprecated": False
                     }
                 }
-            }
-        """, limit=10000)
+            }), limit=10000)
 
     @staticmethod
     def check_view_readiness(bucket_config, view_id, token):
@@ -82,7 +91,7 @@ class ElasticSearch(Source):
         return last_event == last_processed_event
 
     @staticmethod
-    def restore_default_views(forge):
+    def restore_default_views(forge: KnowledgeGraphForge):
         forge = _enforce_list(forge)
         for f in forge:
             ElasticSearch.set_elastic_view(f, DEFAULT_ES_VIEW)

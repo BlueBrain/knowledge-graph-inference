@@ -1,7 +1,11 @@
 """
 Exceptions
 """
-from inference_tools.type import ObjectType
+from inference_tools.type import ObjectTypeStr
+
+
+class MalformedRuleException(Exception):
+    """Exception for rules that are malformed."""
 
 
 class InferenceToolsException(Exception):
@@ -17,7 +21,7 @@ class SimilaritySearchException(InferenceToolsException):
 
 
 class IncompleteObjectException(InferenceToolsException):
-    def __init__(self, attribute, object_type: ObjectType, name=""):
+    def __init__(self, attribute, object_type: ObjectTypeStr, name=""):
         self.message = f'The {object_type.value} {name} has been ' \
                        f'created with missing mandatory information: {attribute}'
         self.name = name

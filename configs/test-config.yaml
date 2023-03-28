@@ -11,9 +11,9 @@ Store:
   endpoint: https://bbp.epfl.ch/nexus/v1
   searchendpoints:
     sparql:
-      endpoint: "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
     elastic:
-      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
+      endpoint: "https://bbp.epfl.ch/neurosciencegraph/data/420e53b8-db21-4f70-a534-d799c4b59b5d"
       mapping: "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
       default_str_keyword_field: "keyword"
   vocabulary:

@@ -1,13 +1,19 @@
 """Collection of utils for performing similarity search."""
+import json
 from string import Template
 from collections import defaultdict, namedtuple
 
 import math
+from typing import Dict, Callable, List, Optional
+
 import numpy as np
 import pandas as pd
+from kgforge.core import KnowledgeGraphForge
 
-from inference_tools.helper_functions import _safe_get_id_attribute
-from inference_tools.query.elastic_search import ElasticSearch
+from inference_tools.datatypes.query import SimilaritySearchQuery
+from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
+from inference_tools.helper_functions import get_id_attribute
+from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.exceptions import SimilaritySearchException
 
 FORMULAS = {
@@ -17,7 +23,7 @@ FORMULAS = {
 }
 
 
-def get_embedding_vector(forge, search_target):
+def get_embedding_vector(forge: KnowledgeGraphForge, search_target):
     """Get embedding vector for the target of the input similarity query.
 
     Parameters
@@ -61,17 +67,17 @@ def get_embedding_vector(forge, search_target):
 
     result = forge.elastic(vector_query)
 
-    if len(result) == 0:
-        raise SimilaritySearchException(
-            f"Could not get embedding vector for {search_target}")
+    if result is None or len(result) == 0:
+        raise SimilaritySearchException(f"Could not get embedding vector for {search_target}")
 
     result = forge.as_json(result)[0]
-    vector_id = _safe_get_id_attribute(result)
+    vector_id = get_id_attribute(result)
     vector = result["embedding"]
     return vector_id, vector
 
 
-def get_neighbors(forge, vector, vector_id, k=None, score_formula="euclidean",
+def get_neighbors(forge: KnowledgeGraphForge, vector, vector_id,
+                  k=None, score_formula="euclidean",
                   result_filter=None, parameters=None):
     """Get nearest neighbors of the provided vector.
 
@@ -79,6 +85,7 @@ def get_neighbors(forge, vector, vector_id, k=None, score_formula="euclidean",
     ----------
     forge : KnowledgeGraphForge
         Instance of a forge session
+    k: int
     vector : list
         Vector to provide into similarity search
     vector_id : str
@@ -129,7 +136,7 @@ def get_neighbors(forge, vector, vector_id, k=None, score_formula="euclidean",
                     }
                 },
                 "script": {
-                    "source": "$_formula",
+                    "query": "$_formula",
                     "params": {
                       "query_vector": $_vector
                     }
@@ -153,7 +160,11 @@ def get_neighbors(forge, vector, vector_id, k=None, score_formula="euclidean",
     return result
 
 
-def query_similar_resources(forge_factory, forge, query, config, parameters, k):
+def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphForge],
+                            forge: KnowledgeGraphForge,
+                            query: SimilaritySearchQuery,
+                            config: SimilaritySearchQueryConfiguration,
+                            parameter_values, k: Optional[int]):
     """Query similar resources using the similarity query.
 
     Parameters
@@ -167,7 +178,7 @@ def query_similar_resources(forge_factory, forge, query, config, parameters, k):
     config: dict or list of dict
         Query configuration containing references to the target views
         to be queried.
-    parameters : dict
+    parameter_values : dict
         Input parameters used in the similarity query
     k : int
         Number of nearest neighbors to query
@@ -180,90 +191,71 @@ def query_similar_resources(forge_factory, forge, query, config, parameters, k):
         the resource).
     """
     # Set ES view from the config
-    view_id = (
-        config["similarityView"].get("id")
-        if config["similarityView"].get("id")
-        else config["similarityView"].get("@id")
-    )
+    view_id = config.similarity_view.id
     if view_id is None:
-        raise SimilaritySearchException(
-            "Similarity search view is not defined")
+        raise SimilaritySearchException("Similarity search view is not defined")
     ElasticSearch.set_elastic_view(forge, view_id)
 
     # Get search target vector
-    target_parameter = query.get("searchTargetParameter", None)
+    target_parameter = query.search_target_parameter
     if target_parameter is None:
         raise SimilaritySearchException("Target parameter is not specified")
 
-    search_target = parameters.get(target_parameter, None)
+    search_target = parameter_values.get(target_parameter, None)
     if search_target is None:
         raise SimilaritySearchException("Target parameter value is not specified")
 
     vector_id, vector = get_embedding_vector(forge, search_target)
 
     # TODO: Retrieve score formula from the model
+    model_id = config.embedding_model.id
 
-    model_id = (
-        config["embeddingModel"].get("id")
-        if config["embeddingModel"].get("id")
-        else config["embeddingModel"].get("@id")
-    )
     if model_id is None:
         raise SimilaritySearchException(
             "Model is not defined, cannot retrieve similarity score formula")
 
-    if "org" in config["embeddingModel"] and\
-       "project" in config["embeddingModel"]:
-        model_forge = forge_factory(
-            config["embeddingModel"]["org"],
-            config["embeddingModel"]["project"])
+    if config.embedding_model.org is not None and \
+            config.embedding_model.project is not None:
+        model_forge = forge_factory(config.embedding_model.org, config.embedding_model.project)
     else:
         model_forge = forge
 
     # Get model revision, if specified
-    if "hasSelector" in config["embeddingModel"]:
-        revision = config["embeddingModel"]["hasSelector"]["value"]
+    if config.embedding_model.has_selector is not None:
+        revision = config.embedding_model.has_selector["value"]
         model_id = model_id + revision
 
     model = model_forge.retrieve(model_id)
     score_formula = model.similarity
 
-    # Setup the result filter
-    result_filter = query.get("resultFilter", "")
-
     # Search neighbors
     result = get_neighbors(
         forge, vector, vector_id, k, score_formula=score_formula,
-        result_filter=result_filter, parameters=parameters)
+        result_filter=query.result_filter, parameters=parameter_values)
+
     return vector_id, result
 
 
-def get_score_stats(forge, config, boosted=False):
+def get_score_stats(forge, config: SimilaritySearchQueryConfiguration, boosted=False):
     """Retrieve view statistics."""
-    view_id = (
-        config["statisticsView"].get("id")
-        if config["statisticsView"].get("id")
-        else config["statisticsView"].get("@id")
-    )
+    view_id = config.statistics_view.id
     if view_id is None:
-        raise SimilaritySearchException(
-            "Statistics view is not defined")
+        raise SimilaritySearchException("Statistics view is not defined")
     ElasticSearch.set_elastic_view(forge, view_id)
-    boosted_str = "true" if boosted else "false"
-    statistics = forge.elastic(f"""
-        {{
-          "query": {{
-            "bool" : {{
-              "must" : {{
-                "term" : {{ "_deprecated": false }}
-              }},
-              "must": {{
-                "term": {{ "boosted": {boosted_str} }}
-              }}
-            }}
-          }}
-        }}
-    """)
+    statistics = forge.elastic(json.dumps(
+        {
+            "query": {
+                "bool": {
+                    "must": {
+                        "term": {
+                            "_deprecated": False,
+                            "boosted": boosted
+                        }
+                    }
+                }
+            }
+        }))
+
     if len(statistics) == 0:
         raise SimilaritySearchException("No view statistics found")
 
@@ -282,47 +274,42 @@ def get_score_stats(forge, config, boosted=False):
     return min_score, max_score
 
 
-def get_boosting_factors(forge, config):
+def get_boosting_factors(forge, config: SimilaritySearchQueryConfiguration):
     """Retrieve boosting factors."""
-    view_id = (
-        config["boostingView"].get("id")
-        if config["boostingView"].get("id")
-        else config["boostingView"].get("@id")
-    )
+    view_id = config.boosting_view.id
+
     if view_id is None:
-        raise SimilaritySearchException(
-            "Boosing view is not defined")
+        raise SimilaritySearchException("Boosting view is not defined")
+
     ElasticSearch.set_elastic_view(forge, view_id)
-    factors = forge.elastic("""
-       {
-          "size": 10000,
-          "query": {
-                "term" : { "_deprecated": false }
-              }
-        }
-    """, limit=None)
+
+    factors = ElasticSearch.get_all_documents(forge)
+
     if len(factors) == 0:
         raise SimilaritySearchException("No boosting factors found")
+
     boosting_factors = {}
     for el in factors:
         json_el = forge.as_json([el])[0]
-        boosting_factors[_safe_get_id_attribute(json_el["derivation"]["entity"])] =\
-            json_el["value"]
+        boosting_factors[get_id_attribute(json_el["derivation"]["entity"])] = json_el["value"]
+
     return boosting_factors
 
 
-def execute_similarity_query(forge_factory, forge, query, parameters):
+def execute_similarity_query(forge_factory: Callable[[str, str], KnowledgeGraphForge],
+                             forge: List[KnowledgeGraphForge],
+                             query: SimilaritySearchQuery, parameter_values: Dict):
     """Execute similarity search query.
 
     Parameters
     ----------
     forge_factory : func
         Factory that returns a forge session given a bucket
-    forge : KnowledgeGraphForge
+    forge : List[KnowledgeGraphForge]
         Instance of a forge session
     query : dict
         Json representation of the similarity search query (`SimilarityQuery`)
-    parameters : dict
+    parameter_values : dict
         Input parameters used in the similarity query
 
     Returns
@@ -330,29 +317,25 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
     neighbors : list of resource ID
         List of similarity search results, each element is a resource ID.
     """
-    config = query.get("queryConfiguration", None)
+    config: List[SimilaritySearchQueryConfiguration] = query.query_configurations
+
     if config is None:
-        raise SimilaritySearchException(
-            "No similarity search configuration provided")
+        raise SimilaritySearchException("No similarity search configuration provided")
 
-    k = query["k"]
+    k = query.k
+
     if isinstance(k, str):
-        k = int(Template(k).substitute(parameters))
+        k = int(Template(k).substitute(parameter_values))
 
-    models_to_ignore = []
-    if "IgnoreModelsParameter" in parameters:
-        models_to_ignore = parameters["IgnoreModelsParameter"]
+    models_to_ignore = parameter_values.get("IgnoreModelsParameter", [])
 
-    neighbors = []
-    if isinstance(config, dict) or len(config) == 1:
-        if isinstance(config, list):
-            config = config[0]
-            forge = forge[0]
+    if len(config) == 1:
         # Perform similarity search using a single similarity model
         _, neighbors = query_similar_resources(
-            forge_factory, forge, query, config, parameters, k)
+            forge_factory, forge[0], query, config[0], parameter_values, k)
+
         neighbors = [
-            {"id": _safe_get_id_attribute(n["derivation"]["entity"])}
+            {"id": get_id_attribute(n["derivation"]["entity"])}
             for _, n in neighbors
         ]
     else:
@@ -365,42 +348,28 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
         for i, individual_config in enumerate(config):
             # get the model ID and check if it's not in the
             # list of models to ignore HERE
-            model_id = (
-                individual_config["embeddingModel"].get("id")
-                if individual_config["embeddingModel"].get("id")
-                else individual_config["embeddingModel"].get("@id")
-            )
+            model_id = individual_config.embedding_model.id
             if model_id is None:
                 raise SimilaritySearchException(
-                    "Model is not defined, "
-                    "cannot retrieve similarity score formula")
+                    "Model is not defined, cannot retrieve similarity score formula")
+
             if model_id not in models_to_ignore:
-                view_id = (
-                    individual_config["similarityView"].get("id")
-                    if individual_config["similarityView"].get("id")
-                    else individual_config["similarityView"].get("@id")
-                )
+                view_id = individual_config.similarity_view.id
                 if view_id is None:
-                    raise SimilaritySearchException(
-                        "Similarity search view is not defined")
+                    raise SimilaritySearchException("Similarity search view is not defined")
                 ElasticSearch.set_elastic_view(forge[i], view_id)
 
                 vector_id, neighbors = query_similar_resources(
                     forge_factory, forge[i], query, individual_config,
-                    parameters,
-                    k=None)
+                    parameter_values, k=None
+                )
 
                 vector_ids[i] = vector_id
                 all_neighbors[i] = neighbors
+                stats[i] = get_score_stats(forge[i], individual_config)
 
-                min_score, max_score = get_score_stats(
-                    forge[i], individual_config)
-                stats[i] = (min_score, max_score)
-                if "boosted" in individual_config and\
-                        individual_config["boosted"]:
-                    boosting_factors = get_boosting_factors(
-                        forge[i], individual_config)
-                    all_boosting_factors[i] = boosting_factors
+                if individual_config.boosted:
+                    all_boosting_factors[i] = get_boosting_factors(forge[i], individual_config)
                     all_boosted_stats[i] = get_score_stats(
                         forge[i], individual_config, boosted=True)
 
@@ -417,7 +386,7 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
                 boosted_min, boosted_max = all_boosted_stats[i]
 
             for score, n in neighbor_collection:
-                resource_id = _safe_get_id_attribute(n["derivation"]["entity"])
+                resource_id = get_id_attribute(n["derivation"]["entity"])
                 score = score * boosting_factor
                 score = (score - boosted_min) / (boosted_max - boosted_min)
                 combined_results[resource_id].append(score)
@@ -426,11 +395,12 @@ def execute_similarity_query(forge_factory, forge, query, parameters):
             key: np.array(value).mean()
             for key, value in combined_results.items()
         }
+
         neighbors = [
             {"id": el}
             for el in pd.DataFrame(
                 combined_results.items(), columns=["result", "score"]).nlargest(
-                    k, columns=["score"])["result"].tolist()
+                k, columns=["score"])["result"].tolist()
         ]
 
     return neighbors
@@ -445,7 +415,7 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
     for vector_resource in all_vectors:
         vector_resource = forge.as_json([vector_resource])[0]
         vector = vector_resource["embedding"]
-        vector_id = _safe_get_id_attribute(vector_resource)
+        vector_id = get_id_attribute(vector_resource)
         neighbors = get_neighbors(
             forge, vector, vector_id,
             k=len(all_vectors), score_formula=score_formula)
@@ -463,8 +433,7 @@ def compute_statistics(forge, view_id, score_formula, boosting=None):
         scores.mean(), scores.std())
 
 
-def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
-                            formula):
+def compute_score_deviation(forge, point_id, vector, score_min, score_max, k, formula):
     """Compute similarity score deviation for each vector."""
     query = f"""{{
       "size": {k},
@@ -476,7 +445,7 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
                 }}
           }},
           "script": {{
-              "source": "{FORMULAS[formula]}",
+              "query": "{FORMULAS[formula]}",
               "params": {{
                   "query_vector": {vector}
               }}
@@ -488,13 +457,15 @@ def compute_score_deviation(forge, point_id, vector, score_min, score_max, k,
     result = forge.elastic(query)
     scores = set()
     for el in result:
-        if point_id != _safe_get_id_attribute(forge.as_json([el])[0]):
+        if point_id != get_id_attribute(forge.as_json([el])[0]):
             # Min/max normalization of the score
             score = (el._store_metadata._score - score_min) / (
-                score_max - score_min)
+                    score_max - score_min)
             scores.add(score)
+
     scores = np.array(list(scores))
-    return math.sqrt(((1 - scores)**2).mean())
+
+    return math.sqrt(((1 - scores) ** 2).mean())
 
 
 def compute_boosting_factors(forge, view_id, stats, formula,
@@ -507,7 +478,7 @@ def compute_boosting_factors(forge, view_id, stats, formula,
 
     for vector_resource in all_vectors:
         vector_resource = forge.as_json([vector_resource])[0]
-        point_id = _safe_get_id_attribute(vector_resource)
+        point_id = get_id_attribute(vector_resource)
         vector = vector_resource["embedding"]
         boosting_factors[point_id] = 1 + compute_score_deviation(
             forge, point_id, vector, stats.min, stats.max,

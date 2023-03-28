@@ -2,13 +2,10 @@
 Describes a set of types for some objects inside the rule
 """
 from enum import Enum
+from typing import NewType, Union
 
 
-class ObjectTypeSuper(Enum):
-    ...
-
-
-class ParameterType(ObjectTypeSuper):
+class ParameterType(Enum):
     """
     All types of input parameters that can define a rule
     """
@@ -20,10 +17,12 @@ class ParameterType(ObjectTypeSuper):
     URI = "uri"
     STR = "str"
     PATH = "path"
+    BOOL = "bool"
     MULTI_PREDICATE_OBJECT_PAIR = "MultiPredicateObjectPair"
+    QUERY_BLOCK = "query_block"
 
 
-class QueryType(ObjectTypeSuper):
+class QueryType(Enum):
     """
     All types of queries ran that can be executed
     """
@@ -33,7 +32,7 @@ class QueryType(ObjectTypeSuper):
     FORGE_SEARCH_QUERY = "ForgeSearchQuery"
 
 
-class PremiseType(ObjectTypeSuper):
+class PremiseType(Enum):
     """
     All types of premises that can be checked
     """
@@ -42,9 +41,13 @@ class PremiseType(ObjectTypeSuper):
     FORGE_SEARCH_PREMISE = "ForgeSearchPremise"
 
 
-class ObjectType(Enum):
+ObjectType = NewType('ObjectType', Union[QueryType, PremiseType, ParameterType])
+
+
+class ObjectTypeStr(Enum):
     QUERY_PIPE = "query pipe"
     PARAMETER = "parameter"
     RULE = "rule"
     QUERY = "query"
     PREMISE = "premise"
+    QUERY_CONFIGURATION = "query configuration"
