@@ -2,7 +2,6 @@ import warnings
 from typing import Dict, Callable, Optional, Union, List, Tuple
 from kgforge.core import KnowledgeGraphForge
 
-
 from inference_tools.datatypes.query import Query
 from inference_tools.datatypes.query_configuration import QueryConfiguration
 from inference_tools.datatypes.query_pipe import QueryPipe
@@ -26,16 +25,15 @@ from inference_tools.exceptions import (
 
 from inference_tools.multi_predicate_object_pair import multi_check
 
-from inference_tools.helper_functions import _follow_path, get_id_attribute
+from inference_tools.helper_functions import _follow_path, get_id_attribute, _enforce_list
 
 from inference_tools.type import (QueryType, PremiseType)
 
 from inference_tools.premise_execution import PremiseExecution
 
 
-def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge)\
+def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
         -> Tuple[Optional[int], Dict]:
-
     if len(query.parameter_specifications) == 0:
         return None, {}
 
@@ -311,19 +309,23 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
     if any(flag == PremiseExecution.FAIL for flag in flags):
         # One premise has failed
         return False
-    if all(flag == PremiseExecution.MISSING_PARAMETER for flag in flags) and len(
-            parameter_values) == 0:
-        # Nothing is provided, all premises are missing parameters
+    if all(flag == PremiseExecution.MISSING_PARAMETER for flag in flags):
+        if len(parameter_values) == 0:
+            # Nothing is provided, all premises are missing parameters
+            return True
+
+        if any(len(value_set) > 0 for value_set in
+               [_enforce_list(data) for data in parameter_values.values() if data is not None]
+               ):
+            # Parameter values are provided, all premises are missing parameters
+            return False
+
+        # Things are provided, but the values are empty, all premises are missing parameters
         return True
-    if all(flag == PremiseExecution.MISSING_PARAMETER for flag in flags) and len(
-            parameter_values) > 0:
-        # Things are provided, all premises are missing parameters
-        return False
+
     if all(flag in [PremiseExecution.MISSING_PARAMETER, PremiseExecution.SUCCESS] for flag in
            flags):
         # Some premises are successful, some are missing parameters
         return True
-
-    print(flags)
 
     return False
