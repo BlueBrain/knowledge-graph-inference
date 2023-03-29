@@ -109,7 +109,8 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
                 for el in resources
             ]
 
-        source.restore_default_views(forge)
+        for f in forge:
+            source.restore_default_views(f)
 
     elif query.type == QueryType.SIMILARITY_QUERY:
         resources = execute_similarity_query(

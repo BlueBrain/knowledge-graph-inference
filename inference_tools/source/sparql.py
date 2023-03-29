@@ -66,6 +66,5 @@ class Sparql(Source):
             (views_endpoint, quote_plus(view), "sparql"))
 
     @staticmethod
-    def restore_default_views(forge: List[KnowledgeGraphForge]):
-        for f in forge:
-            Sparql.set_sparql_view(f, DEFAULT_SPARQL_VIEW)
+    def restore_default_views(forge: KnowledgeGraphForge):
+        Sparql.set_sparql_view(forge, DEFAULT_SPARQL_VIEW)

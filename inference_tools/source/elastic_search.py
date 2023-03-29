@@ -92,6 +92,4 @@ class ElasticSearch(Source):
 
     @staticmethod
     def restore_default_views(forge: KnowledgeGraphForge):
-        forge = _enforce_list(forge)
-        for f in forge:
-            ElasticSearch.set_elastic_view(f, DEFAULT_ES_VIEW)
+        ElasticSearch.set_elastic_view(forge, DEFAULT_ES_VIEW)
