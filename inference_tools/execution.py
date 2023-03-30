@@ -54,8 +54,8 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
 
     if query.type.value in sources.keys():
 
-        qc = query.query_configurations[0]
-        forge = forge_factory(qc.org, qc.project)
+        query_config_0 = query.query_configurations[0]
+        forge = forge_factory(query_config_0.org, query_config_0.project)
 
         limit, formatted_parameters = format_parameters(query=query,
                                                         parameter_values=parameter_values,
