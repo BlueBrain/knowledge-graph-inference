@@ -11,7 +11,7 @@ from inference_tools.datatypes.query_configuration import ElasticSearchQueryConf
 from inference_tools.source.source import Source, DEFAULT_LIMIT
 from inference_tools.type import PremiseType
 from inference_tools.exceptions import UnsupportedTypeException
-from inference_tools.helper_functions import _enforce_list
+
 
 DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
 # TODO get rid of the edit of views

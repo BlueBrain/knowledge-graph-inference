@@ -15,7 +15,7 @@ from kgforge.specializations.mappings import DictionaryMapping
 from bluegraph.downstream import EmbeddingPipeline
 from bluegraph.core import GraphElementEmbedder
 
-from .utils import FORMULAS
+from .execution import FORMULAS
 
 
 BucketConfiguration = namedtuple(

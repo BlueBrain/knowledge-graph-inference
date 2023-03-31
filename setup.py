@@ -22,6 +22,7 @@ setup(
     keywords="ontology knowledge graph data science",
     packages=find_packages(),
     python_requires=">=3.7",
+    include_package_data=True,
     setup_requires=[
         "setuptools_scm",
     ],

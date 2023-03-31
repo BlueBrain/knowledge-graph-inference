@@ -11,7 +11,7 @@ from inference_tools.source.sparql import Sparql
 from inference_tools.source.forge import Forge
 from inference_tools.source.source import DEFAULT_LIMIT
 
-from inference_tools.similarity.utils import execute_similarity_query
+from inference_tools.similarity.execution.main import execute_similarity_query
 
 from inference_tools.utils import _build_parameter_map
 
@@ -77,12 +77,6 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
     @rtype: List[Dict]
     """
 
-    forge = [forge_factory(qc.org, qc.project) for qc in query.query_configurations]
-    # Multiple forge configs only for similarity query???
-
-    limit, formatted_parameters = format_parameters(query=query, parameter_values=parameter_values,
-                                                    forge=forge[0])
-
     sources = {
         QueryType.SPARQL_QUERY.value: Sparql,
         QueryType.FORGE_SEARCH_QUERY.value: Forge,
@@ -91,14 +85,21 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
 
     if query.type.value in sources.keys():
 
+        query_config_0 = query.query_configurations[0]
+        forge = forge_factory(query_config_0.org, query_config_0.project)
+
+        limit, formatted_parameters = format_parameters(query=query,
+                                                        parameter_values=parameter_values,
+                                                        forge=forge)
+
         source = sources[query.type.value]
 
         # TODO are multiple query configurations only applicable to similarity queries?
         resources = source.execute_query(
-            forge=forge[0],
+            forge=forge,
             query=query,
             parameter_values=formatted_parameters,
-            config=query.query_configurations[0],
+            config=query_config_0,
             debug=debug,
             limit=limit if last_query else None
         )
@@ -109,14 +110,12 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
                 for el in resources
             ]
 
-        for f in forge:
-            source.restore_default_views(f)
+        source.restore_default_views(forge)
 
     elif query.type == QueryType.SIMILARITY_QUERY:
         resources = execute_similarity_query(
-            forge=forge,
             query=query,
-            parameter_values=formatted_parameters,
+            parameter_values=parameter_values,
             forge_factory=forge_factory,
         )
     else:

@@ -104,12 +104,6 @@ class ParameterFormatter:
             QueryType.SPARQL_QUERY
         ]
 
-        elastic_types = [
-            PremiseType.ELASTIC_SEARCH_PREMISE,
-            QueryType.ELASTIC_SEARCH_QUERY,
-            QueryType.SIMILARITY_QUERY
-        ]
-
         list_types = [ParameterType.LIST, ParameterType.URI_LIST, ParameterType.SPARQL_LIST,
                       ParameterType.SPARQL_VALUE_LIST, ParameterType.SPARQL_VALUE_URI_LIST]
 
@@ -166,10 +160,10 @@ class ParameterFormatter:
             ParameterType.STR: ParameterFormatter(expand_uri=False, format_string="\"{}\""),
             ParameterType.PATH: ParameterFormatter(expand_uri=False, format_string=None),
             ParameterType.QUERY_BLOCK: ParameterFormatter(expand_uri=False, format_string=None),
-            ParameterType.URI: {
-                "first": ParameterFormatter(expand_uri=True, format_string="\"{}\""),
-                "second": ParameterFormatter(expand_uri=True, format_string=None)
-            }
+            ParameterType.URI: ParameterFormatter(expand_uri=True, format_string=None),
+            # TODO: figure out if we need to expand uris
+            #  when doing ElasticSearch queries
+            #  (hard to say in general because it depends on the indexing)
         }
 
         formatter = value_formatters.get(parameter_type, None)
@@ -178,11 +172,5 @@ class ParameterFormatter:
             raise UnsupportedTypeException(parameter_type, "parameter type")
 
         value = _enforce_unique(provided_value)
-
-        # TODO: figure out if we need to expand uris
-        #  when doing ElasticSearch queries
-        #  (hard to say in general because it depends on the indexing)
-        if parameter_type == ParameterType.URI:
-            formatter = formatter["first"] if query_type in elastic_types else formatter["second"]
 
         return formatter.format_value(value=value, forge=forge)

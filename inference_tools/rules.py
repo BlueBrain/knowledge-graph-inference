@@ -4,6 +4,7 @@ Rule fetching
 from string import Template
 from typing import List, Optional, Dict
 import json
+import os
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.query import SparqlQueryBody
@@ -108,7 +109,12 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
     rules = forge_rules.elastic(q)
     ElasticSearch.set_elastic_view_endpoint(forge_rules, old_endpoint)
 
+    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "rule_ignore.txt")) as f:
+        ignored_rules = [l.strip() for l in f.readlines()]
+
     return [
         Rule({**forge_rules.as_json(rule), "nexus_link": rule._store_metadata._self})
-        for rule in rules
+        for rule in rules if rule.id not in ignored_rules
     ]
+
+
