@@ -1,4 +1,4 @@
-from typing import Tuple, List, Optional
+from typing import Tuple, List
 from enum import Enum
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
@@ -61,57 +61,71 @@ class ModelRegistrationPipeline:
         return ModelRegistrationPipeline.steps[step.value - 1]
 
     @staticmethod
-    def run_from(included_models: List[Tuple[str, ModelDescription]],
-                 bucket_configuration: NexusBucketConfiguration, step: Step):
+    def run_many_from(models_information: List[Tuple[str, ModelDescription]],
+                      bucket_configuration: NexusBucketConfiguration, step: Step):
 
         run_from_position = step.value - 1
 
         if run_from_position == 0:
-            return ModelRegistrationPipeline.run(included_models, bucket_configuration)
+            return ModelRegistrationPipeline.run_many(models_information, bucket_configuration)
 
         if run_from_position == 1:
-            return ModelRegistrationPipeline.run(included_models, bucket_configuration,
-                                                 save_locally=False)
+            return ModelRegistrationPipeline.run_many(models_information, bucket_configuration,
+                                                      save_locally=False)
 
         if run_from_position > 1:
-            return ModelRegistrationPipeline.run(included_models, bucket_configuration,
-                                                 save_locally=False,
-                                                 start_position=run_from_position,
-                                                 register_model=False)
+            return ModelRegistrationPipeline.run_many(models_information, bucket_configuration,
+                                                      save_locally=False,
+                                                      start_position=run_from_position,
+                                                      register_model=False)
 
     @staticmethod
-    def run(included_models: List[Tuple[str, ModelDescription]],
+    def run(model_information: Tuple[str, ModelDescription],
             bucket_configuration: NexusBucketConfiguration,
-            save_locally=True, register_model=True, start_position=2):
+            save_locally=True, register_model=True, start_position=2, data: ModelData = None):
 
-        for model_rev, model_description in included_models:
-
-            if save_locally:
+        if save_locally:
+            if data is None:
                 logger.info(">  Loading model data")
                 data = ModelDataImpl(SRC_DATA_DIR, DST_DATA_DIR)
 
-                ModelRegistrationPipeline.steps[0].run(
-                    model_description=model_description,
-                    model_data=data,
-                    model_revision=None
-                )
+            ModelRegistrationPipeline.steps[0].run(
+                model_information=model_information,
+                model_data=data,
+            )
 
-            if register_model:
-                model = ModelRegistrationPipeline.steps[1].run(
-                    model_description=model_description,
-                    bucket_configuration=bucket_configuration,
-                    model_revision=None
-                )
-            else:
-                model = None
+        if register_model:
+            model = ModelRegistrationPipeline.steps[1].run(
+                model_information=model_information,
+                bucket_configuration=bucket_configuration,
+            )
+        else:
+            model = None
 
-            forge = allocate_forge_session_env(bucket_configuration)
+        forge = allocate_forge_session_env(bucket_configuration)
 
-            for step in ModelRegistrationPipeline.steps[start_position:]:
-                step.run(
-                    model_description=model_description,
-                    model_revision=model_rev,
-                    model=model,
-                    forge=forge,
-                    bucket_configuration=bucket_configuration
-                )
+        for step in ModelRegistrationPipeline.steps[start_position:]:
+            step.run(
+                model_information=model_information,
+                model=model,
+                forge=forge,
+                bucket_configuration=bucket_configuration
+            )
+
+    @staticmethod
+    def run_many(models_information: List[Tuple[str, ModelDescription]],
+                 bucket_configuration: NexusBucketConfiguration,
+                 save_locally=True, register_model=True, start_position=2):
+
+        logger.info(">  Loading model data")
+        data = ModelDataImpl(SRC_DATA_DIR, DST_DATA_DIR)
+
+        for model_information in models_information:
+            ModelRegistrationPipeline.run(
+                model_information=model_information,
+                bucket_configuration=bucket_configuration,
+                save_locally=save_locally,
+                register_model=register_model,
+                start_position=start_position,
+                data=data
+            )

@@ -21,10 +21,10 @@ def compute_statistics(forge: KnowledgeGraphForge, view_id: str, score_formula: 
     scores = []
 
     for i, vector_resource in enumerate(all_vectors):
-        if i % 20 == 0:
-            logger.info(f">  Neighbors computed for {i}/{len(all_vectors)} neuron morphologies")
+        if (i+1) % 50 == 0:
+            logger.info(f">  Neighbors computed for {i+1}/{len(all_vectors)} neuron morphologies")
 
-        neighbors: Dict[int, Optional[Neighbor]] = get_neighbors(
+        neighbors: List[Tuple[int, Optional[Neighbor]]] = get_neighbors(
             vector=vector_resource.embedding,
             forge=forge,  vector_id=vector_resource.id,
             k=len(all_vectors), score_formula=score_formula,
@@ -32,13 +32,14 @@ def compute_statistics(forge: KnowledgeGraphForge, view_id: str, score_formula: 
         )
 
         boosting_value = boosting[vector_resource.id] if boosting else 1
-        # if len(neighbors) != len(all_vectors) - 1:
-        #     print(f"Length of neighbors is not len(vectors)-1: {len(neighbors)} vector {i}")
 
-        scores += [score * boosting_value for score, _ in neighbors.items()]
+        if len(neighbors) != len(all_vectors) - 1:
+            print(f"Length of neighbors is not len(vectors)-1: {len(neighbors)} vector {i}")
+
+        scores += [score * boosting_value for score, _ in neighbors]
 
     scores = np.array(scores)
-    print(len(scores))
+
     return Statistics(scores.min(), scores.max(), scores.mean(), scores.std(), float(len(scores)))
 
 

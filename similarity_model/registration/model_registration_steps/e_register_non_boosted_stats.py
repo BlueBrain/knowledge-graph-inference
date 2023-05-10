@@ -33,7 +33,7 @@ def register_non_boosted_statistics(
 
     logger.info("3. Registering statistics")
 
-    # register_stats(forge, view_id, stats, formula=score_formula, tag=resource_tag, boosted=False)
+    register_stats(forge, view_id, stats, formula=score_formula, tag=resource_tag, boosted=False)
 
 
 registration_step_5 = ModelRegistrationStep(
