@@ -49,7 +49,7 @@ def view_processing(
     try:
         existing_view = get_es_view(
             es_view_id=view_id,
-            token=bucket_configuration.get_token(),
+            token=bucket_configuration.get_token_path(),
             bucket_configuration=bucket_configuration
         )
     except DeltaException as e:
@@ -65,7 +65,7 @@ def view_processing(
         updated_view = update_es_view_resource_tag(
             bucket_configuration=bucket_configuration, resource_tag=resource_tag,
             es_view_id=view_id, rev=rev,
-            token=bucket_configuration.get_token(),
+            token=bucket_configuration.get_token_path(),
             view_body=existing_view
         )
         return updated_view
@@ -78,7 +78,7 @@ def view_processing(
             es_view_id=view_id,
             resource_types=resource_types,
             mapping=mapping,
-            token=bucket_configuration.get_token(),
+            token=bucket_configuration.get_token_path(),
             resource_schemas=None,
             resource_tag=resource_tag,
         )
