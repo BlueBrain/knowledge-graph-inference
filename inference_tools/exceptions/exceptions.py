@@ -41,3 +41,4 @@ class FailedQueryException(InferenceToolsException):
 
 class SimilaritySearchException(InferenceToolsException):
     """Exception in similarity search."""
+
