@@ -128,14 +128,13 @@ def register_boosting_factors(forge: KnowledgeGraphForge, view_id: str,
     @rtype:
     """
 
-    # TODO what is that, and should it not be a regular ES View?
     generation_json = {
         "type": "Generation",
         "activity": {
             "type": "Activity",
             "used": {
                 "id": view_id,
-                "type": "AggregateElasticSearchView"
+                "type": "ElasticSearchView"
             }
         }
     }
