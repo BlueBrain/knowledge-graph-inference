@@ -1,0 +1,53 @@
+{
+    type: [
+        Entity
+        Embedding
+    ]
+    id: forge.format("identifier", "embeddings", x.uuid)
+    name: x.embedding_name,
+    generation: {
+        type: Generation
+        activity: {
+            type: [
+                Activity
+                EmbeddingActivity
+            ]
+            wasAssociatedWith: {
+                type: SoftwareAgent
+                description: Unifying Python framework for graph analytics and co-occurrence analysis.
+                name: BlueGraph
+                softwareSourceCode: {
+                    type: SoftwareSourceCode
+                    codeRepository: https://github.com/BlueBrain/BlueGraph
+                    programmingLanguage: Python
+                    runtimePlatform: 3.7
+                    version: v0.1.2
+                    
+                }
+            }
+            used: {
+                type: EmbeddingModel
+                id: x.model_id
+                hasSelector: {
+                    type: FragmentSelector
+                    conformsTo: https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch
+                    value: f"?rev={x.model_rev}"
+                }
+            }
+            
+        }
+    }
+    derivation: {
+        type: Derivation
+        entity: {
+            id: x.morphology_id
+            type: Entity
+            hasSelector: {
+                type: FragmentSelector
+                conformsTo: https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch
+                value: f"?rev={x.morphology_rev}"
+            }
+        }
+    }
+    embedding: x.embedding 
+}
