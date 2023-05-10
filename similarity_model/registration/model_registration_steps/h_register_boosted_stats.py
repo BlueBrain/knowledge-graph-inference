@@ -39,7 +39,6 @@ def register_boosted_statistics(
     stats = compute_statistics(forge, view_id, score_formula, boosting=boosting_data)
 
     logger.info("3. Registering statistics")
-
     register_stats(forge, view_id, stats, formula=score_formula, tag=resource_tag, boosted=True)
 
 
