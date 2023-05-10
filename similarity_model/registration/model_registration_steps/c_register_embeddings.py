@@ -19,6 +19,7 @@ from similarity_model.registration.helper_functions.embedding import (
 from similarity_model.constants import DST_DATA_DIR
 
 from similarity_model.registration.common import check_forge_model
+from similarity_model.registration.step import Step
 from similarity_model.utils import get_path
 
 
@@ -58,6 +59,7 @@ def register_model_embeddings(
 
 
 registration_step_3 = ModelRegistrationStep(
-    function_call=register_model_embeddings, position=3,
+    function_call=register_model_embeddings,
+    step=Step.REGISTER_EMBEDDINGS,
     log_message="Registering embeddings"
 )

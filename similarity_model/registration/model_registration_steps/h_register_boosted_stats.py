@@ -10,6 +10,7 @@ from similarity_model.registration.model_registration_step import ModelRegistrat
 from similarity_model.registration.helper_functions.stat import compute_statistics, \
     register_stats
 from similarity_model.registration.logger import logger
+from similarity_model.registration.step import Step
 from similarity_model.utils import get_similarity_view_id, get_model_tag, get_boosting_view_id
 from similarity_model.building.model_description import ModelDescription
 
@@ -43,6 +44,7 @@ def register_boosted_statistics(
 
 
 registration_step_8 = ModelRegistrationStep(
-    function_call=register_boosted_statistics, position=8,
+    function_call=register_boosted_statistics,
+    step=Step.REGISTER_BOOSTED_STATS,
     log_message="Registering boosted statistics"
 )

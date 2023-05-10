@@ -15,17 +15,18 @@ def load_embedding_model(forge: KnowledgeGraphForge, model_id: str,
                          model_revision: Optional[str] = None,
                          download_dir: str = ".") -> Tuple[str, str, EmbeddingPipeline]:
     """
-    Load embedding models into memory
-    @param forge:
-    @type forge:
-    @param model_id:
-    @type model_id:
-    @param model_revision:
-    @type model_revision:
-    @param download_dir:
-    @type download_dir:
-    @return:
-    @rtype:
+    Load embedding model embedding pipeline zip file into memory
+    @param forge: a forge instance
+    @type forge: KnowledgeGraphForge
+    @param model_id: the id of the model
+    @type model_id: str
+    @param model_revision: the revision of the model
+    @type model_revision: Optional[str]
+    @param download_dir: where to download the model distribution locally
+    @type download_dir: str
+    @return: the specified model revision if it was specified else the latest,
+    a tag made of the concatenation of the model uuid and rev, and the model embedding pipeline
+    @rtype: Tuple[str, str, EmbeddingPipeline]
     """
 
     retrieval_str = f"{model_id}{'?rev='}{model_revision}" \
@@ -58,14 +59,19 @@ def get_embedding_vectors_from_pipeline(pipeline: EmbeddingPipeline,
         ]:
     """
     Get embedding vectors from an Embedding Pipeline
-    @param pipeline:
-    @type pipeline:
+
+    @param pipeline: the embedding pipeline containing the vectors in its table
+    @type pipeline: EmbeddingPipeline
     @param resource_id_rev_list: a specific set of resource ids to get the embeddings from.
     If not specified, all embeddings in the embedding table of the pipeline will be returned
-    @type resource_id_rev_list:
+    @type resource_id_rev_list: Optional[List[Tuple[str, str]]])
+    @return: a list of tuples (id, rev) for resources whose embedding vector could not be found,
+    and a dict with key: (id, rev), value: embedding vector
 
-    @return: a dict with key: id, rev, value: Embedding vector
-    @rtype:
+    @rtype: Tuple[
+            List[Tuple[str, str]],
+            Dict[Tuple[str, str], List[float]]
+        ]
     """
 
     embedding_table = pipeline.generate_embedding_table()
@@ -106,8 +112,9 @@ def register_embeddings(forge: KnowledgeGraphForge, vectors: Dict[Tuple[str, str
                         model_id: str, model_revision: str, embedding_tag: str,
                         mapping_path: str):
     """
-    Register embedding vectors
-    @param forge:
+    Register and updates embedding vectors
+
+    @param forge: a forge instance
     @type forge: KnowledgeGraphForge
     @param vectors: a dictionary with keys the entity ids + rev and the values the associated
     embedding vectors

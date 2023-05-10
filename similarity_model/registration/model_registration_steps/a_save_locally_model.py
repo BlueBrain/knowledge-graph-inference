@@ -10,6 +10,7 @@ from similarity_model.building.model_description import ModelDescription
 from similarity_model.building.model_data import ModelData
 
 from similarity_model.constants import SRC_DATA_DIR, DST_DATA_DIR, PIPELINE_SUBDIRECTORY
+from similarity_model.registration.step import Step
 
 
 def save_locally_model(
@@ -36,6 +37,7 @@ def save_locally_model(
 
 
 registration_step_1 = ModelRegistrationStep(
-    function_call=save_locally_model, position=1,
+    function_call=save_locally_model,
+    step=Step.SAVE_MODEL,
     log_message="Running and downloading locally"
 )

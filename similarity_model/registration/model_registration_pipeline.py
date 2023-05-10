@@ -1,5 +1,4 @@
-from typing import Tuple, List
-from enum import Enum
+from typing import Tuple, List, Optional
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
 from similarity_model.allocate.allocate import allocate_forge_session_env
@@ -29,18 +28,7 @@ from similarity_model.registration.model_registration_steps.h_register_boosted_s
     import registration_step_8
 from similarity_model.registration.model_registration_steps.i_register_stats_view \
     import registration_step_9
-
-
-class Step(Enum):
-    SAVE_MODEL = 1
-    REGISTER_MODEL = 2
-    REGISTER_EMBEDDINGS = 3
-    REGISTER_SIMILARITY_VIEW = 4
-    REGISTER_NON_BOOSTED_STATS = 5
-    REGISTER_BOOSTING_FACTORS = 6
-    REGISTER_BOOSTING_VIEW = 7
-    REGISTER_BOOSTED_STATS = 8
-    REGISTER_STATS_VIEW = 9
+from similarity_model.registration.step import Step
 
 
 class ModelRegistrationPipeline:
@@ -85,9 +73,7 @@ class ModelRegistrationPipeline:
             save_locally=True, register_model=True, start_position=2, data: ModelData = None):
 
         if save_locally:
-            if data is None:
-                logger.info(">  Loading model data")
-                data = ModelDataImpl(SRC_DATA_DIR, DST_DATA_DIR)
+            data = data if data is not None else ModelRegistrationPipeline.get_default_model_data()
 
             ModelRegistrationPipeline.steps[0].run(
                 model_information=model_information,
@@ -115,10 +101,10 @@ class ModelRegistrationPipeline:
     @staticmethod
     def run_many(models_information: List[Tuple[str, ModelDescription]],
                  bucket_configuration: NexusBucketConfiguration,
-                 save_locally=True, register_model=True, start_position=2):
+                 save_locally=True, register_model=True, start_position=2,
+                 data: Optional[ModelData] = None):
 
-        logger.info(">  Loading model data")
-        data = ModelDataImpl(SRC_DATA_DIR, DST_DATA_DIR)
+        data = data if data is not None else ModelRegistrationPipeline.get_default_model_data()
 
         for model_information in models_information:
             ModelRegistrationPipeline.run(
@@ -129,3 +115,9 @@ class ModelRegistrationPipeline:
                 start_position=start_position,
                 data=data
             )
+
+    @staticmethod
+    def get_default_model_data() -> ModelData:
+        logger.info(">  Loading model data")
+        data = ModelDataImpl(SRC_DATA_DIR, DST_DATA_DIR)
+        return data

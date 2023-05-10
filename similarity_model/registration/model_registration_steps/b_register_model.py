@@ -10,6 +10,7 @@ from similarity_model.registration.logger import logger
 from similarity_model.building.model_description import ModelDescription
 from similarity_model.registration.helper_functions.model import push_model
 from similarity_model.constants import DST_DATA_DIR, PIPELINE_SUBDIRECTORY
+from similarity_model.registration.step import Step
 
 
 def register_model(
@@ -37,7 +38,8 @@ def register_model(
 
 
 registration_step_2 = ModelRegistrationStep(
-    function_call=register_model, position=2,
+    function_call=register_model,
+    step=Step.REGISTER_MODEL,
     log_message="Pushing to Nexus"
 )
 

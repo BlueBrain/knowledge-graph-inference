@@ -177,8 +177,8 @@ def register_boosting_factors(forge: KnowledgeGraphForge, view_id: str,
         boosting_resource.generation = generation_resource
         return boosting_resource
     
-    new_boosting_factors = []
-    updated_boosting_factors = []
+    new_boosting_factors: List[Resource] = []
+    updated_boosting_factors: List[Resource] = []
     
     for e_id, boosting_val in boosting_factors.items():
         # Look for boosting factor associated to this entity id

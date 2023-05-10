@@ -6,6 +6,7 @@ from inference_tools.bucket_configuration import NexusBucketConfiguration
 from similarity_model.registration.common import check_forge_model, view_processing
 from similarity_model.registration.model_registration_step import ModelRegistrationStep
 from similarity_model.mappings.es_mappings import BOOSTING_VIEW_MAPPING
+from similarity_model.registration.step import Step
 from similarity_model.utils import get_boosting_view_id
 from similarity_model.building.model_description import ModelDescription
 
@@ -32,6 +33,7 @@ def create_boosting_view(
 
 
 registration_step_7 = ModelRegistrationStep(
-    function_call=create_boosting_view, position=7,
+    function_call=create_boosting_view,
+    step=Step.REGISTER_BOOSTING_VIEW,
     log_message="Creating boosting view"
 )

@@ -2,17 +2,18 @@ from typing import Callable, List, Any, Tuple, Optional
 
 from similarity_model.registration.logger import logger
 from similarity_model.building.model_description import ModelDescription
+from similarity_model.registration.step import Step
 
 
 class ModelRegistrationStep:
-    position: int
+    step: Step
 
     function_call: Callable
 
     log_message: str
 
-    def __init__(self, function_call: Callable, position: int, log_message: str):
-        self.position = position
+    def __init__(self, function_call: Callable, step: Step, log_message: str):
+        self.step = step
         self.function_call = function_call
         self.log_message = log_message
 
@@ -23,7 +24,7 @@ class ModelRegistrationStep:
                                   model_revision=model_revision, **kwargs)
 
     def log(self, model_description):
-        letter = chr(ord('@') + self.position)
+        letter = chr(ord('@') + self.step.value)
         logger.info(f"{letter}. {self.log_message} for model {model_description.name}")
 
     def run_many(self, models_information: List[Tuple[str, ModelDescription]], **kwargs):

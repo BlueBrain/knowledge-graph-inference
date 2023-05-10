@@ -5,6 +5,7 @@ from inference_tools.bucket_configuration import NexusBucketConfiguration
 from similarity_model.registration.model_registration_step import ModelRegistrationStep
 from similarity_model.mappings.es_mappings import get_es_view_mappings
 from similarity_model.registration.common import view_processing, check_forge_model
+from similarity_model.registration.step import Step
 from similarity_model.utils import get_similarity_view_id
 from similarity_model.building.model_description import ModelDescription
 
@@ -31,6 +32,7 @@ def create_similarity_view(
 
 
 registration_step_4 = ModelRegistrationStep(
-    function_call=create_similarity_view, position=4,
+    function_call=create_similarity_view,
+    step=Step.REGISTER_SIMILARITY_VIEW,
     log_message="Creating similarity view"
 )

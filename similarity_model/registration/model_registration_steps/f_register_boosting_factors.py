@@ -12,6 +12,7 @@ from similarity_model.registration.helper_functions.boosting_factor import (
 )
 from similarity_model.registration.helper_functions.stat import compute_statistics, Statistics
 from similarity_model.registration.logger import logger
+from similarity_model.registration.step import Step
 from similarity_model.utils import get_similarity_view_id, get_model_tag
 from similarity_model.building.model_description import ModelDescription
 from similarity_model.registration.common import check_forge_model
@@ -60,6 +61,7 @@ def register_boosting_data(
 
 
 registration_step_6 = ModelRegistrationStep(
-    function_call=register_boosting_data, position=6,
+    function_call=register_boosting_data,
+    step=Step.REGISTER_BOOSTING_FACTORS,
     log_message="Registering boosting data"
 )
