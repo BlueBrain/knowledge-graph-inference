@@ -191,18 +191,10 @@ def register_embeddings(forge: KnowledgeGraphForge, vectors: Dict[Tuple[str, str
         else:
             new_embeddings.append(create(entity_id_i, entity_rev_i, embedding_vector_i))
 
-    # new_embedding_resources: List[Resource] = forge.map(new_embeddings, mapping)
-    # for r in new_embedding_resources:
-        # new_embedding_resources = forge.from_json(
-        #     forge.as_json(new_embedding_resources))
-        # forge.register(new_embedding_resources)
-        # for r in new_embedding_resources:
-        #     forge.tag(forge.retrieve(r.id), tag)
-
-    logger.info(">  Created embeddings: ", len(new_embeddings))
+    logger.info(f">  Created embeddings: {len(new_embeddings)}")
     forge.register(new_embeddings)
 
-    logger.info(">  Updated embeddings: ", len(updated_embeddings))
+    logger.info(f">  Updated embeddings: {len(updated_embeddings)}")
     forge.update(updated_embeddings)
 
     created_embeddings = [forge.retrieve(r.id) for r in new_embeddings]

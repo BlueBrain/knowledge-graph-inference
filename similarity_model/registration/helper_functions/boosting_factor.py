@@ -192,10 +192,10 @@ def register_boosting_factors(forge: KnowledgeGraphForge, view_id: str,
             created_boosting_resource = register_boosting_factor(e_id, boosting_val)
             new_boosting_factors.append(created_boosting_resource)
 
-    logger.info(">  Created boosting factors: ", len(new_boosting_factors))
+    logger.info(f">  Created boosting factors: {len(new_boosting_factors)}")
     forge.register(new_boosting_factors)
 
-    logger.info(">  Updated boosting factors: ", len(updated_boosting_factors))
+    logger.info(f">  Updated boosting factors: {len(updated_boosting_factors)}")
     forge.update(updated_boosting_factors)
 
     created_boosting_factors = [forge.retrieve(r.id) for r in new_boosting_factors]
