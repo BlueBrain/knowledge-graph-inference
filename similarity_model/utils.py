@@ -1,4 +1,5 @@
 """Utils for registering similarity-related resources in Nexus."""
+from typing import Tuple, Optional
 from urllib import parse
 import os
 from collections import namedtuple
@@ -9,10 +10,10 @@ def encode_id_rev(resource_id: str, resource_rev: str):
     return f"{resource_id}?{parse.urlencode({'rev': resource_rev})}"
 
 
-def parse_id_rev(resource_str: str):
+def parse_id_rev(resource_str: str) -> Tuple[str, Optional[str]]:
     s = resource_str.split('?', 1)
-    t = parse.parse_qsl(s[1])
-    return s[0], dict(t)["rev"]
+    rev = dict(parse.parse_qsl(s[1]))["rev"] if len(s) > 1 else None
+    return s[0], rev
 
 
 def get_path(path):
