@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import json
 from os.path import join
@@ -10,6 +10,7 @@ from bluegraph.backends.gensim import GensimNodeEmbedder
 from bluegraph.downstream import EmbeddingPipeline
 from bluegraph.downstream.similarity import (ScikitLearnSimilarityIndex, SimilarityProcessor)
 
+from inference_tools.bucket_configuration import NexusBucketConfiguration
 from similarity_model.building.model import Model
 from similarity_model.building.model_data import ModelData
 from similarity_model.building.model_description import ModelDescription
@@ -26,35 +27,32 @@ class BrModelData(ModelData):
 class BBPBrainRegionModelAlone(Model, ABC):
     brain_region_hierarchy: Dict
 
-    def __init__(self, model_data: BrModelData):
+    def __init__(self, model_data: BrModelData, bucket_configuration: NexusBucketConfiguration):
         self.src_data_dir = model_data.src_data_dir
+        self.bucket_configuration = bucket_configuration
         self.brain_region_hierarchy = self.get_bbp_brain_ontology()
         self.visualize = False
 
     def get_bbp_brain_ontology(self):
-        with open(join(self.src_data_dir, "mba_hierarchy_v3l23split.json"), "r") as f:
+        with open(join(self.src_data_dir, "brainregion.json"), "r") as f:
             allen_hierarchy = json.load(f)
             return allen_hierarchy
 
     def run(self) -> EmbeddingPipeline:
-
         # Create a property graph from the loaded hierarchy
-        def _get_children(hierarchy, edges, father=None):
-            for child in hierarchy['children']:
-                br_id = child["id"]
-                if father:
-                    edges.append((br_id, father))
-                _get_children(child, edges, br_id)
+        list_of_br = self.brain_region_hierarchy["defines"]
 
-        edges = []
-        _get_children(self.brain_region_hierarchy, edges)
 
-        def to_id(id_str):
-            return f"http://api.brain-map.org/api/v2/data/Structure/{id_str}"
 
-        edges = [(to_id(a), to_id(b)) for a, b in edges]
-        nodes = list(set([s for el in edges for s in el]))
+        edges: List[Tuple[str, str]] = [
+            (br["@id"], br["isPartOf"][0])
+            for br in list_of_br
+            if "isPartOf" in br
+        ]
 
+        nodes: List[str] = list(set([s for el in edges for s in el]))
+        allocate_forge_session
+        br_res = [forge.retrieve(e) for e in nodes]
         frame = PandasPGFrame()
         frame.add_nodes(nodes)
         frame.add_edges(edges)
@@ -73,7 +71,8 @@ class BBPBrainRegionModelAlone(Model, ABC):
 
         similarity_index = ScikitLearnSimilarityIndex(
             dimension=vector_size, similarity="euclidean",
-            initial_vectors=embedding["embedding"].tolist())
+            initial_vectors=embedding["embedding"].tolist()
+        )
 
         point_ids = embedding.index
         sim_processor = SimilarityProcessor(similarity_index, point_ids=point_ids)

@@ -1,8 +1,6 @@
 from typing import Tuple, Optional, Dict, List
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
-from similarity_model.allocate.allocate import allocate_forge_session_env, \
-    get_token_prod, get_token_staging
 from similarity_model.building.model_description import ModelDescription
 from similarity_model.registration.helper_functions.model import fetch_model
 from similarity_model.registration.helper_functions.view import update_es_view_resource_tag, \
@@ -23,7 +21,7 @@ def check_forge_model(forge: Optional[KnowledgeGraphForge], model: Optional[Reso
         Tuple[KnowledgeGraphForge, Resource]:
 
     if forge is None:
-        forge = allocate_forge_session_env(bucket_configuration)
+        forge = bucket_configuration.allocate_forge_session()
 
     if model is None:
         logger.info("1. Fetching model")
@@ -51,7 +49,7 @@ def view_processing(
     try:
         existing_view = get_es_view(
             es_view_id=view_id,
-            token=(get_token_prod() if bucket_configuration.is_prod else get_token_staging()),
+            token=bucket_configuration.get_token(),
             bucket_configuration=bucket_configuration
         )
     except DeltaException as e:
@@ -67,7 +65,7 @@ def view_processing(
         updated_view = update_es_view_resource_tag(
             bucket_configuration=bucket_configuration, resource_tag=resource_tag,
             es_view_id=view_id, rev=rev,
-            token=(get_token_prod() if bucket_configuration.is_prod else get_token_staging()),
+            token=bucket_configuration.get_token(),
             view_body=existing_view
         )
         return updated_view
@@ -80,7 +78,7 @@ def view_processing(
             es_view_id=view_id,
             resource_types=resource_types,
             mapping=mapping,
-            token=(get_token_prod() if bucket_configuration.is_prod else get_token_staging()),
+            token=bucket_configuration.get_token(),
             resource_schemas=None,
             resource_tag=resource_tag,
         )

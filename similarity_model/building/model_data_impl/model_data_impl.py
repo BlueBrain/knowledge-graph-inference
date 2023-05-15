@@ -22,7 +22,6 @@ from inference_tools.source.elastic_search import ElasticSearch
 from bluegraph import PandasPGFrame
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
-from similarity_model.allocate.allocate import allocate_forge_session_env
 from similarity_model.building.model_data import ModelData
 from similarity_model.registration.logger import logger
 from similarity_model.utils import encode_id_rev
@@ -41,7 +40,7 @@ class ModelDataImpl(ModelData):
         logger.info("1. Load morphologies from Nexus")
 
         bucket_configuration = NexusBucketConfiguration("bbp-external", "seu", is_prod=True)
-        forge_seu = allocate_forge_session_env(bucket_configuration)
+        forge_seu = allocate_forge_session(bucket_configuration)
 
         # ElasticSearch.set_elastic_view(forge_seu,
         #                                "https://bbp.epfl.ch/neurosciencegraph/data/test_view")
@@ -99,7 +98,7 @@ class ModelDataImpl(ModelData):
             "neurosciencegraph", "datamodels", is_prod=True,
             elastic_search_view="https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset")
 
-        forge_datamodels = allocate_forge_session_env(bucket_configuration)
+        forge_datamodels = bucket_configuration.allocate_forge_session()
 
         brain_region_notation = get_brain_region_notation(br_keys, forge_datamodels)
 

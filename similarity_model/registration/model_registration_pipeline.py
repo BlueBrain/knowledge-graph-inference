@@ -1,7 +1,6 @@
 from typing import Tuple, List, Optional
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
-from similarity_model.allocate.allocate import allocate_forge_session_env
 from similarity_model.building.model_data import ModelData
 from similarity_model.building.model_data_impl.model_data_impl import ModelDataImpl
 from similarity_model.building.model_description import ModelDescription
@@ -88,7 +87,7 @@ class ModelRegistrationPipeline:
         else:
             model = None
 
-        forge = allocate_forge_session_env(bucket_configuration)
+        forge = bucket_configuration.allocate_forge_session()
 
         for step in ModelRegistrationPipeline.steps[start_position:]:
             step.run(

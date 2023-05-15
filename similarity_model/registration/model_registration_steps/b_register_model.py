@@ -4,7 +4,6 @@ from bluegraph import version as bg_version
 from kgforge.core import Resource
 from inference_tools.bucket_configuration import NexusBucketConfiguration
 
-from similarity_model.allocate.allocate import allocate_forge_session_env
 from similarity_model.registration.model_registration_step import ModelRegistrationStep
 from similarity_model.registration.logger import logger
 from similarity_model.building.model_description import ModelDescription
@@ -27,7 +26,7 @@ def register_model(
                 f" {'prod' if bucket_configuration.is_prod else 'staging'}")
 
     return push_model(
-        forge=allocate_forge_session_env(bucket_configuration),
+        forge=bucket_configuration.allocate_forge_session(),
         model_description=model_description,
         description=model_description.description,
         pipeline_path=load_pipeline_path,
