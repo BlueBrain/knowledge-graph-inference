@@ -52,11 +52,11 @@ def load_embedding_model(forge: KnowledgeGraphForge, model_id: str,
 
 
 def get_embedding_vectors_from_pipeline(pipeline: EmbeddingPipeline,
-                                        resource_id_rev_list: Optional[List[Tuple[str, str]]]) \
-        -> Tuple[
-            List[Tuple[str, str]],  # missing embeddings
-            Dict[Tuple[str, str], List[float]]  # embeddings found
-        ]:
+                                        resource_id_rev_list: Optional[List[Tuple[str, str]]] = None
+                                        ) -> Tuple[
+    List[Tuple[str, str]],  # missing embeddings
+    Dict[Tuple[str, str], List[float]]  # embeddings found
+]:
     """
     Get embedding vectors from an Embedding Pipeline
 

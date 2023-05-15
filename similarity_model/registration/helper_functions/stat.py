@@ -4,6 +4,7 @@ from kgforge.core import Resource, KnowledgeGraphForge
 import numpy as np
 
 from inference_tools.datatypes.similarity.neighbor import Neighbor
+from inference_tools.forge_utils.forge_utils import set_elastic_search_view
 from inference_tools.similarity.formula import Formula
 from inference_tools.similarity.single import get_neighbors
 from inference_tools.source.elastic_search import ElasticSearch
@@ -15,7 +16,7 @@ Statistics = namedtuple('Statistics', 'min max mean std N')
 def compute_statistics(forge: KnowledgeGraphForge, view_id: str, score_formula: Formula,
                        boosting: Dict[str, float] = None) -> Statistics:
     """Compute similarity score statistics given a view."""
-    ElasticSearch.set_elastic_view(forge, view_id)
+    set_elastic_search_view(forge, view_id)
     all_vectors: List[Resource] = ElasticSearch.get_all_documents(forge)
 
     scores = []

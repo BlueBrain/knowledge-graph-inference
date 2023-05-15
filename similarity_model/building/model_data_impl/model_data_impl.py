@@ -40,10 +40,9 @@ class ModelDataImpl(ModelData):
         logger.info("1. Load morphologies from Nexus")
 
         bucket_configuration = NexusBucketConfiguration("bbp-external", "seu", is_prod=True)
-        forge_seu = allocate_forge_session(bucket_configuration)
+        forge_seu = bucket_configuration.allocate_forge_session()
 
-        # ElasticSearch.set_elastic_view(forge_seu,
-        #                                "https://bbp.epfl.ch/neurosciencegraph/data/test_view")
+        # set_elastic_view(forge_seu, "https://bbp.epfl.ch/neurosciencegraph/data/test_view")
         # morphologies = ElasticSearch.get_all_documents(forge_seu)
 
         query = """

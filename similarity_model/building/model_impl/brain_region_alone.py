@@ -14,12 +14,13 @@ from inference_tools.bucket_configuration import NexusBucketConfiguration
 from similarity_model.building.model import Model
 from similarity_model.building.model_data import ModelData
 from similarity_model.building.model_description import ModelDescription
+from similarity_model.utils import encode_id_rev
 
 
 class BrModelData(ModelData):
-    def __init__(self, src_data_dir, dst_data_dir):
+    def __init__(self, src_data_dir, dst_data_dir, bucket_configuration: NexusBucketConfiguration):
         super().__init__()
-
+        self.bucket_configuration = bucket_configuration
         self.src_data_dir = src_data_dir
         self.dst_data_dir = dst_data_dir
 
@@ -27,9 +28,9 @@ class BrModelData(ModelData):
 class BBPBrainRegionModelAlone(Model, ABC):
     brain_region_hierarchy: Dict
 
-    def __init__(self, model_data: BrModelData, bucket_configuration: NexusBucketConfiguration):
+    def __init__(self, model_data: BrModelData):
         self.src_data_dir = model_data.src_data_dir
-        self.bucket_configuration = bucket_configuration
+        self.bucket_configuration = model_data.bucket_configuration
         self.brain_region_hierarchy = self.get_bbp_brain_ontology()
         self.visualize = False
 
@@ -42,8 +43,6 @@ class BBPBrainRegionModelAlone(Model, ABC):
         # Create a property graph from the loaded hierarchy
         list_of_br = self.brain_region_hierarchy["defines"]
 
-
-
         edges: List[Tuple[str, str]] = [
             (br["@id"], br["isPartOf"][0])
             for br in list_of_br
@@ -51,8 +50,14 @@ class BBPBrainRegionModelAlone(Model, ABC):
         ]
 
         nodes: List[str] = list(set([s for el in edges for s in el]))
-        allocate_forge_session
+
+        forge = self.bucket_configuration.allocate_forge_session()
         br_res = [forge.retrieve(e) for e in nodes]
+        br_id_rev = dict((e.id, encode_id_rev(e.id, e._store_metadata._rev)) for e in br_res)
+
+        nodes = [br_id_rev[e] for e in nodes]
+        edges = [(br_id_rev[a], br_id_rev[b]) for (a, b) in edges]
+
         frame = PandasPGFrame()
         frame.add_nodes(nodes)
         frame.add_edges(edges)
@@ -87,10 +92,12 @@ class BBPBrainRegionModelAlone(Model, ABC):
 
 
 bbp_brain_region_alone_model_description = ModelDescription({
-    "name": "Brain Region Embedding - BBP Mouse Brain region ontology",
+    "name": "BBP Brain Region Ontology Embedding",
     "description": "Poincare node embedding of brain regions in BBP Mouse Brain region ontology",
     "filename": "brain_region_poincare_bbp",
-    "label": "Brain regions BBP Mouse Brain region ontology - Embedded brain regions",
+    "label": "BBP Brain Region Ontology Embedding",
     "distance": "poincare",
     "model": BBPBrainRegionModelAlone
 })
+
+

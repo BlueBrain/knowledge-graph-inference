@@ -5,6 +5,7 @@ import json
 
 import numpy as np
 
+from inference_tools.forge_utils.forge_utils import set_elastic_search_view
 from inference_tools.similarity.formula import Formula
 from inference_tools.source.elastic_search import ElasticSearch
 
@@ -90,7 +91,7 @@ def compute_boosting_factors(forge: KnowledgeGraphForge, view_id: str, stats: St
     @return:
     @rtype:
     """
-    ElasticSearch.set_elastic_view(forge, view_id)
+    set_elastic_search_view(forge, view_id)
 
     def compute_boosting_factor(vector_resource: Resource) -> Tuple[str, float]:
         key: str = vector_resource.id

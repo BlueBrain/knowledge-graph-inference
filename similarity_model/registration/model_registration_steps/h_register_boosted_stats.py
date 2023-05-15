@@ -3,6 +3,7 @@ from typing import Optional
 from kgforge.core import Resource, KnowledgeGraphForge
 
 from inference_tools.bucket_configuration import NexusBucketConfiguration
+from inference_tools.forge_utils.forge_utils import set_elastic_search_view
 from inference_tools.similarity.formula import Formula
 from inference_tools.source.elastic_search import ElasticSearch
 from similarity_model.registration.common import check_forge_model
@@ -30,7 +31,7 @@ def register_boosted_statistics(
 
     boosting_id = get_boosting_view_id(model)
 
-    ElasticSearch.set_elastic_view(forge, boosting_id)
+    set_elastic_search_view(forge, boosting_id)
     boosting_data = ElasticSearch.get_all_documents(forge)
     boosting_data = dict((b.derivation.entity.id, b.value) for b in boosting_data)
     resource_tag = get_model_tag(model.id, model_revision)
