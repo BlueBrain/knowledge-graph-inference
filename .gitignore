@@ -1,6 +1,5 @@
 .ipynb_checkpoints
 .DS_Store
-seu_morphologies/*
 .idea/*
 .eggs/*
 *.egg-info/*
@@ -9,3 +8,9 @@ data/morphologies/
 build/
 draft/
 .pylintrc
+metal/
+venv/
+*.err
+*.out
+*.sbatch
+**/__init__.pyc

@@ -1,10 +1,10 @@
-from typing import Optional, Dict, NewType, Union
+from typing import Optional, NewType, Union
 
 from inference_tools.datatypes.view import View
 from inference_tools.type import ObjectTypeStr
 
 from inference_tools.datatypes.embedding_model import EmbeddingModel
-from inference_tools.exceptions import IncompleteObjectException
+from inference_tools.exceptions.exceptions import IncompleteObjectException
 
 
 class QueryConfigurationSuper:
@@ -50,12 +50,11 @@ class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
 
 
 class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
-    # TODO CHECK OUT OTHER SIMILARITY STUFF STUFF
-
     similarity_view: View
     embedding_model: EmbeddingModel
     boosting_view: View
     statistics_view: View
+    description: Optional[str]
     boosted: bool
 
     def __init__(self, obj, object_type):
@@ -69,10 +68,13 @@ class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
         tmp_em = obj.get("embeddingModel", None)
         self.embedding_model = EmbeddingModel(tmp_em) if tmp_em is not None else None
         self.boosted = obj.get("boosted", False)
+        self.description = obj.get("description", None)
 
 
 QueryConfiguration = NewType(
     "QueryConfiguration",
-    Union[SparqlQueryConfiguration, ElasticSearchQueryConfiguration,
-    SimilaritySearchQueryConfiguration]
+    Union[
+        SparqlQueryConfiguration, ElasticSearchQueryConfiguration,
+        SimilaritySearchQueryConfiguration
+    ]
 )

@@ -2,7 +2,7 @@ from typing import List, Union, Optional
 
 from inference_tools.type import ObjectTypeStr
 
-from inference_tools.exceptions import IncompleteObjectException
+from inference_tools.exceptions.exceptions import IncompleteObjectException
 
 from inference_tools.datatypes.query_pipe import QueryPipe
 from inference_tools.helper_functions import get_type_attribute, \

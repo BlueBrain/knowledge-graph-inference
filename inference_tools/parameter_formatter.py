@@ -1,11 +1,12 @@
 from typing import Any, List, Union, Optional
+import json
 
 from kgforge.core import KnowledgeGraphForge
 
+from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
 from inference_tools.helper_functions import _enforce_unique, _expand_uri
-from inference_tools.exceptions import (
+from inference_tools.exceptions.exceptions import (
     UnsupportedTypeException,
-    InvalidParameterTypeException,
     InvalidValueException,
     ObjectTypeStr
 )
@@ -110,13 +111,8 @@ class ParameterFormatter:
         list_formatters = {
             ParameterType.LIST: ParameterFormatter(expand_uri=False, format_string="\"{}\"",
                                                    join_string=", ", wrap_string=None),
-            ParameterType.URI_LIST: {
-                "sparql": ParameterFormatter(expand_uri=True, format_string="<{}>",
-                                             join_string=", ", wrap_string=None),
-                "not": ParameterFormatter(expand_uri=False, format_string="\"{}\"",
-                                          join_string=", ", wrap_string=None)
-            },
-
+            ParameterType.URI_LIST: ParameterFormatter(expand_uri=True, format_string="<{}>",
+                                                       join_string=", ", wrap_string=None),
             ParameterType.SPARQL_LIST: ParameterFormatter(expand_uri=False, format_string="<{}>",
                                                           join_string=", ", wrap_string="({})"),
 
@@ -134,6 +130,12 @@ class ParameterFormatter:
         if parameter_type in list_types:
 
             provided_value = _enforce_list(provided_value)
+
+            if parameter_type == ParameterType.URI_LIST and \
+                    query_type in [QueryType.SIMILARITY_QUERY, QueryType.ELASTIC_SEARCH_QUERY,
+                                   PremiseType.ELASTIC_SEARCH_PREMISE]:
+                return json.dumps(provided_value)
+
             formatter = list_formatters.get(parameter_type, None)
 
             if formatter is None:
@@ -143,9 +145,6 @@ class ParameterFormatter:
                                   ParameterType.SPARQL_VALUE_URI_LIST) and query_type not in \
                     sparql_types:
                 raise InvalidParameterTypeException(parameter_type, query_type)
-
-            if parameter_type == ParameterType.URI_LIST:
-                formatter = formatter["sparql"] if query_type in sparql_types else formatter["not"]
 
             return formatter.format_list_value(value=provided_value, forge=forge)
 

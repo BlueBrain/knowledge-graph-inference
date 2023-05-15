@@ -1,14 +1,14 @@
 import json
 from string import Template
-from typing import Dict
+from typing import Dict, Optional, List
 
-from inference_tools.type import ParameterType
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core import KnowledgeGraphForge, Resource
 
+from inference_tools.exceptions.malformed_rule import MalformedRuleException
 from inference_tools.datatypes.query import ForgeQuery
 from inference_tools.helper_functions import _enforce_list, _follow_path, get_id_attribute
 from inference_tools.premise_execution import PremiseExecution
-from inference_tools.exceptions import InferenceToolsException, MalformedRuleException
+from inference_tools.exceptions.exceptions import InferenceToolsException
 from inference_tools.source.source import Source, DEFAULT_LIMIT
 
 
@@ -16,12 +16,14 @@ class Forge(Source):
 
     @staticmethod
     def execute_query(forge: KnowledgeGraphForge, query: ForgeQuery,
-                      parameter_values: Dict, config, limit=DEFAULT_LIMIT, debug: bool = False):
+                      parameter_values: Dict, config, limit=DEFAULT_LIMIT, debug: bool = False) \
+            -> Optional[List[Resource]]:
 
         q = json.loads(
             Template(json.dumps(query.body)).substitute(**parameter_values)
         )
-        return forge.as_json(forge.search(q, debug=debug, limit=limit))
+
+        return forge.search(q, debug=debug, limit=limit)
 
     @staticmethod
     def check_premise(forge: KnowledgeGraphForge, premise: ForgeQuery,
@@ -31,7 +33,10 @@ class Forge(Source):
                                         parameter_values=parameter_values, config=config,
                                         debug=debug, limit=None)
 
-        resources = _enforce_list(resources)
+        if resources is None:
+            return PremiseExecution.FAIL
+
+        resources = _enforce_list(forge.as_json(resources))
 
         if premise.targetParameter:
             if premise.targetPath:

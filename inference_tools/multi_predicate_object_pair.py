@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
-from inference_tools.exceptions import InvalidParameterTypeException, MalformedRuleException
+from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException, \
+    MalformedRuleException
 
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.datatypes.query import SparqlQueryBody, Query

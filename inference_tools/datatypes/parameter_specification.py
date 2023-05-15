@@ -1,9 +1,9 @@
 from typing import Any, Optional, Dict
 
-from inference_tools.exceptions import IncompleteObjectException, InferenceToolsException
+from inference_tools.exceptions.exceptions import IncompleteObjectException, InferenceToolsException
 
 from inference_tools.type import ObjectTypeStr, ParameterType
-from inference_tools.helper_functions import _get_type
+from inference_tools.helper_functions import _get_type, _enforce_list
 
 
 class ParameterSpecification:
@@ -41,14 +41,18 @@ class ParameterSpecification:
         @return: the parameter value corresponding to this parameter specification
         @rtype: Any
         """
-        if self.name in parameter_values and parameter_values[self.name]:
+        if self.name in parameter_values and parameter_values[self.name] is not None:
+            if len(parameter_values[self.name]) == 0:
+                return []
             if self.values is not None:
-                if parameter_values[self.name] not in self.values.keys():
+                selected_value_keys = _enforce_list(parameter_values[self.name])
+                if any([v not in list(self.values.keys()) for v in selected_value_keys]):
                     raise InferenceToolsException(f"Invalid value for parameter {self.name}")
 
-                return self.values[parameter_values[self.name]]
-            else:
-                return parameter_values[self.name]
+                selected_values = [self.values[v] for v in selected_value_keys]
+                return selected_values if len(selected_values) > 1 else selected_values[0]
+
+            return parameter_values[self.name]
 
         if self.default is not None:
             return self.default

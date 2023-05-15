@@ -5,8 +5,11 @@ from typing import Dict, Type
 
 from inference_tools.type import ObjectTypeStr, ObjectType
 
-from inference_tools.exceptions import InferenceToolsException, IncompleteObjectException, \
+from inference_tools.exceptions.exceptions import (
+    InferenceToolsException,
+    IncompleteObjectException,
     InvalidValueException
+)
 
 
 def get_model(forge):
@@ -32,7 +35,7 @@ def get_type_attribute(obj):
     raise TypeError
 
 
-def get_id_attribute(obj):
+def get_id_attribute(obj) -> str:
     id_value = obj["id"] if "id" in obj else (obj["@id"] if "@id" in obj else None)
     if id_value:
         return id_value

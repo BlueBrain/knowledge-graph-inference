@@ -5,11 +5,18 @@ from inference_tools.type import QueryType, ObjectTypeStr, PremiseType
 from inference_tools.datatypes.parameter_mapping import ParameterMapping
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 
-from inference_tools.datatypes.query_configuration import QueryConfiguration, \
-    SparqlQueryConfiguration, ElasticSearchQueryConfiguration, SimilaritySearchQueryConfiguration, \
+from inference_tools.datatypes.query_configuration import (
+    QueryConfiguration,
+    SparqlQueryConfiguration,
+    ElasticSearchQueryConfiguration,
+    SimilaritySearchQueryConfiguration,
     ForgeQueryConfiguration
-from inference_tools.exceptions import IncompleteObjectException, InferenceToolsException, \
+)
+from inference_tools.exceptions.exceptions import (
+    IncompleteObjectException,
+    InferenceToolsException,
     InvalidValueException
+)
 
 SparqlQueryBody = NewType('SparqlQueryBody', str)
 ElasticSearchQueryBody = NewType('ElasticSearchQueryBody', Dict)
@@ -47,6 +54,7 @@ class QuerySuper:
     parameter_specifications: List[ParameterSpecification]
     result_parameter_mapping: Optional[List[ParameterMapping]]
     query_configurations: List[QueryConfiguration]
+    description: Optional[str]
 
     def __init__(self, obj):
 
@@ -58,6 +66,7 @@ class QuerySuper:
             except InvalidValueException as e:
                 raise InvalidValueException from e
 
+        self.description = obj.get("description", "No description")
         tmp_param = obj.get("hasParameter", [])
         self.parameter_specifications = [
             ParameterSpecification(obj_i)

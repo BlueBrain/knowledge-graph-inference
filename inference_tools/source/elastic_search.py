@@ -1,17 +1,15 @@
 import json
-from typing import Dict
+from typing import Dict, Optional, List
 from urllib.parse import quote_plus
-from string import Template
 import requests
 
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core import KnowledgeGraphForge, Resource
 
+from inference_tools.bucket_configuration import BucketConfiguration
 from inference_tools.datatypes.query import ElasticSearchQuery
 from inference_tools.datatypes.query_configuration import ElasticSearchQueryConfiguration
+from inference_tools.premise_execution import PremiseExecution
 from inference_tools.source.source import Source, DEFAULT_LIMIT
-from inference_tools.type import PremiseType
-from inference_tools.exceptions import UnsupportedTypeException
-
 
 DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
 # TODO get rid of the edit of views
@@ -23,22 +21,29 @@ class ElasticSearch(Source):
     def execute_query(forge: KnowledgeGraphForge, query: ElasticSearchQuery,
                       parameter_values: Dict,
                       config: ElasticSearchQueryConfiguration, limit=DEFAULT_LIMIT,
-                      debug: bool = False):
+                      debug: bool = False) -> Optional[List[Resource]]:
 
         if config.elastic_search_view is not None:
             ElasticSearch.set_elastic_view(forge, config.elastic_search_view.id)
 
-        query_body = Template(json.dumps(query.body)).substitute(**parameter_values)
+        query_body = json.dumps(query.body)
 
-        return forge.as_json(forge.elastic(query_body, limit=limit, debug=debug))
+        for k, v in parameter_values.items():
+            query_body = query_body.replace(f"\"${k}\"", v)
+
+        return forge.elastic(query_body, limit=limit, debug=debug)
 
     @staticmethod
     def check_premise(forge: KnowledgeGraphForge, premise: ElasticSearchQuery,
                       parameter_values: Dict,
                       config: ElasticSearchQueryConfiguration, debug: bool = False):
 
-        raise UnsupportedTypeException(PremiseType.ELASTIC_SEARCH_PREMISE, "premise type")
-        # TODO implement
+        results = ElasticSearch.execute_query(forge=forge, query=premise,
+                                              parameter_values=parameter_values,
+                                              debug=debug, config=config, limit=None)
+
+        return PremiseExecution.SUCCESS if results is not None and len(results) > 0 else \
+            PremiseExecution.FAIL
 
     @staticmethod
     def get_elastic_view_endpoint(forge: KnowledgeGraphForge):
@@ -50,34 +55,82 @@ class ElasticSearch(Source):
 
     @staticmethod
     def set_elastic_view(forge: KnowledgeGraphForge, view: str):
-        org, project = ElasticSearch.get_store(forge).bucket.split("/")[-2:]
+        bucket_configuration = ElasticSearch.get_bucket_configuration(forge)
 
         views_endpoint = "/".join((
-            ElasticSearch.get_store(forge).endpoint,
+            bucket_configuration.endpoint,
             "views",
-            quote_plus(org),
-            quote_plus(project)
+            quote_plus(bucket_configuration.organisation),
+            quote_plus(bucket_configuration.project)
         ))
         endpoint = "/".join((views_endpoint, quote_plus(view), "_search"))
 
         ElasticSearch.set_elastic_view_endpoint(forge, endpoint)
 
     @staticmethod
-    def get_all_documents(forge: KnowledgeGraphForge):
+    def get_all_documents(forge: KnowledgeGraphForge) -> Optional[List[Resource]]:
+        """
+        Retrieves all Resources that are indexed by the current elastic view endpoint of the forge
+        instance
+        @param forge: the forge instance
+        @type forge: KnowledgeGraphForge
+        @return:
+        @rtype:  Optional[List[Resource]]
+        """
         return forge.elastic(json.dumps(
             {
-              "query": {
-                  "term": {
-                      "_deprecated": False
+                "query": {
+                    "term": {
+                        "_deprecated": False
                     }
                 }
             }), limit=10000)
 
     @staticmethod
-    def check_view_readiness(bucket_config, view_id, token):
+    def get_by_ids(ids: List[str], forge: KnowledgeGraphForge) -> Optional[List[Resource]]:
+        """
+
+        @param ids: the list of ids of the resources to retrieve
+        @type ids: List[str]
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @return: the list of Resources retrieved, if successful else None
+        @rtype: Optional[List[Resource]]
+        """
+        q = {
+            "size": 10000,
+            'query': {
+                'bool': {
+                    'filter': [
+                        {'terms': {'@id': ids}}
+                    ],
+                    'must': [
+                        {'match': {'_deprecated': False}}
+                    ]
+                }
+            },
+        }
+
+        return forge.elastic(json.dumps(q), debug=False)
+
+    @staticmethod
+    def check_view_readiness(bucket_config: BucketConfiguration, view_id: str, token: str) -> bool:
+        """
+        Make sure within a view's statistics, the last event datetime is equal to the last
+        processed event's datetime
+        @param bucket_config: the bucket in which the view is located
+        @type bucket_config:
+        @param view_id: the id of the view being checked
+        @type view_id: str
+        @param token: the authentication token
+        @type token: str
+        @return: Whether the view's last event datetime is equal to the last processed event's
+        datetime
+        @rtype: bool
+        """
         view_id = quote_plus(view_id)
-        url = f"{bucket_config.endpoint}/views/{bucket_config.org}/" \
-              f"{bucket_config.proj}/{view_id}/statistics"
+        url = f"{bucket_config.endpoint}/views/{bucket_config.organisation}/" \
+              f"{bucket_config.project}/{view_id}/statistics"
 
         r = requests.get(
             url,

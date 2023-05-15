@@ -3,6 +3,7 @@ from typing import Dict
 
 from kgforge.core import KnowledgeGraphForge
 
+from inference_tools.bucket_configuration import BucketConfiguration
 from inference_tools.datatypes.query import Query
 from inference_tools.datatypes.query_configuration import QueryConfiguration
 
@@ -30,3 +31,10 @@ class Source(ABC):
     @abstractmethod
     def restore_default_views(forge: KnowledgeGraphForge):
         pass
+
+    @staticmethod
+    def get_bucket_configuration(forge: KnowledgeGraphForge):
+        store = Source.get_store(forge)
+        org, project = store.bucket.split("/")[-2:]
+
+        return BucketConfiguration(endpoint=store.endpoint, organisation=org, project=project)

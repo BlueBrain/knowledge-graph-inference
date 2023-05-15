@@ -1,59 +1,28 @@
-import warnings
-from typing import Dict, Callable, Optional, Union, List, Tuple
+from typing import Dict, Callable, Optional, Union, List
+
 from kgforge.core import KnowledgeGraphForge
 
+from inference_tools.datatypes.parameter_mapping import ParameterMapping
 from inference_tools.datatypes.query import Query
 from inference_tools.datatypes.query_configuration import QueryConfiguration
 from inference_tools.datatypes.query_pipe import QueryPipe
 from inference_tools.datatypes.rule import Rule
-from inference_tools.source.elastic_search import ElasticSearch
-from inference_tools.source.sparql import Sparql
-from inference_tools.source.forge import Forge
-from inference_tools.source.source import DEFAULT_LIMIT
-
-from inference_tools.similarity.execution.main import execute_similarity_query
-
-from inference_tools.utils import _build_parameter_map
-
-from inference_tools.exceptions import (
-    InferenceToolsWarning,
-    InferenceToolsException,
+from inference_tools.exceptions.exceptions import (
     UnsupportedTypeException,
-    MissingPremiseParameterValue,
-    InvalidParameterSpecificationException
+    MissingPremiseParameterValue, FailedQueryException
 )
-
-from inference_tools.multi_predicate_object_pair import multi_check
-
+from inference_tools.exceptions.malformed_rule import InvalidParameterSpecificationException
+from inference_tools.exceptions.premise import IrrelevantPremiseParametersException
+from inference_tools.exceptions.premise import UnsupportedPremiseCaseException, \
+    FailedPremiseException, MalformedPremiseException
 from inference_tools.helper_functions import _follow_path, get_id_attribute, _enforce_list
-
-from inference_tools.type import (QueryType, PremiseType)
-
 from inference_tools.premise_execution import PremiseExecution
-
-
-def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
-        -> Tuple[Optional[int], Dict]:
-    if len(query.parameter_specifications) == 0:
-        return None, {}
-
-    # side effect: can rewrite into query body
-    parameter_spec, parameter_values = multi_check(parameter_values=parameter_values, query=query)
-
-    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
-
-    try:
-        parameter_map = _build_parameter_map(
-            forge=forge, parameter_spec=parameter_spec,
-            parameter_values=parameter_values,
-            query_type=query.type
-        )
-    except InferenceToolsException as e:
-        raise InferenceToolsException(
-            "Query cannot be executed, one or more parameters " +
-            f"are missing. See the following exception: {e}") from e
-
-    return limit, parameter_map
+from inference_tools.similarity.main import execute_similarity_query
+from inference_tools.source.elastic_search import ElasticSearch
+from inference_tools.source.forge import Forge
+from inference_tools.source.sparql import Sparql
+from inference_tools.type import (QueryType, PremiseType)
+from inference_tools.utils import _build_parameter_map, format_parameters
 
 
 def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge], query: Query,
@@ -94,7 +63,6 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
 
         source = sources[query.type.value]
 
-        # TODO are multiple query configurations only applicable to similarity queries?
         resources = source.execute_query(
             forge=forge,
             query=query,
@@ -104,20 +72,22 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
             limit=limit if last_query else None
         )
 
-        if query.type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
-            resources = [
-                {"id": get_id_attribute(el)}
-                for el in resources
-            ]
-
         source.restore_default_views(forge)
+
+        if resources is None:
+            raise FailedQueryException(description=query.description)
+
+        resources = forge.as_json(resources)
+
+        if query.type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
+            resources = [{"id": get_id_attribute(el)} for el in resources]
 
     elif query.type == QueryType.SIMILARITY_QUERY:
         resources = execute_similarity_query(
             query=query,
             parameter_values=parameter_values,
             forge_factory=forge_factory,
-        )
+        )  # TODO better error handling here
     else:
         raise UnsupportedTypeException(query.type.value, "query type")
 
@@ -149,22 +119,40 @@ def apply_rule(forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: D
 
     rule = Rule(rule)
 
-    satisfies = check_premises(forge_factory=forge_factory, rule=rule,
-                               parameter_values=parameter_values, debug=debug) \
-        if premise_check else True
-
-    if not satisfies:
-        warnings.warn(
-            "Rule premise is not satisfied on the input parameters",
-            InferenceToolsWarning)
-
-        return []
+    if premise_check:
+        check_premises(forge_factory=forge_factory, rule=rule, parameter_values=parameter_values,
+                       debug=debug)
 
     return execute_query_pipe(
         forge_factory=forge_factory, head=rule.search_query,
         parameter_values=parameter_values, rest=None,
         debug=debug
     )
+
+
+def combine_parameters(result_parameter_mapping: List[ParameterMapping], parameter_values: Dict,
+                       result: List):  # TODO enforce result to be a list # used to be a check
+    """
+    Combine user specified parameter values with parameter values that come
+    from the execution of a query that is ahead in the query pipe
+    @param result_parameter_mapping: a mapping indicating where to retrieve values in the
+    result, and to map them to what kind of parameter, in order for them to become parameter values
+    for the next query
+    @type result_parameter_mapping:
+    @param parameter_values: user specified parameter values
+    @type parameter_values: Dict
+    @param result:
+    @type result: List
+    @return:
+    @rtype:
+    """
+
+    mapping_values = dict(
+        (mapping.parameter_name, [_follow_path(el, mapping.path) for el in result])
+        for mapping in result_parameter_mapping
+    )
+
+    return {**parameter_values, **mapping_values}
 
 
 def execute_query_pipe(forge_factory: Callable[[str, str], KnowledgeGraphForge],
@@ -201,27 +189,14 @@ def execute_query_pipe(forge_factory: Callable[[str, str], KnowledgeGraphForge],
 
         return execute_query_object(forge_factory=forge_factory, query=head,
                                     parameter_values=parameter_values,
-                                    debug=debug, last_query=True)
+                                    debug=debug, last_query=True)  # TODO try catch??
 
-    result = execute_query_object(forge_factory=forge_factory, query=head,
+    result = execute_query_object(forge_factory=forge_factory, query=head,  # TODO try catch??
                                   parameter_values=parameter_values,
                                   debug=debug)
 
-    if not result:
-        return []
-
-    # Compute new parameters combining old parameters and the result
-    new_parameters = {**parameter_values}
-
-    result_parameter_mapping = head.result_parameter_mapping
-
-    for mapping in result_parameter_mapping:
-        if isinstance(result, list):
-            new_parameters[mapping.parameter_name] = [
-                _follow_path(el, mapping.path) for el in result
-            ]
-        else:
-            new_parameters[mapping.parameter_name] = result[mapping.path]
+    new_parameters = combine_parameters(result_parameter_mapping=head.result_parameter_mapping,
+                                        parameter_values=parameter_values, result=result)
 
     if isinstance(rest, QueryPipe):
         return execute_query_pipe(
@@ -249,6 +224,7 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
     @param debug: Whether running the premise queries is in debug mode
     @type debug: bool
     @return:
+    @raise PremiseException
     @rtype: bool
     """
 
@@ -270,10 +246,8 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
                 flags.append(PremiseExecution.MISSING_PARAMETER)
                 continue
             except InvalidParameterSpecificationException as e2:
-                warnings.warn(e2.message, InferenceToolsWarning)
-                flags.append(PremiseExecution.ERROR)
+                raise MalformedPremiseException(e2.message)
                 # TODO invalid premise, independently from input params
-                break
         else:
             current_parameters = {}
 
@@ -298,17 +272,19 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
             source.restore_default_views(forge)
 
             flags.append(flag)
+
             if flag == PremiseExecution.FAIL:
-                break
+                raise FailedPremiseException(description=premise.description)
         else:
             raise UnsupportedTypeException(premise.type.value, "premise type")
 
     if all(flag == PremiseExecution.SUCCESS for flag in flags):
         # All premises are successful
         return True
-    if any(flag == PremiseExecution.FAIL for flag in flags):
-        # One premise has failed
-        return False
+
+    # if any(flag == PremiseExecution.FAIL for flag in flags):
+    #     # One premise has failed
+    #     return False
     if all(flag == PremiseExecution.MISSING_PARAMETER for flag in flags):
         if len(parameter_values) == 0:
             # Nothing is provided, all premises are missing parameters
@@ -318,7 +294,7 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
                [_enforce_list(data) for data in parameter_values.values() if data is not None]
                ):
             # Parameter values are provided, all premises are missing parameters
-            return False
+            raise IrrelevantPremiseParametersException()
 
         # Things are provided, but the values are empty, all premises are missing parameters
         return True
@@ -328,4 +304,4 @@ def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rul
         # Some premises are successful, some are missing parameters
         return True
 
-    return False
+    raise UnsupportedPremiseCaseException(flags)

@@ -1,7 +1,7 @@
 """Collection of utils for performing various inference queries."""
 
 import getpass
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, Union, List, Tuple
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -10,13 +10,15 @@ from inference_tools.datatypes.query import Query
 from inference_tools.datatypes.query_pipe import QueryPipe
 from inference_tools.datatypes.rule import Rule
 
-from inference_tools.exceptions import (
+from inference_tools.exceptions.exceptions import (
     IncompleteObjectException,
     MissingPremiseParameterValue,
-    ObjectTypeStr
+    ObjectTypeStr, InferenceToolsException
 )
 
 from inference_tools.helper_functions import _enforce_unique
+from inference_tools.multi_predicate_object_pair import multi_check
+from inference_tools.source.source import DEFAULT_LIMIT
 
 from inference_tools.type import (QueryType, PremiseType)
 
@@ -200,3 +202,27 @@ def get_rule_parameters(rule: Rule) -> Dict:
         **get_premise_parameters(rule),
         **get_search_query_parameters(rule)
     }
+
+
+def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
+        -> Tuple[Optional[int], Dict]:
+    if len(query.parameter_specifications) == 0:
+        return None, {}
+
+    # side effect: can rewrite into query body
+    parameter_spec, parameter_values = multi_check(parameter_values=parameter_values, query=query)
+
+    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
+
+    try:
+        parameter_map = _build_parameter_map(
+            forge=forge, parameter_spec=parameter_spec,
+            parameter_values=parameter_values,
+            query_type=query.type
+        )
+    except InferenceToolsException as e:
+        raise InferenceToolsException(
+            "Query cannot be executed, one or more parameters " +
+            f"are missing. See the following exception: {e}") from e
+
+    return limit, parameter_map

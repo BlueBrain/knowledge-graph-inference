@@ -26,12 +26,12 @@ def get_resource_type_descendants(forge, types) -> List[str]:
     @return: a list of Resource labels that are descendants of the
     @rtype: List[str]
     """
-    query = SparqlQueryBody(""" 
+    query = SparqlQueryBody("""
             SELECT ?id ?label
             WHERE {
                 ?type rdfs:subClassOf* ?id .
                 ?id rdfs:label ?label
-                VALUES (?type) { $types } 
+                VALUES (?type) { $types }
             }
         """)
 
@@ -72,41 +72,28 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
     old_endpoint = ElasticSearch.get_elastic_view_endpoint(forge_rules)
     ElasticSearch.set_elastic_view(forge_rules, rule_view_id)
 
-    if resource_types is None:
-
-        q = json.dumps(
-            {
-              "query": {
-                "term": {
-                  "_deprecated": False
-                }
-              }
+    q = {
+        "query": {
+            "bool": {
+                "filter": [{
+                    "term": {"_deprecated": False}
+                }]
             }
-        )
+        }
+    }
 
-    else:
+    if resource_types is not None:
 
         if resource_types_descendants:
             resource_types = get_resource_type_descendants(forge_datamodels, resource_types)
 
         resource_type_repr = [_to_symbol(forge_rules, t) for t in resource_types]
 
-        q = json.dumps({
-          "query": {
-            "bool": {
-                "must": [
-                    {
-                       "terms": {"targetResourceType": resource_type_repr}
-                    },
-                    {
-                        "term": {"_deprecated": False}
-                    }
-                ]
-             }
-           }
-        })
+        q["query"]["bool"]["must"].append(
+            {"terms": {"targetResourceType": resource_type_repr}}
+        )
 
-    rules = forge_rules.elastic(q)
+    rules = forge_rules.elastic(json.dumps(q))
     ElasticSearch.set_elastic_view_endpoint(forge_rules, old_endpoint)
 
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "rule_ignore.txt")) as f:
@@ -116,5 +103,3 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
         Rule({**forge_rules.as_json(rule), "nexus_link": rule._store_metadata._self})
         for rule in rules if rule.id not in ignored_rules
     ]
-
-
