@@ -1,13 +1,12 @@
 from collections import defaultdict
 
-from typing import Dict, Callable, List
+from typing import Dict, Callable, List, Optional
 
 import json
 from pandas import DataFrame
 
 from kgforge.core import KnowledgeGraphForge
 
-from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.datatypes.query import SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.similarity.boosting_factor import BoostingFactor
@@ -77,42 +76,32 @@ def get_boosting_factors(forge, config: SimilaritySearchQueryConfiguration) \
 
 
 def combine_similarity_models(forge_factory: Callable[[str, str], KnowledgeGraphForge],
-                              query: SimilaritySearchQuery, parameter_values: Dict, k: int):
+                              configurations: List[SimilaritySearchQueryConfiguration],
+                              parameter_values: Dict, k: int, target_parameter: str,
+                              result_filter: Optional[str]):
+
     """Perform similarity search combining several similarity models"""
-
-    try:
-        p_spec: ParameterSpecification = next(
-            p for p in query.parameter_specifications
-            if p.name == "IgnoreModelsParameter"
-        )
-        models_to_ignore = p_spec.get_value(parameter_values)
-    except StopIteration:
-        models_to_ignore = []
-
-    valid_configs = [config_i for config_i in query.query_configurations
-                     if config_i.embedding_model.id not in models_to_ignore]
-
-    if len(valid_configs) == 0:
-        return []
 
     # Assume boosting factors and stats are in the same bucket as embeddings
     valid_forges = [
         forge_factory(config_i.org, config_i.project)
-        for config_i in valid_configs
+        for config_i in configurations
     ]
 
-    model_ids = [config_i.embedding_model.id for config_i in valid_configs]
+    model_ids = [config_i.embedding_model.id for config_i in configurations]
 
-    equal_contribution = 1 / len(valid_configs)  # TODO change to user input model weight
+    equal_contribution = 1 / len(configurations)  # TODO change to user input model weight
     weights = dict((model_id, equal_contribution) for model_id in model_ids)
 
     # Combine the results
     combined_results = defaultdict(dict)
 
-    for config_i, forge_i in zip(valid_configs, valid_forges):
+    for config_i, forge_i in zip(configurations, valid_forges):
 
         vector_id, neighbors = query_similar_resources(
-            forge_factory, forge_i, query, config_i, parameter_values, k=None
+            forge_factory=forge_factory, forge=forge_i, config=config_i,
+            parameter_values=parameter_values, k=None, target_parameter=target_parameter,
+            result_filter=result_filter
         )
 
         statistic = get_score_stats(forge_i, config_i, boosted=config_i.boosted)

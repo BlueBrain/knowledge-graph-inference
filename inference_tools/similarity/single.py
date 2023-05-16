@@ -192,9 +192,9 @@ def check_response(response: requests.Response) -> Dict:
 
 def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphForge],
                             forge: KnowledgeGraphForge,
-                            query: SimilaritySearchQuery,
                             config: SimilaritySearchQueryConfiguration,
-                            parameter_values, k: Optional[int]) \
+                            parameter_values, k: Optional[int], target_parameter: str,
+                            result_filter: Optional[str]) \
         -> Tuple[str, List[Tuple[int, Neighbor]]]:
     """Query similar resources using the similarity query.
 
@@ -204,8 +204,6 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
         Factory that returns a forge session given a bucket
     forge : KnowledgeGraphForge
         Instance of a forge session
-    query : dict
-        Json representation of the similarity search query (`SimilarityQuery`)
     config: dict or list of dict
         Query configuration containing references to the target views
         to be queried.
@@ -213,6 +211,12 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
         Input parameters used in the similarity query
     k : int
         Number of nearest neighbors to query
+    target_parameter: str
+        The name of the input parameter that holds the id of the entity the results should be
+        similar to
+    result_filter: Optional[str]
+        An additional elastic search query filter to apply onto the neighbor search, in string
+        format
 
     Returns
     -------
@@ -220,18 +224,13 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
         The id of the embedding vector of the resource being queried, as well as a dictionary
         with keys being scores and values being a Neighbor object holding
         the resource id that is similar
+
     """
     # Set ES view from the config
     if config.similarity_view.id is None:
         raise MalformedSimilaritySearchQueryException("Similarity search view is not defined")
 
     ElasticSearch.set_elastic_view(forge, config.similarity_view.id)
-
-    # Get search target vector
-    target_parameter = query.search_target_parameter
-
-    if target_parameter is None:
-        raise MalformedSimilaritySearchQueryException("Target parameter is not specified")
 
     search_target = parameter_values.get(target_parameter, None)  # TODO should it be formatted ?
 
@@ -264,7 +263,7 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
     # Search neighbors
     result: List[Tuple[int, Neighbor]] = get_neighbors(
         forge, embedding.vector, embedding.id, k, score_formula=score_formula,
-        result_filter=query.result_filter, parameters=parameter_values
+        result_filter=result_filter, parameters=parameter_values
     )
 
     return embedding.id, result
