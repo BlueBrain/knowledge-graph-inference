@@ -25,56 +25,6 @@ from inference_tools.type import (QueryType, PremiseType)
 from inference_tools.parameter_formatter import ParameterFormatter
 
 
-def _allocate_forge_session(org: str, project: str, config_file_path: str, endpoint: str = None,
-                            search_endpoints: Optional[Dict] = None, token_file_path: str = None):
-    """
-
-    @param org:
-    @type org: str
-    @param project:
-    @type project: str
-    @param config_file_path:
-    @type config_file_path: str
-    @param endpoint:
-    @type endpoint: str
-    @param search_endpoints:
-    @type search_endpoints: Optional[Dict]
-    @param token_file_path:
-    @type token_file_path: str
-    @return:
-    @rtype: KnowledgeGraphForge
-    """
-    if token_file_path is not None:
-        with open(token_file_path, encoding="utf-8") as f:
-            TOKEN = f.read()
-    else:
-        TOKEN = getpass.getpass()
-
-    ENDPOINT = endpoint if endpoint else "https://bbp.epfl.ch/nexus/v1"
-
-    bucket = f"{org}/{project}"
-
-    DEBUG = False
-
-    if search_endpoints:
-        return KnowledgeGraphForge(
-            config_file_path,
-            endpoint=ENDPOINT,
-            token=TOKEN,
-            bucket=bucket,
-            searchendpoints=search_endpoints,
-            debug=DEBUG
-        )
-
-    return KnowledgeGraphForge(
-        config_file_path,
-        endpoint=ENDPOINT,
-        token=TOKEN,
-        bucket=bucket,
-        debug=DEBUG
-    )
-
-
 def _build_parameter_map(forge: KnowledgeGraphForge, parameter_spec: List[ParameterSpecification],
                          parameter_values: Dict,
                          query_type: Union[QueryType, PremiseType]) -> Dict:

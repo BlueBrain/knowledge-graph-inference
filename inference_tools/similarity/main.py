@@ -13,7 +13,7 @@ from inference_tools.datatypes.parameter_specification import ParameterSpecifica
 
 
 def execute_similarity_query(forge_factory: Callable[[str, str], KnowledgeGraphForge],
-                             query: SimilaritySearchQuery, parameter_values: Dict):
+                             query: SimilaritySearchQuery, parameter_values: Dict, debug: bool):
     """Execute similarity search query.
 
     Parameters
@@ -24,6 +24,7 @@ def execute_similarity_query(forge_factory: Callable[[str, str], KnowledgeGraphF
         Json representation of the similarity search query (`SimilarityQuery`)
     parameter_values : dict
         Input parameters used in the similarity query
+    debug: bool
 
     Returns
     -------
@@ -72,7 +73,8 @@ def execute_similarity_query(forge_factory: Callable[[str, str], KnowledgeGraphF
             config=config_i,
             parameter_values=parameter_values,
             k=k,
-            result_filter=query.result_filter
+            result_filter=query.result_filter,
+            debug=debug
         )
 
         return [
@@ -90,6 +92,6 @@ def execute_similarity_query(forge_factory: Callable[[str, str], KnowledgeGraphF
         parameter_values=parameter_values,
         configurations=valid_configs,
         target_parameter=target_parameter,
-        result_filter=query.result_filter
+        result_filter=query.result_filter,
+        debug=debug
     )
-

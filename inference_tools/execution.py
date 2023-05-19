@@ -87,6 +87,7 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
             query=query,
             parameter_values=parameter_values,
             forge_factory=forge_factory,
+            debug=debug,
         )  # TODO better error handling here
     else:
         raise UnsupportedTypeException(query.type.value, "query type")

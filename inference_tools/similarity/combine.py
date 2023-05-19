@@ -7,12 +7,12 @@ from pandas import DataFrame
 
 from kgforge.core import KnowledgeGraphForge
 
-from inference_tools.datatypes.query import SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.similarity.boosting_factor import BoostingFactor
 from inference_tools.datatypes.similarity.statistic import Statistic
 
 from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
+from inference_tools.nexus_utils.forge_utils import ForgeUtils
 
 from inference_tools.similarity.similarity_model_result import SimilarityModelResult
 from inference_tools.similarity.single import query_similar_resources
@@ -31,7 +31,7 @@ def get_score_stats(forge, config: SimilaritySearchQueryConfiguration, boosted=F
     if config.statistics_view.id is None:
         raise MalformedSimilaritySearchQueryException("Statistics view is not defined")
 
-    ElasticSearch.set_elastic_view(forge, config.statistics_view.id)
+    ForgeUtils.set_elastic_search_view(forge, config.statistics_view.id)
 
     q = {
         "query": {
@@ -63,7 +63,7 @@ def get_boosting_factors(forge, config: SimilaritySearchQueryConfiguration) \
     if config.boosting_view.id is None:
         raise MalformedSimilaritySearchQueryException("Boosting view is not defined")
 
-    ElasticSearch.set_elastic_view(forge, config.boosting_view.id)
+    ForgeUtils.set_elastic_search_view(forge, config.boosting_view.id)
 
     factors = ElasticSearch.get_all_documents(forge)
 
@@ -78,7 +78,7 @@ def get_boosting_factors(forge, config: SimilaritySearchQueryConfiguration) \
 def combine_similarity_models(forge_factory: Callable[[str, str], KnowledgeGraphForge],
                               configurations: List[SimilaritySearchQueryConfiguration],
                               parameter_values: Dict, k: int, target_parameter: str,
-                              result_filter: Optional[str]):
+                              result_filter: Optional[str], debug: bool):
 
     """Perform similarity search combining several similarity models"""
 
@@ -101,7 +101,7 @@ def combine_similarity_models(forge_factory: Callable[[str, str], KnowledgeGraph
         vector_id, neighbors = query_similar_resources(
             forge_factory=forge_factory, forge=forge_i, config=config_i,
             parameter_values=parameter_values, k=None, target_parameter=target_parameter,
-            result_filter=result_filter
+            result_filter=result_filter, debug=debug
         )
 
         statistic = get_score_stats(forge_i, config_i, boosted=config_i.boosted)
@@ -137,11 +137,10 @@ def combine_similarity_models(forge_factory: Callable[[str, str], KnowledgeGraph
 
     return [
         SimilarityModelResult(
-            id=id,
+            id=id_,
             score=score,
             score_breakdown=score_breakdown
         ).to_json()
 
-        for id, score, score_breakdown in zip(df[0], df[1], df[2])
+        for id_, score, score_breakdown in zip(df[0], df[1], df[2])
     ]
-

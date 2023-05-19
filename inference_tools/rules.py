@@ -9,9 +9,9 @@ from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.query import SparqlQueryBody
 from inference_tools.datatypes.rule import Rule
+from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.parameter_formatter import ParameterFormatter
 from inference_tools.type import QueryType, ParameterType
-from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.helper_functions import _to_symbol
 
 
@@ -69,15 +69,14 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
     @rtype: List[Dict]
     """
 
-    old_endpoint = ElasticSearch.get_elastic_view_endpoint(forge_rules)
-    ElasticSearch.set_elastic_view(forge_rules, rule_view_id)
+    old_endpoint = ForgeUtils.get_elastic_search_endpoint(forge_rules)
+    ForgeUtils.set_elastic_search_view(forge_rules, rule_view_id)
 
     q = {
         "query": {
             "bool": {
-                "filter": [{
-                    "term": {"_deprecated": False}
-                }]
+                "filter": [{"term": {"_deprecated": False}}],
+                "must": []
             }
         }
     }
@@ -94,7 +93,7 @@ def fetch_rules(forge_rules: KnowledgeGraphForge, forge_datamodels: KnowledgeGra
         )
 
     rules = forge_rules.elastic(json.dumps(q))
-    ElasticSearch.set_elastic_view_endpoint(forge_rules, old_endpoint)
+    ForgeUtils.set_elastic_search_endpoint(forge_rules, old_endpoint)
 
     with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "rule_ignore.txt")) as f:
         ignored_rules = [l.strip() for l in f.readlines()]

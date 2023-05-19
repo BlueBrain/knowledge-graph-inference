@@ -2,6 +2,7 @@
 Helper functions
 """
 from typing import Dict, Type
+import os
 
 from inference_tools.type import ObjectTypeStr, ObjectType
 
@@ -10,6 +11,10 @@ from inference_tools.exceptions.exceptions import (
     IncompleteObjectException,
     InvalidValueException
 )
+
+
+def get_path(path):
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
 
 
 def get_model(forge):

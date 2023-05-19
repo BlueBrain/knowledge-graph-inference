@@ -1,5 +1,4 @@
 from typing import Dict
-from urllib.parse import quote_plus
 
 from string import Template
 
@@ -9,7 +8,7 @@ from inference_tools.type import ParameterType
 from inference_tools.datatypes.query import SparqlQuery
 from inference_tools.datatypes.query_configuration import SparqlQueryConfiguration
 from inference_tools.premise_execution import PremiseExecution
-
+from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.source.source import Source, DEFAULT_LIMIT
 
 DEFAULT_SPARQL_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
@@ -34,7 +33,7 @@ class Sparql(Source):
                 query_body = query.body.replace(to_replace, parameter_values[qb.name])
 
         if config.sparql_view is not None:
-            Sparql.set_sparql_view(forge, config.sparql_view.id)
+            ForgeUtils.set_sparql_view(forge, config.sparql_view.id)
 
         query_body = Template(query_body).substitute(**parameter_values)
 
@@ -52,20 +51,5 @@ class Sparql(Source):
             PremiseExecution.FAIL
 
     @staticmethod
-    def set_sparql_view(forge: KnowledgeGraphForge, view):
-        """Set sparql view."""
-        bucket_configuration = Sparql.get_bucket_configuration(forge)
-
-        views_endpoint = "/".join((
-            bucket_configuration.endpoint,
-            "views",
-            quote_plus(bucket_configuration.organisation),
-            quote_plus(bucket_configuration.project)
-        ))
-
-        Sparql.get_store(forge).service.sparql_endpoint["endpoint"] = "/".join(
-            (views_endpoint, quote_plus(view), "sparql"))
-
-    @staticmethod
     def restore_default_views(forge: KnowledgeGraphForge):
-        Sparql.set_sparql_view(forge, DEFAULT_SPARQL_VIEW)
+        ForgeUtils.set_sparql_view(forge, DEFAULT_SPARQL_VIEW)

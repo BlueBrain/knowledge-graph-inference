@@ -7,14 +7,13 @@ from typing import Callable, Optional, List, Dict, Tuple
 
 from kgforge.core import KnowledgeGraphForge
 
-from inference_tools.datatypes.query import SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.similarity.embedding import Embedding
 from inference_tools.datatypes.similarity.neighbor import Neighbor
-
 from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
+from inference_tools.nexus_utils.delta_utils import DeltaUtils
+from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.similarity.formula import Formula
-from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 
@@ -66,7 +65,7 @@ def get_embedding_vector(forge: KnowledgeGraphForge, search_target: str) -> Embe
     return Embedding(result)
 
 
-def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: str,
+def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: str, debug: bool,
                   k: int = None, score_formula: Formula = Formula.EUCLIDEAN,
                   result_filter=None, parameters=None, get_payload: bool = True) \
         -> List[Tuple[int, Optional[Neighbor]]]:
@@ -96,6 +95,7 @@ def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: st
         search, but not when computing statistics
     parameters : dict, optional
         Parameter dictionary to use in the provided `result_filter` statement.
+    debug: bool
 
     Returns
     -------
@@ -139,7 +139,7 @@ def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: st
         similarity_query["query"]["script_score"]["query"]["bool"].update(json.loads(result_filter))
 
     if get_payload:
-        run = forge.elastic(json.dumps(similarity_query), limit=None)
+        run = forge.elastic(json.dumps(similarity_query), limit=None, debug=debug)
 
         if run is None or len(run) == 0:
             raise SimilaritySearchException("Getting neighbors failed")
@@ -149,12 +149,12 @@ def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: st
             for el in run
         ]
     else:
-        url = forge._store.service.elastic_endpoint["endpoint"]
-        token = forge._store.token
+        url = ForgeUtils.get_elastic_search_endpoint(forge)
+        token = ForgeUtils.get_token(forge)
         similarity_query["_source"] = False
 
-        run = check_response(
-            requests.post(url=url, json=similarity_query, headers=make_header(token))
+        run = DeltaUtils.check_response(
+            requests.post(url=url, json=similarity_query, headers=DeltaUtils.make_header(token))
         )
 
         if "hits" not in run or len(run["hits"]) == 0:
@@ -166,35 +166,11 @@ def get_neighbors(forge: KnowledgeGraphForge, vector: List[float], vector_id: st
         ]
 
 
-def make_header(token):
-    return {
-        "mode": "cors",
-        "Content-Type": "application/json",
-        "Accept": "application/ld+json, application/json",
-        "Authorization": "Bearer " + token
-    }
-
-
-class DeltaException(Exception):
-    body: Dict
-    status_code: int
-
-    def __init__(self, body: Dict, status_code: int):
-        self.body = body
-        self.status_code = status_code
-
-
-def check_response(response: requests.Response) -> Dict:
-    if response.status_code not in range(200, 229):
-        raise DeltaException(body=json.loads(response.text), status_code=response.status_code)
-    return json.loads(response.text)
-
-
 def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphForge],
                             forge: KnowledgeGraphForge,
                             config: SimilaritySearchQueryConfiguration,
                             parameter_values, k: Optional[int], target_parameter: str,
-                            result_filter: Optional[str]) \
+                            result_filter: Optional[str], debug: bool) \
         -> Tuple[str, List[Tuple[int, Neighbor]]]:
     """Query similar resources using the similarity query.
 
@@ -217,6 +193,7 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
     result_filter: Optional[str]
         An additional elastic search query filter to apply onto the neighbor search, in string
         format
+    debug: bool
 
     Returns
     -------
@@ -230,7 +207,7 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
     if config.similarity_view.id is None:
         raise MalformedSimilaritySearchQueryException("Similarity search view is not defined")
 
-    ElasticSearch.set_elastic_view(forge, config.similarity_view.id)
+    ForgeUtils.set_elastic_search_view(forge, config.similarity_view.id)
 
     search_target = parameter_values.get(target_parameter, None)  # TODO should it be formatted ?
 
@@ -262,9 +239,9 @@ def query_similar_resources(forge_factory: Callable[[str, str], KnowledgeGraphFo
 
     # Search neighbors
     result: List[Tuple[int, Neighbor]] = get_neighbors(
-        forge, embedding.vector, embedding.id, k, score_formula=score_formula,
-        result_filter=result_filter, parameters=parameter_values
+        forge=forge, vector=embedding.vector, vector_id=embedding.id,
+        k=k, score_formula=score_formula,
+        result_filter=result_filter, parameters=parameter_values, debug=debug
     )
 
     return embedding.id, result
-
