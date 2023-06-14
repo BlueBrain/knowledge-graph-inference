@@ -17,6 +17,8 @@ class NexusBucketConfiguration(BucketConfiguration):
     token_staging_path = get_path("../token/token_staging.txt")
 
     config_prod_path = get_path("../configs/test-config.yaml")
+    config_prod_path_neuroscience_graph = get_path("../configs/test-config_neuroscience_graph.yaml")
+
     config_staging_path = get_path("../configs/test-config_staging.yaml")
 
     endpoint_prod = "https://bbp.epfl.ch/nexus/v1"
@@ -47,11 +49,17 @@ class NexusBucketConfiguration(BucketConfiguration):
     def set_token_path_prod(token_path: str):
         NexusBucketConfiguration.token_prod_path = token_path
 
-    def get_config_path(self):
+    def get_config_path(self, bucket):
         if self.config_file_path:
             return self.config_file_path
-        return NexusBucketConfiguration.config_prod_path if self.is_prod else \
-            NexusBucketConfiguration.config_staging_path
+
+        if self.is_prod:
+            return NexusBucketConfiguration.config_prod_path_neuroscience_graph \
+                if bucket == "neurosciencegraph/datamodels" else \
+                NexusBucketConfiguration.config_prod_path
+        else:
+            return NexusBucketConfiguration.config_staging_path
+            # TODO staging and neurosciencegraph
 
     def get_token_path(self):
         if self.token_file_path:
@@ -71,11 +79,14 @@ class NexusBucketConfiguration(BucketConfiguration):
 
     def allocate_forge_session(self):
 
+        bucket = f"{self.organisation}/{self.project}"
+        configuration_file = self.get_config_path(bucket)
+
         tmp = KnowledgeGraphForge(
-            configuration=self.get_config_path(),
+            configuration=configuration_file,
             endpoint=self.endpoint,
             token=NexusBucketConfiguration.load_token(self.get_token_path()),
-            bucket=f"{self.organisation}/{self.project}",
+            bucket=bucket,
             debug=False
         )
 
@@ -86,3 +97,4 @@ class NexusBucketConfiguration(BucketConfiguration):
             ForgeUtils.set_elastic_search_view(tmp, self.elastic_search_view)
 
         return tmp
+
