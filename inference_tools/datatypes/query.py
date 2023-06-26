@@ -18,7 +18,12 @@ from inference_tools.exceptions.exceptions import (
     InvalidValueException
 )
 
-SparqlQueryBody = NewType('SparqlQueryBody', str)
+
+class SparqlQueryBody:
+    def __init__(self, body_dict):
+        self.query_string = body_dict["query_string"]
+
+
 ElasticSearchQueryBody = NewType('ElasticSearchQueryBody', Dict)
 ForgeQueryBody = NewType("ForgeQueryBody", Dict)
 SimilaritySearchQueryBody = NewType("SimilaritySearchQueryBody", Any)

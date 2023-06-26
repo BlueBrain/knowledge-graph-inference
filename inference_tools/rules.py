@@ -26,14 +26,14 @@ def get_resource_type_descendants(forge, types) -> List[str]:
     @return: a list of Resource labels that are descendants of the
     @rtype: List[str]
     """
-    query = SparqlQueryBody("""
+    query = SparqlQueryBody({"query_string": """
             SELECT ?id ?label
             WHERE {
                 ?type rdfs:subClassOf* ?id .
                 ?id rdfs:label ?label
                 VALUES (?type) { $types }
             }
-        """)
+        """})
 
     types = ParameterFormatter.format_parameter(
         parameter_type=ParameterType.SPARQL_VALUE_URI_LIST,

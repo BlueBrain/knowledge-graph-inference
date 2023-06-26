@@ -22,7 +22,7 @@ class Sparql(Source):
     def execute_query(forge: KnowledgeGraphForge, query: SparqlQuery, parameter_values: Dict,
                       config: SparqlQueryConfiguration, limit=DEFAULT_LIMIT, debug: bool = False):
 
-        query_body = query.body
+        query_body = query.body.query_string
 
         query_blocks = [x for x in query.parameter_specifications
                         if x.type == ParameterType.QUERY_BLOCK]
@@ -30,7 +30,7 @@ class Sparql(Source):
         if len(query_blocks) != 0:
             for qb in query_blocks:
                 to_replace = f"${qb.name}"
-                query_body = query.body.replace(to_replace, parameter_values[qb.name])
+                query_body = query_body.replace(to_replace, parameter_values[qb.name])
 
         if config.sparql_view is not None:
             ForgeUtils.set_sparql_view(forge, config.sparql_view.id)

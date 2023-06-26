@@ -23,7 +23,7 @@ def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int,
     done
     @return: the rewritten query body
     """
-    query_split = query_body.split("\n")
+    query_split = query_body.query_string.split("\n")
     to_find = f"${name}"
 
     try:
@@ -45,7 +45,7 @@ def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int,
 
     query_body = "\n".join(query_split)
 
-    return SparqlQueryBody(query_body)
+    return SparqlQueryBody({"query_string": query_body})
 
 
 def has_multi_predicate_object_pairs(parameter_spec: List[ParameterSpecification],
