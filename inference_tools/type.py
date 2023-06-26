@@ -22,6 +22,10 @@ class ParameterType(Enum):
     QUERY_BLOCK = "query_block"
 
 
+parameter_list_types = [ParameterType.LIST, ParameterType.URI_LIST, ParameterType.SPARQL_LIST,
+                        ParameterType.SPARQL_VALUE_LIST, ParameterType.SPARQL_VALUE_URI_LIST]
+
+
 class QueryType(Enum):
     """
     All types of queries ran that can be executed

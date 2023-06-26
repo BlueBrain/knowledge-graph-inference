@@ -2,7 +2,7 @@ from typing import Any, Optional, Dict
 
 from inference_tools.exceptions.exceptions import IncompleteObjectException, InferenceToolsException
 
-from inference_tools.type import ObjectTypeStr, ParameterType
+from inference_tools.type import ObjectTypeStr, ParameterType, parameter_list_types
 from inference_tools.helper_functions import _get_type, _enforce_list
 
 
@@ -57,6 +57,6 @@ class ParameterSpecification:
         if self.default is not None:
             return self.default
         if self.optional:
-            return None
+            return None if self.type not in parameter_list_types else []
         raise IncompleteObjectException(name=self.name, attribute="value",
                                         object_type=ObjectTypeStr.PARAMETER)

@@ -11,7 +11,7 @@ from inference_tools.exceptions.exceptions import (
     ObjectTypeStr
 )
 from inference_tools.helper_functions import _enforce_list
-from inference_tools.type import ParameterType, PremiseType, QueryType
+from inference_tools.type import ParameterType, PremiseType, QueryType, parameter_list_types
 
 
 class ParameterFormatter:
@@ -105,9 +105,6 @@ class ParameterFormatter:
             QueryType.SPARQL_QUERY
         ]
 
-        list_types = [ParameterType.LIST, ParameterType.URI_LIST, ParameterType.SPARQL_LIST,
-                      ParameterType.SPARQL_VALUE_LIST, ParameterType.SPARQL_VALUE_URI_LIST]
-
         list_formatters = {
             ParameterType.LIST: ParameterFormatter(expand_uri=False, format_string="\"{}\"",
                                                    join_string=", ", wrap_string=None),
@@ -127,7 +124,7 @@ class ParameterFormatter:
                                                                     wrap_string=None)
         }
 
-        if parameter_type in list_types:
+        if parameter_type in parameter_list_types:
 
             provided_value = _enforce_list(provided_value)
 
