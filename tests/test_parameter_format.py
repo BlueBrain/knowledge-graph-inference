@@ -20,7 +20,7 @@ class ParameterFormattingTest(unittest.TestCase):
         ).allocate_forge_session()
 
     def test_parameter_format_limit(self):
-        q0 = {
+        q = {
             "@type": "SparqlQuery",
             "hasBody": "",
             "hasParameter": [],
@@ -28,7 +28,7 @@ class ParameterFormattingTest(unittest.TestCase):
             "resultParameterMapping": []
         }
 
-        query: Query = query_factory(q0)
+        query: Query = query_factory(q)
         parameter_values = {}
 
         limit, formatted_parameters = format_parameters(
@@ -49,7 +49,7 @@ class ParameterFormattingTest(unittest.TestCase):
     def test_parameter_format_missing_mandatory(self):
 
         field_name = "MandatoryField"
-        q1 = {
+        q = {
             "@type": "SparqlQuery",
             "hasBody": "",
             "hasParameter": [
@@ -64,7 +64,7 @@ class ParameterFormattingTest(unittest.TestCase):
             "resultParameterMapping": []
         }
 
-        query: Query = query_factory(q1)
+        query: Query = query_factory(q)
 
         parameter_values = {}
 
@@ -99,7 +99,7 @@ class ParameterFormattingTest(unittest.TestCase):
         }
 
         for field_type, expected_value in expected_values.items():
-            q1 = {
+            q = {
                 "@type": "SparqlQuery",
                 "hasBody": "",
                 "hasParameter": [
@@ -115,8 +115,74 @@ class ParameterFormattingTest(unittest.TestCase):
             }
 
             _, formatted_parameters = format_parameters(
-                query=query_factory(q1), parameter_values=parameter_values,
+                query=query_factory(q), parameter_values=parameter_values,
                 forge=self.some_forge_object
             )
 
             self.assertDictEqual(formatted_parameters, {field_name: expected_value})
+
+    def test_parameter_format_multi_predicate(self):
+        q = {
+            "type": "SparqlQuery",
+            "hasBody":
+                """
+                    SELECT ?id ?br
+                    WHERE { 
+                        ?id $whatever .
+                        ?id nsg:brainLocation/nsg:brainRegion ?br .
+                        }
+                """,
+            "hasParameter": [
+                {
+                    "type": "MultiPredicateObjectPair",
+                    "description": "paths to the properties being checked",
+                    "name": "whatever"
+                },
+                #             {
+                #                 "type": "uri",
+                #                 "description": "some other passed param that should still exist",
+                #                 "name": "PathQueryParameter"
+                #             },
+            ],
+            "queryConfiguration": self.query_conf,
+            "resultParameterMapping": []
+        }
+
+        parameter_values = {
+            #     "PathQueryParameter": "<http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells>",
+            "whatever": [
+                (
+                    ("rdf:type", "path"),
+                    ("<https://neuroshapes.org/NeuronMorphology>", "uri")
+                ),
+                (
+                    ("contribution/agent", "path"),
+                    ("<https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028>","uri")
+                )
+            ]
+        }
+
+        expected_formatted_parameters = {
+            'whatever_0_predicate': 'rdf:type',
+            'whatever_0_object': '<https://neuroshapes.org/NeuronMorphology>',
+            'whatever_1_predicate': 'contribution/agent',
+            'whatever_1_object': '<https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028>'
+        }
+
+        query = query_factory(q)
+
+        _, formatted_parameters = format_parameters(
+            query=query, parameter_values=parameter_values,
+            forge=self.some_forge_object
+        )
+
+        self.assertEqual(query.body, """
+                    SELECT ?id ?br
+                    WHERE { 
+                        ?id $whatever_0_predicate $whatever_0_object .
+                        ?id $whatever_1_predicate $whatever_1_object .
+                        ?id nsg:brainLocation/nsg:brainRegion ?br .
+                        }
+                """)  # TODO super sensitive to tabs for exact string equally, change the test
+
+        self.assertDictEqual(formatted_parameters, expected_formatted_parameters)
