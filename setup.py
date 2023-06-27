@@ -18,7 +18,7 @@ setup(
     },
     description="Tools for performing knowledge inference.",
     long_description=long_description,
-    long_description_content_type="text/x-rst",
+    long_description_content_type="text/markdown",
     keywords="ontology knowledge graph data science",
     packages=find_packages(),
     python_requires=">=3.7",
@@ -27,10 +27,7 @@ setup(
         "setuptools_scm",
     ],
     install_requires=[
-        "numpy",
-        "pandas",
-        "nexus-sdk",
-        "bluegraph",
+        "pandas==2.0.2",  # TODO remove when refactoring inference_tools/similarity/combine.py
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge"
     ],
     extras_require={
@@ -41,6 +38,9 @@ setup(
         "docs": [
             "sphinx", "sphinx-bluebrain-theme"
         ],
+        "data_registration": [
+            "bluegraph"
+        ]
     },
     classifiers=[
         "Intended Audience :: Information Technology",
