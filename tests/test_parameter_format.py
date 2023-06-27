@@ -9,27 +9,29 @@ from inference_tools.utils import format_parameters
 
 class ParameterFormattingTest(unittest.TestCase):
 
+    def setUp(self):
+        self.query_conf = {
+                "org": "bbp",
+                "project": "atlas",
+            }
+        self.some_forge_object =  NexusBucketConfiguration(
+            self.query_conf["org"], self.query_conf["project"], True
+        ).allocate_forge_session()
+
     def test_parameter_format_limit(self):
         q0 = {
             "@type": "SparqlQuery",
             "hasBody": "",
             "hasParameter": [],
-            "queryConfiguration": {
-                "org": "bbp",
-                "project": "atlas",
-            },
+            "queryConfiguration": self.query_conf ,
             "resultParameterMapping": []
         }
 
         query: Query = query_factory(q0)
-
-        query_config_0 = query.query_configurations[0]
-        forge = NexusBucketConfiguration(query_config_0.org, query_config_0.project,
-                                         True).allocate_forge_session()
-
         parameter_values = {}
+
         limit, formatted_parameters = format_parameters(
-            query=query, parameter_values=parameter_values, forge=forge
+            query=query, parameter_values=parameter_values, forge=self.some_forge_object
         )
 
         self.assertEqual(limit, DEFAULT_LIMIT)
@@ -38,7 +40,7 @@ class ParameterFormattingTest(unittest.TestCase):
         parameter_values["LimitQueryParameter"] = limit_value
 
         limit2, formatted_parameters2 = format_parameters(
-            query=query, parameter_values=parameter_values, forge=forge
+            query=query, parameter_values=parameter_values, forge=self.some_forge_object
         )
 
         self.assertEqual(limit2, limit_value)
@@ -55,23 +57,16 @@ class ParameterFormattingTest(unittest.TestCase):
                     "optional": False
                 }
             ],
-            "queryConfiguration": {
-                "org": "bbp",
-                "project": "atlas"
-            },
+            "queryConfiguration": self.query_conf,
             "resultParameterMapping": []
         }
 
         query: Query = query_factory(q1)
-        query_config_0 = query.query_configurations[0]
-        forge = NexusBucketConfiguration(
-            query_config_0.org, query_config_0.project, True
-        ).allocate_forge_session()
 
         parameter_values = {}
 
         with self.assertRaises(InferenceToolsException):
             limit, formatted_parameters = format_parameters(
-                query=query, parameter_values=parameter_values, forge=forge
+                query=query, parameter_values=parameter_values, forge=self.some_forge_object
             )
 
