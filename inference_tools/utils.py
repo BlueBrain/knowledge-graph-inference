@@ -156,13 +156,14 @@ def get_rule_parameters(rule: Rule) -> Dict:
 
 def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
         -> Tuple[Optional[int], Dict]:
+
+    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
+
     if len(query.parameter_specifications) == 0:
-        return None, {}
+        return limit, {}
 
     # side effect: can rewrite into query body
     parameter_spec, parameter_values = multi_check(parameter_values=parameter_values, query=query)
-
-    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
 
     try:
         parameter_map = _build_parameter_map(
