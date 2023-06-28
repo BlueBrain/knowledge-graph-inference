@@ -165,15 +165,10 @@ def format_parameters(query: Query, parameter_values: Optional[Dict], forge: Kno
     # side effect: can rewrite into query body
     parameter_spec, parameter_values = multi_check(parameter_values=parameter_values, query=query)
 
-    try:
-        parameter_map = _build_parameter_map(
-            forge=forge, parameter_spec=parameter_spec,
-            parameter_values=parameter_values,
-            query_type=query.type
-        )
-    except InferenceToolsException as e:
-        raise InferenceToolsException(
-            "Query cannot be executed, one or more parameters " +
-            f"are missing. See the following exception: {e}") from e
+    parameter_map = _build_parameter_map(
+        forge=forge, parameter_spec=parameter_spec,
+        parameter_values=parameter_values,
+        query_type=query.type
+    )
 
     return limit, parameter_map
