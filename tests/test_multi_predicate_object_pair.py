@@ -16,7 +16,7 @@ from inference_tools.nexus_utils.bucket_configuration import NexusBucketConfigur
 from inference_tools.utils import format_parameters
 
 
-class ParameterFormattingTest(unittest.TestCase):
+class MultiPredicateObjectPairTest(unittest.TestCase):
 
     def setUp(self):  # TODO setupclass?
         self.query_conf = {

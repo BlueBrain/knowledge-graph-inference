@@ -8,7 +8,7 @@ from inference_tools.type import ParameterType
 from inference_tools.utils import format_parameters
 
 
-class ParameterFormattingTest(unittest.TestCase):
+class ParameterFormatTest(unittest.TestCase):
 
     def setUp(self):  # TODO setupclass?
         self.query_conf = {
