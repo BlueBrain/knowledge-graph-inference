@@ -22,6 +22,11 @@ class ParameterSpecification:
         self.type = _get_type(obj, ObjectTypeStr.PARAMETER, ParameterType)
         self.values = obj.get("values", None)  # For parameter type with choice enabled
 
+    def __eq__(self, other):
+        return self.name == self.name and self.description == self.description and \
+            self.optional == self.optional and self.default == self.default and \
+            self.type == self.type and self.values == self.values
+
     def to_dict(self):
         return {
             "name": self.name,
