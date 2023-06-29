@@ -10,11 +10,11 @@ class Formula(Enum):
         formulas = {
             "cosine":
                 "if (doc['embedding'].size() == 0) { return 0; } "
-                "double d = cosineSimilarity(params.query_vector, doc.embedding); "
+                "double d = cosineSimilarity(params.query_vector, 'embedding'); "
                 "return (d + 1.0) / 2",  # d ranges between 0 and 1
             "euclidean":
                 "if (doc['embedding'].size() == 0) { return 0; } "
-                "double d = l2norm(params.query_vector, doc.embedding); "
+                "double d = l2norm(params.query_vector, 'embedding'); "
                 "return (1 / (1 + d))",  # from distance to similarity
             "poincare":
                 "if (doc['embedding'].size() == 0) { return 0; } "
