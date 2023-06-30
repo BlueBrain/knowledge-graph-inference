@@ -1,3 +1,9 @@
+from kgforge.core.wrappings.dict import DictWrapper
+
+from inference_tools_test.data.dataclasses.resource_test import ResourceTest
+
+e = """{"from": 0, "size": 1, "query": {"bool": {"must": [{"nested": {"path": "derivation.entity", "query": {"terms": {"derivation.entity.@id": []}}}}]}}}"""
+
 test_embedding = {
   "@context": "https://bbp.neuroshapes.org",
   "@id": "https://bbp.epfl.ch/neurosciencegraph/data/embeddings/8de36e4f-150c-49a9-95b5-1658495c268b",
@@ -153,3 +159,9 @@ test_embedding = {
     "Embedding of 7bedc705-acc1-4307-b449-5b6e7cc8e56f at revision 40"
   ]
 }
+
+
+elastic_patterns = [
+    (lambda q: len(q) > 10 and q[50] == e[50], [ResourceTest(
+        DictWrapper(test_embedding))])
+]

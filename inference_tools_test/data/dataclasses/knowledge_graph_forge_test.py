@@ -1,27 +1,14 @@
-from dataclasses import dataclass
-
 from kgforge.core import KnowledgeGraphForge, Resource
 from typing import Optional, List, Union, Dict
 
 from kgforge.core.wrappings.dict import DictWrapper
 
-from data.similarity_search_data import test_embedding
-
-
-class ResourceTest(Resource):
-
-    def __init__(self, dict_):
-        self.__dict__.update(dict_)
+from inference_tools_test.data.datamaps.elastic_data import elastic_patterns
+from inference_tools_test.data.dataclasses.resource_test import ResourceTest
+from inference_tools_test.data.datamaps.retrieve_data import retrieve_map
 
 
 class KnowledgeGraphForgeTest(KnowledgeGraphForge):
-
-    e = """{"from": 0, "size": 1, "query": {"bool": {"must": [{"nested": {"path": "derivation.entity", "query": {"terms": {"derivation.entity.@id": []}}}}]}}}"""
-
-    elastic_patterns = [
-        (lambda q: len(q) > 10 and q[50] == KnowledgeGraphForgeTest.e[50], [ResourceTest(
-            DictWrapper(test_embedding))])
-    ]
 
     def __init__(self):
         self._store = DictWrapper({
@@ -29,9 +16,9 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
             "endpoint": "test",
             "service": DictWrapper({
                 "sparql_endpoint":
-                    {"endpoint": "idk"},
+                    {"endpoint": "_"},
                 "elastic_endpoint":
-                    {"endpoint": "idk"}
+                    {"endpoint": "_"}
             })
         })
 
@@ -43,7 +30,7 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
             offset: Optional[int] = None,
     ) -> List[ResourceTest]:
 
-        for pattern, res in KnowledgeGraphForgeTest.elastic_patterns:
+        for pattern, res in elastic_patterns:
             if pattern(query):
                 return res
 
@@ -68,10 +55,9 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
         version: Optional[Union[int, str]] = None,
         cross_bucket: bool = False,
         **params
-    ) -> ResourceTest:
-        return ResourceTest(DictWrapper({"similarity": "euclidean"}))
+    ) -> Optional[ResourceTest]:
+        return retrieve_map.get(id, None)
 
-        # pass  # TODO model retrieve is being done
 
     def as_json(
             self,

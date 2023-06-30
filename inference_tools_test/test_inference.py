@@ -1,7 +1,7 @@
 import unittest
 
 from inference_tools.execution import apply_rule
-from inference_tools_test.kgforge_test import KnowledgeGraphForgeTest
+from inference_tools_test.data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 
 
 class InferenceTest(unittest.TestCase):
