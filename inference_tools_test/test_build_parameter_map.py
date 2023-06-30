@@ -24,17 +24,15 @@ class BuildParameterMapTest(unittest.TestCase):
         })
 
     def setUp(self) -> None:
-        self.forge = KnowledgeGraphForgeTest()
+        self.forge = KnowledgeGraphForgeTest({"org": "bbp", "project": "atlas"})
 
     def test_build_parameter_map_empty(self):
-
-        forge = KnowledgeGraphForgeTest()
 
         parameter_spec = []
         parameter_values = {}
 
         parameter_map = _build_parameter_map(
-            forge=forge,
+            forge=self.forge,
             parameter_spec=parameter_spec,
             parameter_values=parameter_values,
             query_type=QueryType.SPARQL_QUERY

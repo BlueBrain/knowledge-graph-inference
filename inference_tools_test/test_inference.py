@@ -12,7 +12,7 @@ class InferenceTest(unittest.TestCase):
             "project": "atlas",
         }
 
-        self.forge_factory = lambda a, b: KnowledgeGraphForgeTest()
+        self.forge_factory = lambda a, b: KnowledgeGraphForgeTest(self.query_conf)
 
     def test_infer(self):
         q = {

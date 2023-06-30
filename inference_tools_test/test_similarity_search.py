@@ -8,7 +8,7 @@ from inference_tools.execution import execute_query_object
 class SimilaritySearchTest(unittest.TestCase):
 
     def setUp(self):
-        self.forge_factory = lambda a, b: KnowledgeGraphForgeTest()
+        self.forge_factory = lambda a, b: KnowledgeGraphForgeTest({"org": a, "project": b})
 
     def test_execute(self):
         similarity_search_query = {
@@ -56,30 +56,6 @@ class SimilaritySearchTest(unittest.TestCase):
             "searchTargetParameter": "TargetResourceParameter"
         }
 
-    #     print(json.dumps({
-    #     "from": 0,
-    #     "size": k,
-    #     "query": {
-    #         "script_score": {
-    #             "query": {
-    #                 "bool": {
-    #                     "must_not": {
-    #                         "term": {"@id": vector_id}
-    #                     },
-    #                     "must": {
-    #                         "exists": {"field": "embedding"}
-    #                     }
-    #                 }
-    #             },
-    #             "script": {
-    #                 "source": "",
-    #                 "params": {
-    #                     "query_vector": ""
-    #                 }
-    #             }
-    #         }
-    #     }
-    # }))
         execute_query_object(
             query=query_factory(similarity_search_query),
             forge_factory=self.forge_factory,

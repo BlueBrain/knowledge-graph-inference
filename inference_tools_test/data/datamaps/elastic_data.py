@@ -1,7 +1,5 @@
 from kgforge.core.wrappings.dict import DictWrapper
 
-from inference_tools_test.data.dataclasses.resource_test import ResourceTest
-
 test_embedding = {
   "@context": "https://bbp.neuroshapes.org",
   "@id": "https://bbp.epfl.ch/neurosciencegraph/data/embeddings/8de36e4f-150c-49a9-95b5-1658495c268b",
@@ -158,10 +156,10 @@ test_embedding = {
   ]
 }
 
-test_embedding_res = ResourceTest(DictWrapper(test_embedding))
+test_embedding_res = DictWrapper(test_embedding)
 
 test_embedding2 = test_embedding.copy()
-test_embedding2_res = ResourceTest(DictWrapper(test_embedding2))
+test_embedding2_res = DictWrapper(test_embedding2)
 test_embedding2_res.__dict__["_store_metadata"] = DictWrapper({"_score": 0.5})
 
 get_embedding_vector_query = """{"from": 0, "size": 1, "query": {"bool": {"must": [{"nested": {"path": "derivation.entity", "query": {"terms": {"derivation.entity.@id": ["any"]}}}}]}}}"""

@@ -1,5 +1,6 @@
 import unittest
 
+from data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
 
@@ -12,7 +13,6 @@ from inference_tools.multi_predicate_object_pair import (
     multi_check
 )
 
-from inference_tools.nexus_utils.bucket_configuration import NexusBucketConfiguration
 from inference_tools.utils import format_parameters
 
 
@@ -23,9 +23,7 @@ class MultiPredicateObjectPairTest(unittest.TestCase):
             "org": "bbp",
             "project": "atlas",
         }
-        self.some_forge_object = NexusBucketConfiguration(
-            self.query_conf["org"], self.query_conf["project"], True
-        ).allocate_forge_session()
+        self.some_forge_object = KnowledgeGraphForgeTest(self.query_conf)
 
         self.query_without = {
             "@type": "SparqlQuery",

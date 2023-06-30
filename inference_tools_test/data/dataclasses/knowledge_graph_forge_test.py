@@ -1,19 +1,23 @@
-from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core import KnowledgeGraphForge
 from typing import Optional, List, Union, Dict
 
 from kgforge.core.wrappings.dict import DictWrapper
 
 from inference_tools_test.data.datamaps.elastic_data import elastic_patterns
-from inference_tools_test.data.dataclasses.resource_test import ResourceTest
 from inference_tools_test.data.datamaps.retrieve_data import retrieve_map
+
+from inference_tools_test.data.dataclasses.resource_test import ResourceTest
 
 
 class KnowledgeGraphForgeTest(KnowledgeGraphForge):
 
-    def __init__(self):
+    def __init__(self, query_configuration_dict):
+        self.bucket = f'{query_configuration_dict["org"]}/{query_configuration_dict["project"]}'
+        self.endpoint = "https://bbp.epfl.ch/nexus/v1"
+
         self._store = DictWrapper({
-            "bucket": "a/b",
-            "endpoint": "test",
+            "bucket": self.bucket,
+            "endpoint": self.endpoint,
             "service": DictWrapper({
                 "sparql_endpoint":
                     {"endpoint": "_"},
@@ -21,6 +25,28 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
                     {"endpoint": "_"}
             })
         })
+
+        class Context:
+            def __init__(self, bucket, endpoint):
+                self.bucket = bucket
+                self.endpoint = endpoint
+
+            def expand(self, uri):
+                if uri[0] != "<":
+                    return f"{self.endpoint}/resources/{self.bucket}/_/{uri}"
+                return uri
+
+        class ModelTest:
+
+            def __init__(self, bucket, endpoint):
+                self.endpoint = endpoint
+                self.bucket = bucket
+
+            def context(self):
+                return Context(self.bucket, self.endpoint)
+
+        self._model = ModelTest(self.bucket, self.endpoint)
+
 
     def elastic(
             self,
@@ -32,7 +58,7 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
 
         for pattern, res in elastic_patterns:
             if pattern(query):
-                return res
+                return [ResourceTest(e) for e in res]
 
         return []
 
@@ -50,14 +76,13 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
         return []
 
     def retrieve(
-        self,
-        id: str,
-        version: Optional[Union[int, str]] = None,
-        cross_bucket: bool = False,
-        **params
+            self,
+            id: str,
+            version: Optional[Union[int, str]] = None,
+            cross_bucket: bool = False,
+            **params
     ) -> Optional[ResourceTest]:
-        return retrieve_map.get(id, None)
-
+        return ResourceTest(retrieve_map.get(id, None))
 
     def as_json(
             self,

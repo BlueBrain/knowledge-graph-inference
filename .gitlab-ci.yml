@@ -1,77 +1,14 @@
-# This is a template, edit it to make it work on your project.
+image: python:3.8
 
-# Here add the image required for running your CI/CD pipeline
-image: python:3.7
-
-# This is an external config for building and pushing Docker images (remove, if not applicable)
-include:
-  - project: cs/gitlabci-templates
-    file: /build-image-using-kaniko.yml
-
-# Here, add the necessary variables.
-# You can also add variables to your project by going to
-# 'Settings -> CI/CD -> Variables'. If you add sensitive information to your variable (e.g. password, username)
-# do not forget to mask them!
-variables:
-  VAR1: "Hello world!"
-  VAR2: "Hello user!"
-
-# This is executed before running your stages
 before_script:
-  - echo "Executing this before all jobs..."
+  - python -m venv venv
+  - source venv/bin/activate
+  - pip install .
 
-# This is an example sequence of stages
 stages:
-  - build
   - test
-  - deploy
 
-build:
-  stage: build
-  script:
-   - echo "Building..." && exit 0
-
-# Here we have two jobs that will be run on the 'test' stage in parallel
-
-test-job-1:
+test-job:
   stage: test
   script:
-    - echo "Running test job 1..." && echo $VAR1 && exit 0
-
-test-job-2:
-  stage: test
-  script:
-    - echo "Running test job 2..." && echo $VAR2 && exit 0
-
-# Here we have two jobs that will be run on 'deploy' stage
-# Deploy in staging will be executed, only when changes to 'develop' are made
-deploy-staging:
-  stage: deploy
-  script:
-    - echo "Deploying on staging..." && exit 0
-  only:
-    - develop
-
-# Deploy in production will be executed, only when changes to 'main' are made
-deploy-production:
-  stage: deploy
-  script:
-    - echo "Deploying on production..." && exit 0
-  only:
-    - main
-
-# If you want one of your deploy jobs to build and push Docker images to the BBP image registry,
-# add the following variables in 'Settings -> CI/CD -> Variables'
-# CI_REGISTRY: docker-registry-default.ocp.bbp.epfl.ch
-# CI_REGISTRY_IMAGE: docker-registry-default.ocp.bbp.epfl.ch/<your-project>/<your-image>
-# (!MASKED) CI_REGISTRY_PASSWORD: the token for the service account
-# (!MASKED) CI_REGISTRY_USER: remote-pusher (or any other service account you have in Openshift to push images)
-# You can read about how to create a new service account and how to retrieve token of service account in https://bbpteam.epfl.ch/project/spaces/pages/viewpage.action?pageId=25860590#SelfServiceContainers(OpenShift)-PushingimagestotheOpenShiftregistryfromexternalentities
-
-# In order to build and push an image use the following commented job:
-
-# build-push-image-job-example:
-#  stage: deploy
-#  extends: .build-image-using-kaniko
-#  only:
-#    - main
+    - python -m unittest discover -s inference_tools_test

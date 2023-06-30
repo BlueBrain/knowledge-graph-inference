@@ -1,8 +1,9 @@
 import unittest
 
+from data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.query import Query, query_factory
 from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
-from inference_tools.nexus_utils.bucket_configuration import NexusBucketConfiguration
+
 from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.type import ParameterType
 from inference_tools.utils import format_parameters
@@ -15,9 +16,7 @@ class ParameterFormatTest(unittest.TestCase):
                 "org": "bbp",
                 "project": "atlas",
             }
-        self.some_forge_object = NexusBucketConfiguration(
-            self.query_conf["org"], self.query_conf["project"], True
-        ).allocate_forge_session()
+        self.some_forge_object = KnowledgeGraphForgeTest(self.query_conf)
 
     def test_parameter_format_limit(self):
         q = {
