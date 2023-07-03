@@ -11,4 +11,4 @@ stages:
 test-job:
   stage: test
   script:
-    - python -m unittest discover -s inference_tools_test
+    - pytest -v
