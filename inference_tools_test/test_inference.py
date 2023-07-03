@@ -1,7 +1,7 @@
 import pytest
 
 from inference_tools.execution import apply_rule
-from inference_tools_test.data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
+from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 
 
 @pytest.fixture

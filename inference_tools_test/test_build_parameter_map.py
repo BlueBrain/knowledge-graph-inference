@@ -6,7 +6,7 @@ from inference_tools.exceptions.exceptions import IncompleteObjectException, \
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.type import QueryType, ParameterType, PremiseType
 from inference_tools.utils import _build_parameter_map
-from inference_tools_test.data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
+from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 
 
 def make_spec(name: str, type_: str, optional: bool = False, values=None):

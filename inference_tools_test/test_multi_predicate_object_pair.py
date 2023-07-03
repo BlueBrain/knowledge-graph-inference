@@ -1,6 +1,6 @@
 import pytest
 
-from data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
+from data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
 

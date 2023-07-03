@@ -3,10 +3,10 @@ from typing import Optional, List, Union, Dict
 
 from kgforge.core.wrappings.dict import DictWrapper
 
-from inference_tools_test.data.datamaps.elastic_data import elastic_patterns
-from inference_tools_test.data.datamaps.retrieve_data import retrieve_map
+from inference_tools_test.data.maps.elastic_data import elastic_patterns
+from inference_tools_test.data.maps.retrieve_data import retrieve_map
 
-from inference_tools_test.data.dataclasses.resource_test import ResourceTest
+from inference_tools_test.data.classes.resource_test import ResourceTest
 
 
 class KnowledgeGraphForgeTest(KnowledgeGraphForge):

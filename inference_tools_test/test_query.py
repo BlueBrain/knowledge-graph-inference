@@ -4,7 +4,7 @@ from inference_tools.datatypes.query import query_factory, SparqlQuery, ElasticS
     SimilaritySearchQuery, ForgeQuery
 from inference_tools.exceptions.exceptions import InvalidValueException, IncompleteObjectException
 from inference_tools.type import QueryType
-from inference_tools_test.data.dataclasses.knowledge_graph_forge_test import KnowledgeGraphForgeTest
+from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 
 
 @pytest.fixture
