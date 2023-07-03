@@ -4,20 +4,6 @@ from inference_tools.datatypes.query import query_factory, SparqlQuery, ElasticS
     SimilaritySearchQuery, ForgeQuery
 from inference_tools.exceptions.exceptions import InvalidValueException, IncompleteObjectException
 from inference_tools.type import QueryType
-from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
-
-
-@pytest.fixture
-def query_conf():
-    return {
-        "org": "org_i",
-        "project": "project_i",
-    }
-
-
-@pytest.fixture
-def forge_factory(query_conf):
-    return lambda a, b: KnowledgeGraphForgeTest(query_configuration_dict=query_conf)
 
 
 def test_query_type(query_conf):

@@ -1,6 +1,5 @@
 import pytest
 
-from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
 
@@ -14,19 +13,6 @@ from inference_tools.multi_predicate_object_pair import (
 )
 
 from inference_tools.utils import format_parameters
-
-
-@pytest.fixture
-def query_conf():
-    return {
-        "org": "bbp",
-        "project": "atlas",
-    }
-
-
-@pytest.fixture
-def some_forge_object(query_conf):
-    return KnowledgeGraphForgeTest(query_conf)
 
 
 @pytest.fixture
@@ -81,6 +67,7 @@ def existing_parameter_values():
             )
         ]
     }
+
 
 @pytest.fixture
 def rewritten_query():
@@ -146,14 +133,14 @@ def test_multi_no_parameter_value(query_with):
 
 
 def test_parameter_format_multi_predicate(
-        query_with, existing_parameter_values, some_forge_object, rewritten_query,
+        query_with, existing_parameter_values, forge, rewritten_query,
         expected_formatted_parameters
 ):
     query = query_factory(query_with)
 
     _, formatted_parameters = format_parameters(
         query=query, parameter_values=existing_parameter_values,
-        forge=some_forge_object
+        forge=forge
     )
 
     assert query.body == rewritten_query

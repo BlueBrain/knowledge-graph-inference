@@ -1,6 +1,5 @@
 import pytest
 
-from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.query import Query, query_factory
 from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
 
@@ -9,20 +8,7 @@ from inference_tools.type import ParameterType
 from inference_tools.utils import format_parameters
 
 
-@pytest.fixture
-def query_conf():
-    return {
-        "org": "bbp",
-        "project": "atlas",
-    }
-
-
-@pytest.fixture
-def some_forge_object(query_conf):
-    return KnowledgeGraphForgeTest(query_conf)
-
-
-def test_parameter_format_limit(query_conf, some_forge_object):
+def test_parameter_format_limit(query_conf, forge):
     q = {
         "@type": "SparqlQuery",
         "hasBody": "",
@@ -35,7 +21,7 @@ def test_parameter_format_limit(query_conf, some_forge_object):
     parameter_values = {}
 
     limit, formatted_parameters = format_parameters(
-        query=query, parameter_values=parameter_values, forge=some_forge_object
+        query=query, parameter_values=parameter_values, forge=forge
     )
 
     assert limit == DEFAULT_LIMIT
@@ -44,13 +30,13 @@ def test_parameter_format_limit(query_conf, some_forge_object):
     parameter_values["LimitQueryParameter"] = limit_value
 
     limit2, formatted_parameters2 = format_parameters(
-        query=query, parameter_values=parameter_values, forge=some_forge_object
+        query=query, parameter_values=parameter_values, forge=forge
     )
 
     assert limit2 == limit_value
 
 
-def test_parameter_format_missing_mandatory(query_conf, some_forge_object):
+def test_parameter_format_missing_mandatory(query_conf, forge):
     field_name = "MandatoryField"
     q = {
         "@type": "SparqlQuery",
@@ -73,19 +59,19 @@ def test_parameter_format_missing_mandatory(query_conf, some_forge_object):
 
     with pytest.raises(InferenceToolsException):
         _, _ = format_parameters(
-            query=query, parameter_values=parameter_values, forge=some_forge_object
+            query=query, parameter_values=parameter_values, forge=forge
         )
 
     parameter_values[field_name] = ["a", "b"]
     _, formatted_parameters = format_parameters(
-        query=query, parameter_values=parameter_values, forge=some_forge_object
+        query=query, parameter_values=parameter_values, forge=forge
     )
 
     assert isinstance(formatted_parameters, dict)
     assert len(formatted_parameters) != 0
 
 
-def test_parameter_format_list_formatting(query_conf, some_forge_object):
+def test_parameter_format_list_formatting(query_conf, forge):
     field_name = "ListField"
     parameter_values = {field_name: ["a", "b"]}
 
@@ -119,13 +105,13 @@ def test_parameter_format_list_formatting(query_conf, some_forge_object):
 
         _, formatted_parameters = format_parameters(
             query=query_factory(q), parameter_values=parameter_values,
-            forge=some_forge_object
+            forge=forge
         )
 
         assert formatted_parameters == {field_name: expected_value}
 
 
-def test_parameter_format_value_formatting(query_conf, some_forge_object):
+def test_parameter_format_value_formatting(query_conf, forge):
     field_name = "ValueField"
 
     def run_formatting(field_type, parameter_values):
@@ -146,7 +132,7 @@ def test_parameter_format_value_formatting(query_conf, some_forge_object):
 
         _, params = format_parameters(
             query=query_factory(q), parameter_values=parameter_values,
-            forge=some_forge_object
+            forge=forge
         )
 
         return params

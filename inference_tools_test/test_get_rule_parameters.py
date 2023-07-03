@@ -1,16 +1,6 @@
-import pytest
-
 from inference_tools.datatypes.rule import Rule
 
 from inference_tools.utils import get_search_query_parameters
-
-
-@pytest.fixture
-def query_conf():
-    return {
-        "org": "bbp",
-        "project": "atlas",
-    }
 
 
 def test_get_search_query_parameters(query_conf):

@@ -1,20 +1,4 @@
-import pytest
-
 from inference_tools.execution import apply_rule
-from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
-
-
-@pytest.fixture
-def query_conf():
-    return {
-        "org": "bbp",
-        "project": "atlas",
-    }
-
-
-@pytest.fixture
-def forge_factory(query_conf):
-    return lambda a, b: KnowledgeGraphForgeTest(query_conf)
 
 
 def test_infer(query_conf, forge_factory):

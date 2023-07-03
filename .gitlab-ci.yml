@@ -11,4 +11,4 @@ stages:
 test-job:
   stage: test
   script:
-    - pytest -v
+    - pytest -v inference_tools_test
