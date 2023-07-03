@@ -1,6 +1,6 @@
 import pytest
 
-from data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
+from inference_tools_test.data.classes.knowledge_graph_forge_test import KnowledgeGraphForgeTest
 from inference_tools.datatypes.query import Query, query_factory
 from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
 
