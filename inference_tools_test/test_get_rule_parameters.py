@@ -1,10 +1,13 @@
+import pytest
+
 from inference_tools.datatypes.rule import Rule
 
 from inference_tools.utils import get_search_query_parameters
 
 
-def test_get_search_query_parameters(query_conf):
-    rule_dict = {
+@pytest.fixture
+def rule1_dict(query_conf):
+    return {
         "@id": "id_value",
         "@type": "DataGeneralizationRule",
         "description": "Test rule desc",
@@ -55,30 +58,52 @@ def test_get_search_query_parameters(query_conf):
         "targetResourceType": "Entity"
     }
 
-    rule = Rule(rule_dict)
 
-    assert (
+@pytest.fixture
+def rule3(rule1_dict):
+    rule3_dict = rule1_dict.copy()
+    rule3 = Rule(rule3_dict)
+    rule3.search_query.head.result_parameter_mapping = []
+    rule3.search_query.rest.head.result_parameter_mapping = []
+    return rule3
+
+
+@pytest.fixture
+def rule2(rule1_dict):
+    rule2_dict = rule1_dict.copy()
+    rule2 = Rule(rule2_dict)
+    rule2.search_query.head.result_parameter_mapping = []
+    return rule2
+
+
+@pytest.fixture
+def rule1(rule1_dict):
+    return Rule(rule1_dict)
+
+
+@pytest.mark.parametrize("rule_string, expected_parameters", [
+    pytest.param(
+        "rule1",
         [
             f"param{i}" for i in range(1, 11)
             if i not in [4, 7]
-        ] ==
-        list(get_search_query_parameters(rule).keys()),
-    )
-
-    rule.search_query.head.result_parameter_mapping = []
-
-    assert (
+        ],
+        id="rule1"
+    ),
+    pytest.param(
+        "rule2",
         [
             f"param{i}" for i in range(1, 11)
             if i != 7
-        ] ==
-        list(get_search_query_parameters(rule).keys()),
+        ],
+        id="rule2"
+    ),
+    pytest.param(
+        "rule3",
+        [f"param{i}" for i in range(1, 11)],
+        id="rule3"
     )
-
-    rule.search_query.rest.head.result_parameter_mapping = []
-
-    assert (
-        [f"param{i}" for i in range(1, 11)]
-        ==
-        list(get_search_query_parameters(rule).keys()),
-    )
+])
+def test_get_search_query_parameters(rule_string, expected_parameters, request):
+    rule = request.getfixturevalue(rule_string)
+    assert (expected_parameters == list(get_search_query_parameters(rule).keys()))

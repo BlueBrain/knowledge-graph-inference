@@ -19,29 +19,87 @@ def make_spec(name: str, type_: str, optional: bool = False, values=None):
         "values": values
     })
 
-def test_build_parameter_map_empty(forge):
-    parameter_spec = []
-    parameter_values = {}
 
-    parameter_map = _build_parameter_map(
+@pytest.fixture
+def param_name():
+    return "param1"
+
+
+@pytest.fixture
+def parameter_spec1(param_name):
+    return [make_spec(name=param_name, type_=ParameterType.PATH.value, values={
+        "a": "aaa",
+        "b": "bbb",
+        "d": "ddd",
+        "e": "eee"
+    })]
+
+
+@pytest.fixture
+def parameter_spec2(param_name, parameter_spec1):
+    parameter_spec2 = parameter_spec1.copy()
+    parameter_spec2[0].type = ParameterType.SPARQL_VALUE_LIST.value
+    return parameter_spec2
+
+
+@pytest.mark.parametrize("parameter_values, parameter_spec, expected_parameter_map", [
+    pytest.param(
+        {},
+        [],
+        {},
+        id="nothing_no_spec"
+    ),
+    pytest.param(
+        {},
+        [make_spec(name=param_name(), type_=ParameterType.PATH.value, optional=True)],
+        {},
+        id="nothing_optional_true"
+    ),
+    pytest.param(
+        {param_name: "a"},
+        parameter_spec1,
+        {param_name: "aaa"},
+        id="one_value_no_list"
+    ),
+    pytest.param(
+        {param_name: ["a", "e"]},
+        parameter_spec1,
+        {param_name: 'aaa'},
+        id="two_values_no_list"
+    ),
+    pytest.param(
+        {param_name: ["a", "e"]},
+        parameter_spec2,
+        {param_name: '("aaa")\n("eee")'},
+        id="two_values_list"
+    )
+])
+def test_build_parameter_map(
+        forge, parameter_spec, parameter_values, expected_parameter_map, param_name
+):
+    assert _build_parameter_map(
         forge=forge,
         parameter_spec=parameter_spec,
         parameter_values=parameter_values,
         query_type=QueryType.SPARQL_QUERY
-    )
-
-    assert parameter_map == {}
+    ) == expected_parameter_map
 
 
-def test_build_parameter_map_missing_values(forge):
-    param_name = "param1"
-
-    parameter_spec = [
-        make_spec(
-            name=param_name, type_=ParameterType.PATH.value
+def test_build_parameter_map_select_non_existing_value(forge, parameter_spec1):
+    with pytest.raises(
+            InferenceToolsException,
+            match=f"Invalid value for parameter {param_name}"
+    ):
+        _build_parameter_map(
+            forge=forge,
+            parameter_spec=parameter_spec1,
+            parameter_values={param_name: "c"},
+            query_type=QueryType.SPARQL_QUERY
         )
-    ]
 
+
+def test_build_parameter_map_missing_values(forge, param_name):
+    parameter_spec = [make_spec(name=param_name, type_=ParameterType.PATH.value)]
     parameter_values = {}
 
     expected_msg = \
@@ -63,79 +121,4 @@ def test_build_parameter_map_missing_values(forge):
             parameter_spec=parameter_spec,
             parameter_values=parameter_values,
             query_type=PremiseType.SPARQL_PREMISE
-        )
-
-
-def test_build_parameter_map_optional_values(forge):
-    param_name = "param1"
-    parameter_spec = [
-        make_spec(name=param_name, type_=ParameterType.PATH.value, optional=True)
-    ]
-    parameter_values = {}
-
-    parameter_map = _build_parameter_map(
-        forge=forge,
-        parameter_spec=parameter_spec,
-        parameter_values=parameter_values,
-        query_type=QueryType.SPARQL_QUERY
-    )
-    assert parameter_map == {}
-
-
-def test_build_parameter_map_restricted_values(forge):
-    param_name = "param1"
-    valid_values = {
-        "a": "aaa",
-        "b": "bbb",
-        "d": "ddd",
-        "e": "eee"
-    }
-
-    parameter_spec = [
-        make_spec(name=param_name, type_=ParameterType.PATH.value, values=valid_values)
-    ]
-
-    parameter_spec2 = [
-        make_spec(name=param_name, type_=ParameterType.SPARQL_VALUE_LIST.value, values=valid_values)
-    ]
-
-    # Selecting one existing value for a non-list type
-    parameter_map1 = _build_parameter_map(
-        forge=forge,
-        parameter_spec=parameter_spec,
-        parameter_values={param_name: "a"},
-        query_type=QueryType.SPARQL_QUERY
-    )
-
-    assert parameter_map1 == {param_name: "aaa"}
-
-    # Selecting two existing values for a list-type
-    parameter_map2 = _build_parameter_map(
-        forge=forge,
-        parameter_spec=parameter_spec2,
-        parameter_values={param_name: ["a", "e"]},
-        query_type=QueryType.SPARQL_QUERY
-    )
-    assert parameter_map2 == {param_name: '("aaa")\n("eee")'}
-
-    # Selecting two existing values for a non-list-type
-    parameter_map3 = _build_parameter_map(
-        forge=forge,
-        parameter_spec=parameter_spec,
-        parameter_values={param_name: ["a", "e"]},
-        query_type=QueryType.SPARQL_QUERY
-    )
-
-    assert parameter_map3 == {param_name: 'aaa'}
-
-    # Selecting a non-existing value
-    with pytest.raises(
-            InferenceToolsException,
-            match=f"Invalid value for parameter {param_name}"
-    ):
-        _build_parameter_map(
-            forge=forge,
-            parameter_spec=parameter_spec,
-            parameter_values={param_name: "c"},
-            query_type=QueryType.SPARQL_QUERY
         )
