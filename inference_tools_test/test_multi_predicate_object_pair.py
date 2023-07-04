@@ -3,7 +3,7 @@ import pytest
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
 
-from inference_tools.datatypes.query import query_factory
+from inference_tools.datatypes.query import query_factory, SparqlQueryBody
 
 from inference_tools.multi_predicate_object_pair import (
     has_multi_predicate_object_pairs,
@@ -71,7 +71,7 @@ def existing_parameter_values():
 
 @pytest.fixture
 def rewritten_query():
-    return """
+    e = """
                 SELECT ?id ?br
                 WHERE { 
                     ?id $whatever_0_predicate $whatever_0_object .
@@ -79,6 +79,7 @@ def rewritten_query():
                     ?id nsg:brainLocation/nsg:brainRegion ?br .
                     }
             """  # TODO super sensitive to tabs for exact string equally, change the test
+    return SparqlQueryBody({"query_string": e})
 
 
 @pytest.fixture
@@ -143,7 +144,7 @@ def test_parameter_format_multi_predicate(
         forge=forge
     )
 
-    assert query.body == rewritten_query
+    assert query.body.query_string == rewritten_query.query_string
     assert formatted_parameters == expected_formatted_parameters
 
 
@@ -159,7 +160,8 @@ def test_multi_predicate_object_pairs_query_rewriting(
     computed_rewritten_query = multi_predicate_object_pairs_query_rewriting(
         name=name, query_body=query.body, nb_multi=nb_multi
     )
-    assert rewritten_query == computed_rewritten_query
+
+    assert rewritten_query.query_string == computed_rewritten_query.query_string
 
 
 def test_multi_predicate_object_pairs_parameter_rewriting(

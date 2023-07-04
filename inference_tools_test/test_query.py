@@ -16,7 +16,8 @@ def test_query_type(query_conf):
 
     query_maker = lambda type_: query_factory({
         "type": type_,
-        "queryConfiguration": query_conf
+        "queryConfiguration": query_conf,
+        "hasBody": {"query_string": ""}
     })
 
     for type_, class_ in types.items():
@@ -31,7 +32,8 @@ def test_missing_query_configuration():
     types = ["SparqlQuery", "ForgeSearchQuery", "SimilarityQuery", "ElasticSearchQuery"]
 
     query_maker = lambda type_: query_factory({
-        "type": type_
+        "type": type_,
+        "hasBody": {"query_string": ""}
     })
 
     expected_error_msg = "The query  has been created with missing mandatory " \
