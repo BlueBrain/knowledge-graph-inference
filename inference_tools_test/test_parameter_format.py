@@ -3,7 +3,7 @@ import pytest
 from contextlib import nullcontext as does_not_raise
 
 from inference_tools.datatypes.query import Query, query_factory
-from inference_tools.exceptions.exceptions import InferenceToolsException
+from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
 
 from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.type import ParameterType
@@ -125,39 +125,43 @@ def test_parameter_format_list_formatting(query_conf, forge, type_, expected_val
 field_name = "ValueField"
 
 
-@pytest.mark.parametrize("type_, values, expected_value ", [
+@pytest.mark.parametrize("type_, values, expected_value, expectation", [
     pytest.param(
         ParameterType.URI.value, {field_name: "a"},
-        {field_name: 'https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a'},
+        {field_name: 'https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a'}, does_not_raise(),
         id="param1",
     ),
     pytest.param(
-        ParameterType.STR.value, {field_name: "a"}, {field_name: '"a"'},
+        ParameterType.STR.value, {field_name: "a"}, {field_name: '"a"'}, does_not_raise(),
         id="param2",
     ),
     pytest.param(
-        ParameterType.PATH.value, {field_name: "a"}, {field_name: 'a'},
+        ParameterType.PATH.value, {field_name: "a"}, {field_name: 'a'}, does_not_raise(),
         id="param3",
     ),
     pytest.param(
-        ParameterType.BOOL.value, {field_name: "true"}, {field_name: "true"},
+        ParameterType.BOOL.value, {field_name: "true"}, {field_name: "true"}, does_not_raise(),
         id="param4",
     ),
     pytest.param(
-        ParameterType.BOOL.value, {field_name: "false"}, {field_name: "false"},
+        ParameterType.BOOL.value, {field_name: "false"}, {field_name: "false"}, does_not_raise(),
         id="param5",
     ),
     pytest.param(
-        ParameterType.BOOL.value, {field_name: "True"}, {field_name: "true"},
+        ParameterType.BOOL.value, {field_name: "True"}, {field_name: "true"}, does_not_raise(),
         id="param6",
     ),
     pytest.param(
-        ParameterType.BOOL.value, {field_name: "False"}, {field_name: "false"},
+        ParameterType.BOOL.value, {field_name: "False"}, {field_name: "false"}, does_not_raise(),
         id="param7",
     ),
+    pytest.param(
+        ParameterType.BOOL.value, {field_name: "idk"}, None, pytest.raises(InvalidValueException),
+        id="param8",
+    )
 ])
 def test_parameter_format_value_formatting(
-        query_conf, forge, type_, values, expected_value
+        query_conf, forge, type_, values, expected_value, expectation
 ):
     def run_formatting(field_type, parameter_values):
         q = {
@@ -182,11 +186,7 @@ def test_parameter_format_value_formatting(
 
         return params
 
-    # MULTI_PREDICATE_OBJECT_PAIR = "MultiPredicateObjectPair"
-    # QUERY_BLOCK = "query_block"
+    with expectation:
+        formatted_parameters = run_formatting(type_, values)
+        assert formatted_parameters == expected_value
 
-    formatted_parameters = run_formatting(type_, values)
-    assert formatted_parameters == expected_value
-
-    # with pytest.raises(InvalidValueException):
-    #     run_formatting(ParameterType.BOOL.value, {field_name: "idk"})

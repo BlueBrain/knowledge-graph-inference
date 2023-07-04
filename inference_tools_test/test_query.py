@@ -28,20 +28,28 @@ def test_query_type(query_conf):
         query_maker("InvalidType")
 
 
-def test_missing_query_configuration():
-    types = ["SparqlQuery", "ForgeSearchQuery", "SimilarityQuery", "ElasticSearchQuery"]
+@pytest.mark.parametrize(
+    "query_type",
+    [
+        pytest.param("SparqlQuery", id="SparqlQuery"),
+        pytest.param("ForgeSearchQuery", id="ForgeSearchQuery"),
+        pytest.param("SimilarityQuery", id="SimilarityQuery"),
+        pytest.param("ElasticSearchQuery", id="ElasticSearchQuery")
+    ]
+)
+def test_missing_query_configuration(query_type):
 
-    query_maker = lambda type_: query_factory({
-        "type": type_,
-        "hasBody": {"query_string": ""}
-    })
+    expectation = pytest.raises(
+        IncompleteObjectException,
+        match=
+        "The query  has been created with missing mandatory information: queryConfiguration"
+    )
 
-    expected_error_msg = "The query  has been created with missing mandatory " \
-                         "information: queryConfiguration"
-
-    for type_ in types:
-        with pytest.raises(IncompleteObjectException, match=expected_error_msg):
-            query_maker(type_)
+    with expectation:
+        query_factory({
+            "type": query_type,
+            "hasBody": {"query_string": ""}
+        })
 
 
 def test_missing_query_has_body():
