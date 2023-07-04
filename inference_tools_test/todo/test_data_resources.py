@@ -265,7 +265,7 @@ for i, (
                 "Annotation",
                 "MType:Annotation"
             ],
-            "hasBody": {
+            "hasBody":  {
                 "@id": mtype_id,
                 "@type": [
                     "MType",

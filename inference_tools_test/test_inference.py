@@ -4,7 +4,7 @@ from inference_tools.execution import apply_rule
 def test_infer(query_conf, forge_factory):
     q = {
         "@type": "SparqlQuery",
-        "hasBody": "",
+        "hasBody": {"query_string": ""},
         "hasParameter": [],
         "queryConfiguration": query_conf,
         "resultParameterMapping": []

@@ -13,7 +13,7 @@ def test_get_search_query_parameters(query_conf):
             "@type": "QueryPipe",
             "head": {
                 "@type": "SparqlQuery",
-                "hasBody": "",
+                "hasBody": {"query_string": ""},
                 "hasParameter": [
                     {"@type": "path", "name": "param1"},
                     {"@type": "sparql_list", "name": "param2"},
@@ -28,7 +28,7 @@ def test_get_search_query_parameters(query_conf):
                 "@type": "QueryPipe",
                 "head": {
                     "@type": "SparqlQuery",
-                    "hasBody": "",
+                    "hasBody": {"query_string": ""},
                     "hasParameter": [
                         {"@type": "path", "name": "param4"},
                         {"@type": "sparql_list", "name": "param5"},
@@ -41,7 +41,7 @@ def test_get_search_query_parameters(query_conf):
                 },
                 "rest": {
                     "@type": "SparqlQuery",
-                    "hasBody": "",
+                    "hasBody": {"query_string": ""},
                     "hasParameter": [
                         {"@type": "sparql_list", "name": "param7"},
                         {"@type": "path", "name": "param8"},

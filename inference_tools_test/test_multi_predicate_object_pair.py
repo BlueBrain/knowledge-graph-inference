@@ -19,7 +19,7 @@ from inference_tools.utils import format_parameters
 def query_without(query_conf):
     return {
         "@type": "SparqlQuery",
-        "hasBody": "",
+        "hasBody": {"query_string": ""},
         "hasParameter": [],
         "queryConfiguration": query_conf,
         "resultParameterMapping": []
@@ -30,14 +30,14 @@ def query_without(query_conf):
 def query_with(query_conf):
     return {
         "type": "SparqlQuery",
-        "hasBody":
+        "hasBody": {"query_string":
             """
                 SELECT ?id ?br
                 WHERE { 
                     ?id $whatever .
                     ?id nsg:brainLocation/nsg:brainRegion ?br .
                     }
-            """,
+            """},
         "hasParameter": [
             {
                 "type": "MultiPredicateObjectPair",

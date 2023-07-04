@@ -11,7 +11,7 @@ from inference_tools.utils import format_parameters
 def test_parameter_format_limit(query_conf, forge):
     q = {
         "@type": "SparqlQuery",
-        "hasBody": "",
+        "hasBody": {"query_string": ""},
         "hasParameter": [],
         "queryConfiguration": query_conf,
         "resultParameterMapping": []
@@ -40,7 +40,7 @@ def test_parameter_format_missing_mandatory(query_conf, forge):
     field_name = "MandatoryField"
     q = {
         "@type": "SparqlQuery",
-        "hasBody": "",
+        "hasBody": {"query_string": ""},
         "hasParameter": [
             {
                 "@type": "sparql_list",
@@ -90,7 +90,7 @@ def test_parameter_format_list_formatting(query_conf, forge):
     for field_type, expected_value in expected_values.items():
         q = {
             "@type": "SparqlQuery",
-            "hasBody": "",
+            "hasBody": {"query_string": ""},
             "hasParameter": [
                 {
                     "@type": field_type,
@@ -117,7 +117,7 @@ def test_parameter_format_value_formatting(query_conf, forge):
     def run_formatting(field_type, parameter_values):
         q = {
             "@type": "SparqlQuery",
-            "hasBody": "",
+            "hasBody": {"query_string": ""},
             "hasParameter": [
                 {
                     "@type": field_type,
