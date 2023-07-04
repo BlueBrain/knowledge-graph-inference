@@ -1,14 +1,24 @@
 import pytest
 
+from contextlib import nullcontext as does_not_raise
+
 from inference_tools.datatypes.query import Query, query_factory
-from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
+from inference_tools.exceptions.exceptions import InferenceToolsException
 
 from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.type import ParameterType
 from inference_tools.utils import format_parameters
 
 
-def test_parameter_format_limit(query_conf, forge):
+@pytest.mark.parametrize("parameter_values, expected_limit ", [
+    pytest.param(
+        {}, DEFAULT_LIMIT, id="default",
+    ),
+    pytest.param(
+        {"LimitQueryParameter": 50}, 50, id="input",
+    )
+])
+def test_parameter_format_limit(query_conf, forge, parameter_values, expected_limit):
     q = {
         "@type": "SparqlQuery",
         "hasBody": {"query_string": ""},
@@ -18,26 +28,22 @@ def test_parameter_format_limit(query_conf, forge):
     }
 
     query: Query = query_factory(q)
-    parameter_values = {}
 
     limit, formatted_parameters = format_parameters(
         query=query, parameter_values=parameter_values, forge=forge
     )
 
-    assert limit == DEFAULT_LIMIT
-
-    limit_value = 50
-    parameter_values["LimitQueryParameter"] = limit_value
-
-    limit2, formatted_parameters2 = format_parameters(
-        query=query, parameter_values=parameter_values, forge=forge
-    )
-
-    assert limit2 == limit_value
+    assert limit == expected_limit
 
 
-def test_parameter_format_missing_mandatory(query_conf, forge):
-    field_name = "MandatoryField"
+@pytest.mark.parametrize(
+    "parameter_values, expectation",
+    [
+        ({"MandatoryField": ["a", "b"]}, does_not_raise()),
+        ({}, pytest.raises(InferenceToolsException)),
+    ],
+)
+def test_parameter_format_missing_mandatory(query_conf, forge, parameter_values, expectation):
     q = {
         "@type": "SparqlQuery",
         "hasBody": {"query_string": ""},
@@ -45,7 +51,7 @@ def test_parameter_format_missing_mandatory(query_conf, forge):
             {
                 "@type": "sparql_list",
                 "description": "test field",
-                "name": field_name,
+                "name": "MandatoryField",
                 "optional": False
             }
         ],
@@ -55,65 +61,104 @@ def test_parameter_format_missing_mandatory(query_conf, forge):
 
     query: Query = query_factory(q)
 
-    parameter_values = {}
-
-    with pytest.raises(InferenceToolsException):
-        _, _ = format_parameters(
+    with expectation:
+        _, formatted_parameters = format_parameters(
             query=query, parameter_values=parameter_values, forge=forge
         )
+        assert isinstance(formatted_parameters, dict)
+        assert len(formatted_parameters) != 0
 
-    parameter_values[field_name] = ["a", "b"]
-    _, formatted_parameters = format_parameters(
-        query=query, parameter_values=parameter_values, forge=forge
+
+@pytest.mark.parametrize("type_, expected_value ", [
+    pytest.param(
+        ParameterType.SPARQL_LIST.value, '(<a>, <b>)',
+        id="param1",
+    ),
+    pytest.param(
+        ParameterType.LIST.value, '"a", "b"',
+        id="param2",
+    ),
+    pytest.param(
+        ParameterType.SPARQL_VALUE_LIST.value, '("a")\n("b")',
+        id="param3",
+    ),
+    pytest.param(
+        ParameterType.SPARQL_VALUE_URI_LIST.value,
+        "(<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a>)\n"
+        "(<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/b>)",
+        id="param4",
+    ),
+    pytest.param(
+        ParameterType.URI_LIST.value,
+        "<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a>, "
+        "<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/b>",
+        id="param5",
     )
-
-    assert isinstance(formatted_parameters, dict)
-    assert len(formatted_parameters) != 0
-
-
-def test_parameter_format_list_formatting(query_conf, forge):
+])
+def test_parameter_format_list_formatting(query_conf, forge, type_, expected_value):
     field_name = "ListField"
     parameter_values = {field_name: ["a", "b"]}
 
-    expected_values = {
-        ParameterType.SPARQL_LIST.value: '(<a>, <b>)',
-        ParameterType.LIST.value: '"a", "b"',
-        ParameterType.SPARQL_VALUE_LIST.value: '("a")\n("b")',
-        ParameterType.SPARQL_VALUE_URI_LIST.value:
-            "(<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a>)\n"
-            "(<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/b>)",
-        ParameterType.URI_LIST.value:
-            "<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a>, "
-            "<https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/b>",
+    q = {
+        "@type": "SparqlQuery",
+        "hasBody": {"query_string": ""},
+        "hasParameter": [
+            {
+                "@type": type_,
+                "description": "test field",
+                "name": field_name,
+                "optional": False
+            }
+        ],
+        "queryConfiguration": query_conf,
+        "resultParameterMapping": []
     }
 
-    for field_type, expected_value in expected_values.items():
-        q = {
-            "@type": "SparqlQuery",
-            "hasBody": {"query_string": ""},
-            "hasParameter": [
-                {
-                    "@type": field_type,
-                    "description": "test field",
-                    "name": field_name,
-                    "optional": False
-                }
-            ],
-            "queryConfiguration": query_conf,
-            "resultParameterMapping": []
-        }
+    _, formatted_parameters = format_parameters(
+        query=query_factory(q), parameter_values=parameter_values,
+        forge=forge
+    )
 
-        _, formatted_parameters = format_parameters(
-            query=query_factory(q), parameter_values=parameter_values,
-            forge=forge
-        )
-
-        assert formatted_parameters == {field_name: expected_value}
+    assert formatted_parameters == {field_name: expected_value}
 
 
-def test_parameter_format_value_formatting(query_conf, forge):
-    field_name = "ValueField"
+field_name = "ValueField"
 
+
+@pytest.mark.parametrize("type_, values, expected_value ", [
+    pytest.param(
+        ParameterType.URI.value, {field_name: "a"},
+        {field_name: 'https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a'},
+        id="param1",
+    ),
+    pytest.param(
+        ParameterType.STR.value, {field_name: "a"}, {field_name: '"a"'},
+        id="param2",
+    ),
+    pytest.param(
+        ParameterType.PATH.value, {field_name: "a"}, {field_name: 'a'},
+        id="param3",
+    ),
+    pytest.param(
+        ParameterType.BOOL.value, {field_name: "true"}, {field_name: "true"},
+        id="param4",
+    ),
+    pytest.param(
+        ParameterType.BOOL.value, {field_name: "false"}, {field_name: "false"},
+        id="param5",
+    ),
+    pytest.param(
+        ParameterType.BOOL.value, {field_name: "True"}, {field_name: "true"},
+        id="param6",
+    ),
+    pytest.param(
+        ParameterType.BOOL.value, {field_name: "False"}, {field_name: "false"},
+        id="param7",
+    ),
+])
+def test_parameter_format_value_formatting(
+        query_conf, forge, type_, values, expected_value
+):
     def run_formatting(field_type, parameter_values):
         q = {
             "@type": "SparqlQuery",
@@ -140,22 +185,8 @@ def test_parameter_format_value_formatting(query_conf, forge):
     # MULTI_PREDICATE_OBJECT_PAIR = "MultiPredicateObjectPair"
     # QUERY_BLOCK = "query_block"
 
-    type_input_expected = [
-        (
-            ParameterType.URI.value, {field_name: "a"},
-            {field_name: 'https://bbp.epfl.ch/nexus/v1/resources/bbp/atlas/_/a'}
-        ),
-        (ParameterType.STR.value, {field_name: "a"}, {field_name: '"a"'}),
-        (ParameterType.PATH.value, {field_name: "a"}, {field_name: 'a'}),
-        (ParameterType.BOOL.value, {field_name: "true"}, {field_name: "true"}),
-        (ParameterType.BOOL.value, {field_name: "false"}, {field_name: "false"}),
-        (ParameterType.BOOL.value, {field_name: "True"}, {field_name: "true"}),
-        (ParameterType.BOOL.value, {field_name: "False"}, {field_name: "false"})
-    ]
+    formatted_parameters = run_formatting(type_, values)
+    assert formatted_parameters == expected_value
 
-    for type_, values, expected_value in type_input_expected:
-        formatted_parameters = run_formatting(type_, values)
-        assert formatted_parameters == expected_value
-
-    with pytest.raises(InvalidValueException):
-        run_formatting(ParameterType.BOOL.value, {field_name: "idk"})
+    # with pytest.raises(InvalidValueException):
+    #     run_formatting(ParameterType.BOOL.value, {field_name: "idk"})

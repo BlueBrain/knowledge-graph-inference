@@ -20,63 +20,77 @@ def make_spec(name: str, type_: str, optional: bool = False, values=None):
     })
 
 
-@pytest.fixture
-def param_name():
-    return "param1"
+param_name = "param1"
 
 
 @pytest.fixture
-def parameter_spec1(param_name):
-    return [make_spec(name=param_name, type_=ParameterType.PATH.value, values={
-        "a": "aaa",
-        "b": "bbb",
-        "d": "ddd",
-        "e": "eee"
-    })]
+def parameter_spec1():
+    return [make_spec(
+        name=param_name,
+        type_=ParameterType.PATH.value,
+        values={
+            "a": "aaa",
+            "b": "bbb",
+            "d": "ddd",
+            "e": "eee"
+        }
+    )]
 
 
 @pytest.fixture
-def parameter_spec2(param_name, parameter_spec1):
+def parameter_spec2(parameter_spec1):
     parameter_spec2 = parameter_spec1.copy()
-    parameter_spec2[0].type = ParameterType.SPARQL_VALUE_LIST.value
+    parameter_spec2[0].type = ParameterType.SPARQL_VALUE_LIST
     return parameter_spec2
 
 
-@pytest.mark.parametrize("parameter_values, parameter_spec, expected_parameter_map", [
+@pytest.fixture
+def parameter_spec3():
+    return []
+
+
+@pytest.fixture
+def parameter_spec4():
+    return [make_spec(name=param_name, type_=ParameterType.PATH.value, optional=True)]
+
+
+@pytest.mark.parametrize("parameter_values, parameter_spec_str, expected_parameter_map", [
     pytest.param(
         {},
-        [],
+        "parameter_spec3",
         {},
         id="nothing_no_spec"
     ),
     pytest.param(
         {},
-        [make_spec(name=param_name(), type_=ParameterType.PATH.value, optional=True)],
+        "parameter_spec4",
         {},
         id="nothing_optional_true"
     ),
     pytest.param(
         {param_name: "a"},
-        parameter_spec1,
+        "parameter_spec1",
         {param_name: "aaa"},
         id="one_value_no_list"
     ),
     pytest.param(
         {param_name: ["a", "e"]},
-        parameter_spec1,
+        "parameter_spec1",
         {param_name: 'aaa'},
         id="two_values_no_list"
     ),
     pytest.param(
         {param_name: ["a", "e"]},
-        parameter_spec2,
+        "parameter_spec2",
         {param_name: '("aaa")\n("eee")'},
         id="two_values_list"
     )
 ])
 def test_build_parameter_map(
-        forge, parameter_spec, parameter_values, expected_parameter_map, param_name
+        forge, parameter_spec_str, parameter_values, expected_parameter_map, request
 ):
+    parameter_spec = request.getfixturevalue(parameter_spec_str)
+
     assert _build_parameter_map(
         forge=forge,
         parameter_spec=parameter_spec,
@@ -98,7 +112,7 @@ def test_build_parameter_map_select_non_existing_value(forge, parameter_spec1):
         )
 
 
-def test_build_parameter_map_missing_values(forge, param_name):
+def test_build_parameter_map_missing_values(forge):
     parameter_spec = [make_spec(name=param_name, type_=ParameterType.PATH.value)]
     parameter_values = {}
 
