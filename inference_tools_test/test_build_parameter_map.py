@@ -9,6 +9,8 @@ from inference_tools.utils import _build_parameter_map
 
 from contextlib import nullcontext as does_not_raise
 
+param_name = "param1"
+
 
 def make_spec(name: str, type_: str, optional: bool = False, values=None):
     if values is None:
@@ -20,9 +22,6 @@ def make_spec(name: str, type_: str, optional: bool = False, values=None):
         "optional": optional,
         "values": values
     })
-
-
-param_name = "param1"
 
 
 @pytest.fixture

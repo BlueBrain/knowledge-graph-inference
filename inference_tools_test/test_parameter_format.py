@@ -9,6 +9,8 @@ from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.type import ParameterType
 from inference_tools.utils import format_parameters
 
+field_name = "ValueField"
+
 
 @pytest.mark.parametrize("parameter_values, expected_limit ", [
     pytest.param(
@@ -120,9 +122,6 @@ def test_parameter_format_list_formatting(query_conf, forge, type_, expected_val
     )
 
     assert formatted_parameters == {field_name: expected_value}
-
-
-field_name = "ValueField"
 
 
 @pytest.mark.parametrize("type_, values, expected_value, expectation", [
