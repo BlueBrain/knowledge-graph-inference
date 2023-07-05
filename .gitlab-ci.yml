@@ -11,4 +11,5 @@ stages:
 test-job:
   stage: test
   script:
-    - pytest -v inference_tools_test
+    - pytest -v --cov=inference_tools inference_tools_test
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'

@@ -27,7 +27,8 @@ setup(
         "setuptools_scm",
     ],
     install_requires=[
-        "pytest",
+        "pytest==7.1.2",
+        "pytest-cov==4.1.0",
         "pandas==2.0.2",  # TODO remove when refactoring inference_tools/similarity/combine.py
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge"
     ],
@@ -35,7 +36,6 @@ setup(
         "dev": [
             "tox",
             "pytest-bdd",
-            "pytest-cov==2.10.1",
             "pytest-mock==3.3.1",
             "codecov"
         ],
