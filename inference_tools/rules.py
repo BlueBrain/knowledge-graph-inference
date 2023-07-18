@@ -40,7 +40,7 @@ def get_resource_type_descendants(forge, types) -> List[str]:
         provided_value=types, query_type=QueryType.SPARQL_QUERY, forge=forge
     )
 
-    query_body = Template(query).substitute(types=types)
+    query_body = Template(query.query_string).substitute(types=types)
     res = forge.as_json(forge.sparql(query_body, limit=None, debug=False))
 
     return [obj["label"] for obj in res]
