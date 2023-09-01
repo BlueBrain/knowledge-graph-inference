@@ -1,9 +1,13 @@
 from dataclasses import dataclass
+from typing import Dict
+
+from kgforge.core import KnowledgeGraphForge
+
+from yaml import safe_load
+from urllib.request import urlopen
 
 from inference_tools.helper_functions import get_path
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
-from kgforge.core import KnowledgeGraphForge
-
 
 @dataclass
 class BucketConfiguration:
@@ -16,10 +20,8 @@ class NexusBucketConfiguration(BucketConfiguration):
     token_prod_path = get_path("../token/token_prod.txt")
     token_staging_path = get_path("../token/token_staging.txt")
 
-    config_prod_path = get_path("../configs/test-config.yaml")
-    config_prod_path_neuroscience_graph = get_path("../configs/test-config_neuroscience_graph.yaml")
-
-    config_staging_path = get_path("../configs/test-config_staging.yaml")
+    config_prod_path = \
+       "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
 
     endpoint_prod = "https://bbp.epfl.ch/nexus/v1"
     endpoint_staging = "https://staging.nise.bbp.epfl.ch/nexus/v1"
@@ -49,19 +51,20 @@ class NexusBucketConfiguration(BucketConfiguration):
     def set_token_path_prod(token_path: str):
         NexusBucketConfiguration.token_prod_path = token_path
 
-    def get_config_path(self, bucket):
-        if self.config_file_path:
-            return self.config_file_path
+    def get_config(self, bucket) -> Dict:
 
-        if self.is_prod:
-            return NexusBucketConfiguration.config_prod_path_neuroscience_graph \
-                if bucket == "neurosciencegraph/datamodels" else \
-                NexusBucketConfiguration.config_prod_path
-        else:
-            return NexusBucketConfiguration.config_staging_path
-            # TODO staging and neurosciencegraph
+        with urlopen(self.config_prod_path) as url:
+            conf = safe_load(url.read())
 
-    def get_token_path(self):
+        if bucket == "neurosciencegraph/datamodels":
+            conf["Model"]["context"]["iri"] = 'https://neuroshapes.org'
+
+        if not self.is_prod:
+            conf["Store"]["endpoint"] = NexusBucketConfiguration.endpoint_staging
+
+        return conf
+
+    def get_token_path(self) -> str:
         if self.token_file_path:
             return self.token_file_path
         return NexusBucketConfiguration.token_prod_path if self.is_prod else \
@@ -80,10 +83,9 @@ class NexusBucketConfiguration(BucketConfiguration):
     def allocate_forge_session(self):
 
         bucket = f"{self.organisation}/{self.project}"
-        configuration_file = self.get_config_path(bucket)
 
         tmp = KnowledgeGraphForge(
-            configuration=configuration_file,
+            configuration=self.get_config(bucket),
             endpoint=self.endpoint,
             token=NexusBucketConfiguration.load_token(self.get_token_path()),
             bucket=bucket,
