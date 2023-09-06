@@ -25,9 +25,12 @@ from inference_tools.type import (QueryType, PremiseType)
 from inference_tools.utils import _build_parameter_map, format_parameters
 
 
-def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge], query: Query,
-                         parameter_values: Optional[Dict],
-                         last_query=False, debug=False) -> List[Dict]:
+def execute_query_object(
+        forge_factory: Callable[[str, str], KnowledgeGraphForge], query: Query,
+        parameter_values: Optional[Dict],
+        last_query=False, debug=False,
+        use_forge: bool = False
+) -> List[Dict]:
     """
     Execute an individual query given parameters.
 
@@ -42,6 +45,8 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
     @type last_query:  bool
     @param debug:
     @type debug: bool
+    @param use_forge:
+    @type use_forge: bool
     @return:  List of the result resources
     @rtype: List[Dict]
     """
@@ -88,6 +93,7 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
             parameter_values=parameter_values,
             forge_factory=forge_factory,
             debug=debug,
+            use_forge=use_forge
         )  # TODO better error handling here
     else:
         raise UnsupportedTypeException(query.type.value, "query type")
@@ -95,9 +101,12 @@ def execute_query_object(forge_factory: Callable[[str, str], KnowledgeGraphForge
     return resources
 
 
-def apply_rule(forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: Dict,
-               parameter_values: Dict,
-               premise_check=True, debug=False) -> List[Dict]:
+def apply_rule(
+        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        rule: Dict,
+        parameter_values: Dict,
+        premise_check: bool = True, debug: bool = False, use_forge: bool = False
+) -> List[Dict]:
     """
     Apply a rule given the input parameters.
     This function, first, checks if the premises of the rule are satisfied.
@@ -114,6 +123,8 @@ def apply_rule(forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: D
     @type premise_check: bool
     @param debug:
     @type debug: bool
+    @param use_forge:
+    @type use_forge: bool
     @return: The list of inference resources' ids, if any
     @rtype: List[Dict]
     """
@@ -127,12 +138,14 @@ def apply_rule(forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: D
     return execute_query_pipe(
         forge_factory=forge_factory, head=rule.search_query,
         parameter_values=parameter_values, rest=None,
-        debug=debug
+        debug=debug, use_forge=use_forge
     )
 
 
-def combine_parameters(result_parameter_mapping: List[ParameterMapping], parameter_values: Dict,
-                       result: List):  # TODO enforce result to be a list # used to be a check
+def combine_parameters(
+        result_parameter_mapping: List[ParameterMapping], parameter_values: Dict,
+        result: List
+) -> Dict:  # TODO enforce result to be a list # used to be a check
     """
     Combine user specified parameter values with parameter values that come
     from the execution of a query that is ahead in the query pipe
@@ -156,9 +169,11 @@ def combine_parameters(result_parameter_mapping: List[ParameterMapping], paramet
     return {**parameter_values, **mapping_values}
 
 
-def execute_query_pipe(forge_factory: Callable[[str, str], KnowledgeGraphForge],
-                       head: Union[Query, QueryPipe], parameter_values: Optional[Dict],
-                       rest: Optional[Union[Query, QueryPipe]], debug: bool = False):
+def execute_query_pipe(
+        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        head: Union[Query, QueryPipe], parameter_values: Optional[Dict],
+        rest: Optional[Union[Query, QueryPipe]], debug: bool = False, use_forge: bool = False
+):
     """
     Execute a query pipe given the input parameters.
 
@@ -176,43 +191,43 @@ def execute_query_pipe(forge_factory: Callable[[str, str], KnowledgeGraphForge],
     @type rest: Optional[Dict]
     @param debug:   Whether to run queries in debug mode
     @type debug: bool
+    @param use_forge:
+    @type use_forge: bool
     @return:
     @rtype:
     """
 
-    if rest is None:
+    def _check(el, params, last_q):
 
-        if isinstance(head, QueryPipe):
+        if isinstance(el, QueryPipe):
             return execute_query_pipe(
-                forge_factory=forge_factory, head=head.head,
-                parameter_values=parameter_values, rest=head.rest,
-                debug=debug)
+                forge_factory=forge_factory, parameter_values=params, debug=debug,
+                head=el.head, rest=el.rest, use_forge=use_forge
+            )
 
-        return execute_query_object(forge_factory=forge_factory, query=head,
-                                    parameter_values=parameter_values,
-                                    debug=debug, last_query=True)  # TODO try catch??
+        return execute_query_object(
+            forge_factory=forge_factory, parameter_values=params, debug=debug,
+            query=el, last_query=last_q, use_forge=use_forge
+        )  # TODO try catch??
 
-    result = execute_query_object(forge_factory=forge_factory, query=head,  # TODO try catch??
-                                  parameter_values=parameter_values,
-                                  debug=debug)
+    last_query = rest is None
+    result = _check(head, parameter_values, last_q=last_query)
 
-    new_parameters = combine_parameters(result_parameter_mapping=head.result_parameter_mapping,
-                                        parameter_values=parameter_values, result=result)
+    if last_query:
+        return result
 
-    if isinstance(rest, QueryPipe):
-        return execute_query_pipe(
-            forge_factory=forge_factory, head=rest.head, parameter_values=new_parameters,
-            rest=rest.rest, debug=debug
-        )
-
-    return execute_query_object(
-        forge_factory=forge_factory, query=rest, parameter_values=new_parameters,
-        last_query=True, debug=debug
+    new_parameters = combine_parameters(
+        result_parameter_mapping=head.result_parameter_mapping,
+        parameter_values=parameter_values, result=result
     )
 
+    return _check(rest, new_parameters, last_q=True)
 
-def check_premises(forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: Rule,
-                   parameter_values: Optional[Dict], debug: bool = False):
+
+def check_premises(
+        forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: Rule,
+        parameter_values: Optional[Dict], debug: bool = False
+):
     """
 
     @param forge_factory:   A function that takes as an input the name of the organization and

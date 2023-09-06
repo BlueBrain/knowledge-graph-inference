@@ -3,7 +3,7 @@ from typing import Optional, NewType, Union
 from inference_tools.datatypes.view import View
 from inference_tools.type import ObjectTypeStr
 
-from inference_tools.datatypes.embedding_model import EmbeddingModel
+from inference_tools.datatypes.embedding_model_data_catalog import EmbeddingModelDataCatalog
 from inference_tools.exceptions.exceptions import IncompleteObjectException
 
 
@@ -50,8 +50,8 @@ class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
 
 
 class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
+    embedding_model_data_catalog: EmbeddingModelDataCatalog
     similarity_view: View
-    embedding_model: EmbeddingModel
     boosting_view: View
     statistics_view: View
     description: Optional[str]
@@ -65,8 +65,9 @@ class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
         self.statistics_view = View(tmp_stv) if tmp_stv is not None else None
         tmp_bv = obj.get("boostingView", None)
         self.boosting_view = View(tmp_bv) if tmp_bv is not None else None
-        tmp_em = obj.get("embeddingModel", None)
-        self.embedding_model = EmbeddingModel(tmp_em) if tmp_em is not None else None
+        tmp_em = obj.get("embeddingModelDataCatalog", None)
+        self.embedding_model_data_catalog = EmbeddingModelDataCatalog(tmp_em) \
+            if tmp_em is not None else None
         self.boosted = obj.get("boosted", False)
         self.description = obj.get("description", None)
 

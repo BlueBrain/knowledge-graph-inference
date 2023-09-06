@@ -6,7 +6,8 @@ from typing import Dict, Optional, Union, List, Tuple
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
-from inference_tools.datatypes.query import Query
+from inference_tools.datatypes.query import Query, SimilaritySearchQuery
+from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.query_pipe import QueryPipe
 from inference_tools.datatypes.rule import Rule
 
@@ -86,7 +87,7 @@ def get_premise_parameters(rule: Rule) -> Dict[str, Dict]:
     ))
 
 
-def get_search_query_parameters(rule: Rule) -> Dict[str, Dict]:
+def get_search_query_parameters(rule: Rule) -> Dict[str, ParameterSpecification]:
     """
     Get all input parameters in the search query of a rule
 
@@ -97,14 +98,15 @@ def get_search_query_parameters(rule: Rule) -> Dict[str, Dict]:
     """
 
     def _get_input_params(input_params: List[ParameterSpecification], prev_output_params=None) -> \
-            Dict[str, Dict]:
+            Dict[str, ParameterSpecification]:
 
         if prev_output_params is None:
             prev_output_params = []
 
         return dict(
-            (p.name, p.to_dict())
-            for p in input_params if p.name not in prev_output_params
+            (p.name, p)
+            for p in input_params
+            if p.name not in prev_output_params
         )
 
     def _get_output_params(sub_query: Query) -> List[str]:
@@ -172,3 +174,26 @@ def format_parameters(query: Query, parameter_values: Optional[Dict], forge: Kno
     )
 
     return limit, parameter_map
+
+
+def get_embedding_models(rule: Rule) -> List[Dict]:
+    if not isinstance(rule.search_query, SimilaritySearchQuery):
+        return []
+
+    def _transform(qc: SimilaritySearchQueryConfiguration):
+
+        e = qc.embedding_model_data_catalog
+
+        if e is not None:
+            return {
+                "name": e.name,
+                "description": e.description,
+                "id": e.id,
+                "distance": e.distance.value
+            }
+        return None
+
+    return [
+        _transform(qc) for qc in rule.search_query.query_configurations
+        if _transform(qc) is not None
+    ]

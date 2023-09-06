@@ -28,3 +28,10 @@ class DeltaUtils:
         if response.status_code not in range(200, 229):
             raise DeltaException(body=json.loads(response.text), status_code=response.status_code)
         return json.loads(response.text)
+
+    @staticmethod
+    def check_hits(response_body: Dict):
+        if "hits" not in response_body or len(response_body["hits"]) == 0:
+            raise DeltaException(body={}, status_code=100)  # TODO
+
+        return response_body["hits"]["hits"]

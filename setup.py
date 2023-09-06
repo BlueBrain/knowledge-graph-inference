@@ -27,7 +27,7 @@ setup(
         "setuptools_scm",
     ],
     install_requires=[
-        "pytest==7.1.2",
+        "pytest==7.2.1",
         "pytest-cov==4.1.0",
         "pandas==2.0.2",  # TODO remove when refactoring inference_tools/similarity/combine.py
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge"

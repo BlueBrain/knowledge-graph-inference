@@ -12,18 +12,18 @@ from inference_tools.premise_execution import PremiseExecution
 from inference_tools.source.source import Source, DEFAULT_LIMIT
 
 DEFAULT_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/dataset"
-# TODO get rid of the edit of views
 
 
 class ElasticSearch(Source):
-
     NO_LIMIT = 10000
 
     @staticmethod
-    def execute_query(forge: KnowledgeGraphForge, query: ElasticSearchQuery,
-                      parameter_values: Dict,
-                      config: ElasticSearchQueryConfiguration, limit=DEFAULT_LIMIT,
-                      debug: bool = False) -> Optional[List[Resource]]:
+    def execute_query(
+            forge: KnowledgeGraphForge, query: ElasticSearchQuery,
+            parameter_values: Dict,
+            config: ElasticSearchQueryConfiguration, limit=DEFAULT_LIMIT,
+            debug: bool = False
+    ) -> Optional[List[Resource]]:
 
         if config.elastic_search_view is not None:
             ForgeUtils.set_elastic_search_view(forge, config.elastic_search_view.id)
@@ -36,16 +36,31 @@ class ElasticSearch(Source):
         return forge.elastic(query_body, limit=limit, debug=debug)
 
     @staticmethod
-    def check_premise(forge: KnowledgeGraphForge, premise: ElasticSearchQuery,
-                      parameter_values: Dict,
-                      config: ElasticSearchQueryConfiguration, debug: bool = False):
+    def check_premise(
+            forge: KnowledgeGraphForge, premise: ElasticSearchQuery,
+            parameter_values: Dict,
+            config: ElasticSearchQueryConfiguration, debug: bool = False
+    ):
 
-        results = ElasticSearch.execute_query(forge=forge, query=premise,
-                                              parameter_values=parameter_values,
-                                              debug=debug, config=config, limit=None)
+        results = ElasticSearch.execute_query(
+            forge=forge, query=premise,
+            parameter_values=parameter_values,
+            debug=debug, config=config, limit=None
+        )
 
         return PremiseExecution.SUCCESS if results is not None and len(results) > 0 else \
             PremiseExecution.FAIL
+
+    @staticmethod
+    def get_all_documents_query():
+        return {
+            "size": ElasticSearch.NO_LIMIT,
+            "query": {
+                "term": {
+                    "_deprecated": False
+                }
+            }
+        }
 
     @staticmethod
     def get_all_documents(forge: KnowledgeGraphForge) -> Optional[List[Resource]]:
@@ -57,14 +72,7 @@ class ElasticSearch(Source):
         @return:
         @rtype:  Optional[List[Resource]]
         """
-        return forge.elastic(json.dumps(
-            {
-                "query": {
-                    "term": {
-                        "_deprecated": False
-                    }
-                }
-            }), limit=ElasticSearch.NO_LIMIT)
+        return forge.elastic(json.dumps(ElasticSearch.get_all_documents_query()))
 
     @staticmethod
     def get_by_ids(ids: List[str], forge: KnowledgeGraphForge) -> Optional[List[Resource]]:
@@ -94,8 +102,9 @@ class ElasticSearch(Source):
         return forge.elastic(json.dumps(q), debug=False)
 
     @staticmethod
-    def check_view_readiness(organisation: str, project: str, endpoint: str,
-                             view_id: str, token: str) -> bool:
+    def check_view_readiness(
+            organisation: str, project: str, endpoint: str, view_id: str, token: str
+    ) -> bool:
         """
         Make sure within a view's statistics, the last event datetime is equal to the last
         processed event's datetime

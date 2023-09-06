@@ -38,6 +38,8 @@ class NexusBucketConfiguration(BucketConfiguration):
         self.config_file_path = config_file_path
         self.token_file_path = token_file_path
 
+        self.token = None
+
         self.elastic_search_view = elastic_search_view
         self.sparql_view = sparql_view
 
@@ -46,6 +48,9 @@ class NexusBucketConfiguration(BucketConfiguration):
     @staticmethod
     def set_token_path_staging(token_path: str):
         NexusBucketConfiguration.token_staging_path = token_path
+
+    def set_token(self, token):
+        self.token = token
 
     @staticmethod
     def set_token_path_prod(token_path: str):
@@ -84,10 +89,13 @@ class NexusBucketConfiguration(BucketConfiguration):
 
         bucket = f"{self.organisation}/{self.project}"
 
+        token = self.token if self.token is not None else \
+            NexusBucketConfiguration.load_token(self.get_token_path())
+
         tmp = KnowledgeGraphForge(
             configuration=self.get_config(bucket),
             endpoint=self.endpoint,
-            token=NexusBucketConfiguration.load_token(self.get_token_path()),
+            token=token,
             bucket=bucket,
             debug=False
         )

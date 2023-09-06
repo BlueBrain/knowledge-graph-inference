@@ -5,33 +5,46 @@ from urllib.parse import quote_plus
 
 
 class ForgeUtils:
+
     @staticmethod
-    def set_sparql_view(forge: KnowledgeGraphForge, view):
-        """Set sparql view."""
-        endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
-        views_endpoint = "/".join((
+    def _make_search_endpoint(
+            endpoint: str, org: str, project: str, view: str, search_endpoint_suffix: str
+    ):
+        return "/".join((
             endpoint,
             "views",
             quote_plus(org),
-            quote_plus(project)
+            quote_plus(project),
+            quote_plus(view),
+            search_endpoint_suffix
         ))
 
-        endpoint = "/".join((views_endpoint, quote_plus(view), "sparql"))
-        ForgeUtils.set_sparql_endpoint(forge, endpoint)
+    @staticmethod
+    def make_sparql_endpoint(endpoint: str, org: str, project: str, view: str):
+        return ForgeUtils._make_search_endpoint(endpoint, org, project, view, "sparql")
+
+    @staticmethod
+    def make_elastic_search_endpoint(endpoint: str, org: str, project: str, view: str):
+        return ForgeUtils._make_search_endpoint(endpoint, org, project, view, "_search")
 
     @staticmethod
     def set_elastic_search_view(forge: KnowledgeGraphForge, view: str):
         endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
 
-        views_endpoint = "/".join((
-            endpoint,
-            "views",
-            quote_plus(org),
-            quote_plus(project)
-        ))
+        ForgeUtils.set_elastic_search_endpoint(
+            forge,
+            ForgeUtils.make_elastic_search_endpoint(endpoint, org, project, view)
+        )
 
-        endpoint = "/".join((views_endpoint, quote_plus(view), "_search"))
-        ForgeUtils.set_elastic_search_endpoint(forge, endpoint)
+    @staticmethod
+    def set_sparql_view(forge: KnowledgeGraphForge, view):
+        """Set sparql view."""
+        endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
+
+        ForgeUtils.set_sparql_endpoint(
+            forge,
+            ForgeUtils.make_sparql_endpoint(endpoint, org, project, view)
+        )
 
     @staticmethod
     def get_store(forge: KnowledgeGraphForge):
