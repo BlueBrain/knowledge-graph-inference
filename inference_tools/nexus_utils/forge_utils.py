@@ -29,7 +29,7 @@ class ForgeUtils:
 
     @staticmethod
     def set_elastic_search_view(forge: KnowledgeGraphForge, view: str):
-        endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
+        endpoint, org, project = ForgeUtils.get_endpoint_org_project(forge)
 
         ForgeUtils.set_elastic_search_endpoint(
             forge,
@@ -39,7 +39,7 @@ class ForgeUtils:
     @staticmethod
     def set_sparql_view(forge: KnowledgeGraphForge, view):
         """Set sparql view."""
-        endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
+        endpoint, org, project = ForgeUtils.get_endpoint_org_project(forge)
 
         ForgeUtils.set_sparql_endpoint(
             forge,
@@ -67,7 +67,7 @@ class ForgeUtils:
         ForgeUtils.get_store(forge).service.elastic_endpoint["endpoint"] = endpoint
 
     @staticmethod
-    def get_org_proj_endpoint(forge: KnowledgeGraphForge) -> Tuple[str, str, str]:
+    def get_endpoint_org_project(forge: KnowledgeGraphForge) -> Tuple[str, str, str]:
         store = ForgeUtils.get_store(forge)
         org, project = store.bucket.split("/")[-2:]
         return store.endpoint, org, project

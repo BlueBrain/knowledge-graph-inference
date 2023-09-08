@@ -77,7 +77,7 @@ class NexusBucketConfiguration(BucketConfiguration):
 
     @staticmethod
     def create_from_forge(forge: KnowledgeGraphForge):
-        endpoint, org, project = ForgeUtils.get_org_proj_endpoint(forge)
+        endpoint, org, project = ForgeUtils.get_endpoint_org_project(forge)
         return BucketConfiguration(endpoint=endpoint, organisation=org, project=project)
 
     @staticmethod
@@ -92,7 +92,7 @@ class NexusBucketConfiguration(BucketConfiguration):
         token = self.token if self.token is not None else \
             NexusBucketConfiguration.load_token(self.get_token_path())
 
-        tmp = KnowledgeGraphForge(
+        args = dict(
             configuration=self.get_config(bucket),
             endpoint=self.endpoint,
             token=token,
@@ -100,11 +100,16 @@ class NexusBucketConfiguration(BucketConfiguration):
             debug=False
         )
 
-        if self.sparql_view is not None:
-            ForgeUtils.set_sparql_view(tmp, self.sparql_view)
+        search_endpoints = {}
 
         if self.elastic_search_view is not None:
-            ForgeUtils.set_elastic_search_view(tmp, self.elastic_search_view)
+            search_endpoints["elastic"] = {"endpoint": self.elastic_search_view}
 
-        return tmp
+        if self.sparql_view is not None:
+            search_endpoints["sparql"] = {"endpoint": self.sparql_view}
+
+        if len(search_endpoints) > 0:
+            args["searchendpoints"] = search_endpoints
+
+        return KnowledgeGraphForge(**args)
 

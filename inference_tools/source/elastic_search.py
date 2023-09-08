@@ -96,7 +96,7 @@ class ElasticSearch(Source):
                         {'match': {'_deprecated': False}}
                     ]
                 }
-            },
+            }
         }
 
         return forge.elastic(json.dumps(q), debug=False)

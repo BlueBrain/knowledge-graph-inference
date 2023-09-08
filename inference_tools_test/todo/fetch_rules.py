@@ -7,11 +7,21 @@ from inference_tools.rules import fetch_rules
 from inference_tools.similarity.main import SIMILARITY_MODEL_SELECT_PARAMETER_NAME
 
 
+def _get_test_forge():
+
+    es_rule_view = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/rule_view_no_tag"
+    sparql_rule_view = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/rule_view_no_tag"
+    rule_forge = NexusBucketConfiguration(
+        "bbp", "inference-rules", True, elastic_search_view=es_rule_view,
+        sparql_view=sparql_rule_view
+    ).allocate_forge_session()
+
+    return rule_forge
+
+
 def test_fetch_by_resource_id():
 
-    rule_forge = NexusBucketConfiguration("bbp", "inference-rules", True).allocate_forge_session()
-    rule_dm = NexusBucketConfiguration("neurosciencegraph", "datamodels", True).allocate_forge_session()
-    rule_view = "https://bbp.epfl.ch/neurosciencegraph/data/rule_view_no_tag"
+    rule_forge = _get_test_forge()
 
     public_hippocampus_nm = "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/402ba796-81f4-460c-870e-98e8fb1bd982"
     bbp_external_nm = "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/608c996a-15a3-4d8a-aa4a-827fa6946f9b"
@@ -43,7 +53,9 @@ def test_fetch_by_resource_id():
     }
 
     for label, nm in nm.items():
-        test: List[Rule] = fetch_rules(rule_forge, rule_dm, rule_view, resource_id=nm)
+        test: List[Rule] = fetch_rules(
+            rule_forge, resource_id=nm
+        )
 
         for rule in test:
             if isinstance(rule.search_query, SimilaritySearchQuery):
@@ -66,3 +78,13 @@ def test_fetch_by_resource_id():
                 assert expected_parameter_values == parameter_values
 
 
+def test_fetch_by_type():
+    rule_forge = _get_test_forge()
+
+    test = fetch_rules(
+        rule_forge, resource_types=["NeuronMorphology"]
+    )
+    assert len(test) == 4
+
+test_fetch_by_resource_id()
+test_fetch_by_type()

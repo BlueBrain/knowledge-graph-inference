@@ -12,7 +12,8 @@ from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 
 def get_embedding_vector(
-        forge: KnowledgeGraphForge, search_target: str, debug: bool, use_forge=False
+        forge: KnowledgeGraphForge, search_target: str, debug: bool, use_forge=False,
+        es_endpoint: str = None
 ) -> Embedding:
     """Get embedding vector for the target of the input similarity query.
 
@@ -25,7 +26,8 @@ def get_embedding_vector(
         want to retrieve its nearest neighbors).
     debug : bool
     use_forge : bool
-
+    es_endpoint : Optional[str]
+        an elastic search endpoint to use, other than the one set in the forge instance, optional
     Returns
     -------
     vector_id : str
@@ -57,13 +59,14 @@ def get_embedding_vector(
         _get_embedding_vector_forge if use_forge else \
             _get_embedding_vector_delta
 
-    result = get_embedding_vector_fc(forge, vector_query, debug, search_target)
+    result = get_embedding_vector_fc(forge, vector_query, debug, search_target, es_endpoint)
 
     return Embedding(result)
 
 
 def _get_embedding_vector_forge(
-        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str
+        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str,
+        es_endpoint: str = None
 ) -> Dict:
 
     result = forge.elastic(json.dumps(query), limit=None, debug=debug)
@@ -75,19 +78,21 @@ def _get_embedding_vector_forge(
 
 
 def _get_embedding_vector_delta(
-        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str
+        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str,
+        es_endpoint: str = None
 ) -> Dict:
 
-    url = ForgeUtils.get_elastic_search_endpoint(forge)
+    es_endpoint = es_endpoint if es_endpoint else ForgeUtils.get_elastic_search_endpoint(forge)
 
     token = ForgeUtils.get_token(forge)
+
     query["_source"] = ["embedding"]
 
     if debug:
         print(json.dumps(query, indent=4))
 
     result = DeltaUtils.check_response(
-        requests.post(url=url, json=query, headers=DeltaUtils.make_header(token))
+        requests.post(url=es_endpoint, json=query, headers=DeltaUtils.make_header(token))
     )
 
     try:

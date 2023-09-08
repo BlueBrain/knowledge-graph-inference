@@ -37,9 +37,9 @@ class Rule:
 
         tmp_sq = obj.get("searchQuery", None)
         if tmp_sq is None:
-            raise IncompleteObjectException(name=self.name,
-                                            attribute="searchQuery",
-                                            object_type=ObjectTypeStr.RULE)
+            raise IncompleteObjectException(
+                name=self.name, attribute="searchQuery", object_type=ObjectTypeStr.RULE
+            )
 
         self.search_query = query_factory(tmp_sq) \
             if get_type_attribute(tmp_sq) != "QueryPipe" else \
