@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords="ontology knowledge graph data science",
     packages=find_packages(),
-    python_requires=">=3.7",
+    python_requires=">=3.7,<3.10",
     include_package_data=True,
     setup_requires=[
         "setuptools_scm",
@@ -30,7 +30,9 @@ setup(
         "pytest==7.2.1",
         "pytest-cov==4.1.0",
         "pandas==2.0.2",  # TODO remove when refactoring inference_tools/similarity/combine.py
-        "nexusforge@git+https://github.com/BlueBrain/nexus-forge"
+        "nexusforge@git+https://github.com/BlueBrain/nexus-forge",
+        "requests==2.31.0",
+        "kaleido==0.2.1"
     ],
     extras_require={
         "dev": [
@@ -41,9 +43,6 @@ setup(
         ],
         "docs": [
             "sphinx", "sphinx-bluebrain-theme"
-        ],
-        "data_registration": [
-            "bluegraph"
         ]
     },
     classifiers=[

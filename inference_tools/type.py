@@ -5,6 +5,13 @@ from enum import Enum
 from typing import NewType, Union
 
 
+class RuleType(Enum):
+    DataGeneralizationRule = "DataGeneralizationRule"
+    EmbeddingBasedGeneralizationRule = "EmbeddingBasedGeneralizationRule"
+    ResourceGeneralizationRule = "ResourceGeneralizationRule"
+    HierarchyBasedGeneralizationRule = "HierarchyBasedGeneralizationRule"
+
+
 class ParameterType(Enum):
     """
     All types of input parameters that can define a rule

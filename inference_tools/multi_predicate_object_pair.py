@@ -8,8 +8,9 @@ from inference_tools.datatypes.query import SparqlQueryBody, Query
 from inference_tools.type import ParameterType, QueryType
 
 
-def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int,
-                                                 query_body: SparqlQueryBody):
+def multi_predicate_object_pairs_query_rewriting(
+        name: str, nb_multi: int, query_body: SparqlQueryBody
+):
     """
     Rewrite the query in order to have the line where the parameter of name "name"
     duplicated for as many predicate-pairs there are and two parameters on each line,
@@ -48,8 +49,9 @@ def multi_predicate_object_pairs_query_rewriting(name: str, nb_multi: int,
     return SparqlQueryBody({"query_string": query_body})
 
 
-def has_multi_predicate_object_pairs(parameter_spec: List[ParameterSpecification],
-                                     parameter_values):
+def has_multi_predicate_object_pairs(
+        parameter_spec: List[ParameterSpecification], parameter_values
+) -> Optional[Tuple[int, str, int]]:
     """
     Checks whether within the rule parameters (parameter specification),
     a parameter of type MultiPredicateObjectPair exists.
@@ -69,7 +71,7 @@ def has_multi_predicate_object_pairs(parameter_spec: List[ParameterSpecification
         if name not in parameter_values or parameter_values[name] is None:
             return idx, name, 0
 
-        return idx, name,  len(parameter_values[name])
+        return idx, name, len(parameter_values[name])
 
     except ValueError:
         pass
@@ -77,9 +79,11 @@ def has_multi_predicate_object_pairs(parameter_spec: List[ParameterSpecification
     return None
 
 
-def multi_predicate_object_pairs_parameter_rewriting(idx: int,
-                                                     parameter_spec: List[ParameterSpecification],
-                                                     parameter_values: Dict):
+def multi_predicate_object_pairs_parameter_rewriting(
+        idx: int,
+        parameter_spec: List[ParameterSpecification],
+        parameter_values: Dict
+):
     """
     Predicate-object pairs consist of type-value pairs (pairs of pairs) specified by the user
     of the rule to add additional properties of an entity to retrieve in a SPARQL query's
@@ -124,7 +128,6 @@ def multi_predicate_object_pairs_parameter_rewriting(idx: int,
             types = [predicate_type, object_type]
 
             for type_, value, description in zip(types, values, descriptions):
-
                 constructed_name = f"{name}_{str(i)}_{description}"
                 parameter_spec.append(ParameterSpecification({
                     "type": type_,
@@ -135,8 +138,9 @@ def multi_predicate_object_pairs_parameter_rewriting(idx: int,
     return parameter_spec, parameter_values
 
 
-def multi_check(query: Query, parameter_values: Optional[Dict]) \
-        -> Tuple[List[ParameterSpecification], Dict]:
+def multi_check(
+        query: Query, parameter_values: Optional[Dict]
+) -> Tuple[List[ParameterSpecification], Dict]:
 
     multi = has_multi_predicate_object_pairs(query.parameter_specifications, parameter_values)
 

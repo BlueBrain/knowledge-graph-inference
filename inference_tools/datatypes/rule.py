@@ -1,6 +1,6 @@
 from typing import List, Union, Optional
 
-from inference_tools.type import ObjectTypeStr
+from inference_tools.type import ObjectTypeStr, RuleType
 
 from inference_tools.exceptions.exceptions import IncompleteObjectException
 
@@ -18,12 +18,12 @@ class Rule:
     premises: Optional[List[Query]]
     id: str
     context: str
-    type: str
+    type: List[RuleType]
     target_resource_type: str
     nexus_link: Optional[str]
 
     def __init__(self, obj):
-        self.type = get_type_attribute(obj)
+        self.type = [RuleType(e) for e in _enforce_list(get_type_attribute(obj))]
         self.context = obj.get("@context", None)
         self.description = obj.get("description", None)
         self.id = get_id_attribute(obj)

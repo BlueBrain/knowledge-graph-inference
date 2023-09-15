@@ -75,3 +75,19 @@ class ForgeUtils:
     @staticmethod
     def get_token(forge: KnowledgeGraphForge) -> str:
         return ForgeUtils.get_store(forge).token
+
+    @staticmethod
+    def get_model(forge: KnowledgeGraphForge):
+        return forge._model
+
+    @staticmethod
+    def expand_uri(forge: KnowledgeGraphForge, uri: str):
+        return ForgeUtils.get_model(forge).context().expand(uri)
+
+    @staticmethod
+    def shrink_uri(forge: KnowledgeGraphForge, uri: str):
+        return ForgeUtils.get_model(forge).context().shrink(uri)
+
+    @staticmethod
+    def to_symbol(forge: KnowledgeGraphForge, uri: str):
+        return ForgeUtils.get_model(forge).context().to_symbol(uri)

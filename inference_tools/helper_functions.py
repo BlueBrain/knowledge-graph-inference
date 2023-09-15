@@ -2,7 +2,6 @@
 Helper functions
 """
 from typing import Dict, Type
-import os
 
 from inference_tools.type import ObjectTypeStr, ObjectType
 
@@ -11,26 +10,6 @@ from inference_tools.exceptions.exceptions import (
     IncompleteObjectException,
     InvalidValueException
 )
-
-
-def get_path(path):
-    return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
-
-
-def get_model(forge):
-    return forge._model
-
-
-def _expand_uri(forge, uri):
-    return get_model(forge).context().expand(uri)
-
-
-def _shrink_uri(forge, uri):
-    return get_model(forge).context().shrink(uri)
-
-
-def _to_symbol(forge, uri):
-    return get_model(forge).context().to_symbol(uri)
 
 
 def get_type_attribute(obj):

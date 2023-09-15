@@ -4,13 +4,14 @@ import json
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.exceptions.malformed_rule import InvalidParameterTypeException
-from inference_tools.helper_functions import _enforce_unique, _expand_uri
+from inference_tools.helper_functions import _enforce_unique
 from inference_tools.exceptions.exceptions import (
     UnsupportedTypeException,
     InvalidValueException,
     ObjectTypeStr
 )
 from inference_tools.helper_functions import _enforce_list
+from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.type import ParameterType, PremiseType, QueryType, parameter_list_types
 
 
@@ -77,7 +78,7 @@ class ParameterFormatter:
 
         def format_singular(x):
             if self.expand_uri:
-                x = _expand_uri(forge, x)
+                x = ForgeUtils.expand_uri(forge, x)
             return self.format_string.format(x) if self.format_string is not None else x
 
         return [format_singular(el) for el in value] \

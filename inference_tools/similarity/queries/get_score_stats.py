@@ -44,7 +44,7 @@ def get_score_stats(
 
     statistics = get_score_stats_fc(forge, query)
 
-    return Statistic(statistics)
+    return Statistic.from_json(statistics)
 
 
 def _get_score_stats_delta(forge: KnowledgeGraphForge, query: Dict) -> Dict:

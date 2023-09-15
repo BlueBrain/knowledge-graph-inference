@@ -16,8 +16,7 @@ from inference_tools.parameter_formatter import ParameterFormatter
 from inference_tools.similarity.main import SIMILARITY_MODEL_SELECT_PARAMETER_NAME
 from inference_tools.similarity.queries.get_embedding_vector import get_embedding_vector
 from inference_tools.source.elastic_search import ElasticSearch
-from inference_tools.type import QueryType, ParameterType
-from inference_tools.helper_functions import _to_symbol, _expand_uri
+from inference_tools.type import QueryType, ParameterType, RuleType
 
 
 def get_resource_type_descendants(forge, types, to_symbol=True) -> List[str]:
@@ -34,7 +33,7 @@ def get_resource_type_descendants(forge, types, to_symbol=True) -> List[str]:
     @rtype: List[str]
     """
 
-    types = list(map(lambda x: _expand_uri(forge, x), types))
+    types = list(map(lambda x: ForgeUtils.expand_uri(forge, x), types))
 
     query = SparqlQueryBody({"query_string": """
             SELECT ?id ?label
@@ -55,14 +54,16 @@ def get_resource_type_descendants(forge, types, to_symbol=True) -> List[str]:
 
     res_label = [obj["label"] for obj in res]
 
-    return res_label if not to_symbol else list(map(lambda x: _to_symbol(forge, x), res_label))
+    return res_label if not to_symbol else \
+        list(map(lambda x: ForgeUtils.to_symbol(forge, x), res_label))
 
 
 def fetch_rules(
         forge_rules: KnowledgeGraphForge,
         resource_types: Optional[List[str]] = None,
         resource_types_descendants: bool = True,
-        resource_id: Optional[str] = None
+        resource_id: Optional[str] = None,
+        rule_types: Optional[List[RuleType]] = None
 ) -> List[Rule]:
     """
     Get the rules using provided view, for an optional set of target resource types.
@@ -82,12 +83,16 @@ def fetch_rules(
     @rtype: List[Dict]
     """
 
+    types = [RuleType.DataGeneralizationRule.value] \
+        if rule_types is None or len(rule_types) == 0 \
+        else [e.value for e in rule_types]
+
     q = {
         "size": ElasticSearch.NO_LIMIT,
         'query': {
             'bool': {
                 'filter': [
-                    {'term': {'@type': "DataGeneralizationRule"}}
+                    {'terms': {'@type': types}}
                 ],
                 'must': [
                     {'match': {'_deprecated': False}}
