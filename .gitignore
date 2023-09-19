@@ -9,7 +9,7 @@
 *.sbatch
 **/__init__.pyc
 .pylintrc
-data/
+./data/*
 build/
 draft/
 token/

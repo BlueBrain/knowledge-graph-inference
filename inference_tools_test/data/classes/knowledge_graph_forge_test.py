@@ -57,7 +57,8 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
     ) -> List[ResourceTest]:
 
         for pattern, res in elastic_patterns:
-            if pattern(query):
+            matches = pattern(query, self.bucket)
+            if matches:
                 return [ResourceTest(e) for e in res]
 
         return []
@@ -82,6 +83,7 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
             cross_bucket: bool = False,
             **params
     ) -> Optional[ResourceTest]:
+
         return ResourceTest(retrieve_map.get(id, None))
 
     def as_json(

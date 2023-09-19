@@ -1,55 +1,106 @@
+import pytest
+from contextlib import nullcontext as does_not_raise
+
+from inference_tools.exceptions.exceptions import SimilaritySearchException
+
 from inference_tools.datatypes.query import query_factory
 from inference_tools.execution import execute_query_object
 
+from inference_tools_test.data.maps.id_data import (
+    make_model_id,
+    make_entity_id,
+    make_org,
+    make_project
+)
 
-# def test_execute(forge_factory):
-#     similarity_search_query = {
-#         "@type": "SimilarityQuery",
-#         "hasParameter": [
-#             {
-#                 "@type": "uri",
-#                 "description": "test param",
-#                 "name": "TargetResourceParameter"
-#             }
-#         ],
-#         "k": 50,
-#         "queryConfiguration": [
-#             {
-#                 "boosted": True,
-#                 "boostingView": {
-#                     "@id": "boosting_view_id",
-#                     "@type": "ElasticSearchView"
-#                 },
-#                 "description": "Model description",
-#                 "embeddingModel": {
-#                     "@id": "embedding_model_id",
-#                     "@type": "EmbeddingModel",
-#                     "hasSelector": {
-#                         "@type": "FragmentSelector",
-#                         "conformsTo":
-#                             "https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch",
-#                         "value": "?rev=17"
-#                     },
-#                     "org": "org_i",
-#                     "project": "project_i"
-#                 },
-#                 "org": "org_i",
-#                 "project": "project_i",
-#                 "similarityView": {
-#                     "@id": "similarity_view_id",
-#                     "@type": "ElasticSearchView"
-#                 },
-#                 "statisticsView": {
-#                     "@id": "stat_view_id",
-#                     "@type": "ElasticSearchView"
-#                 }
-#             }
-#         ],
-#         "searchTargetParameter": "TargetResourceParameter"
-#     }
-#
-#     execute_query_object(
-#         query=query_factory(similarity_search_query),
+
+@pytest.fixture
+def similarity_search_query_single():
+    return {
+        "@type": "SimilarityQuery",
+        "hasParameter": [
+            {
+                "@type": "uri",
+                "description": "test param",
+                "name": "TargetResourceParameter"
+            }
+        ],
+        "k": 50,
+        "queryConfiguration": [
+            {
+                "boosted": True,
+                "boostingView": {
+                    "@id": "boosting_view_id",
+                    "@type": "ElasticSearchView"
+                },
+                "description": "Model description",
+                "embeddingModelDataCatalog": {
+                    "@id": make_model_id(1),
+                    "@type": "EmbeddingModelDataCatalog",
+                    "_rev": 1,
+                    "org": make_org(1),
+                    "project": make_project(1),
+                    "distance": "euclidean"
+                },
+                "org": make_org(1),
+                "project": make_project(1),
+                "similarityView": {
+                    "@id": "similarity_view_id",
+                    "@type": "ElasticSearchView"
+                },
+                "statisticsView": {
+                    "@id": "stat_view_id",
+                    "@type": "ElasticSearchView"
+                }
+            }
+        ],
+        "searchTargetParameter": "TargetResourceParameter"
+    }
+
+
+@pytest.mark.parametrize(
+    "entity_uuid, expectation",
+    [
+        pytest.param(1, does_not_raise(), id=str(1)),
+        pytest.param(2, does_not_raise(), id=str(2)),
+        pytest.param(3,  does_not_raise(), id=str(3)),
+        pytest.param(11,  pytest.raises(
+            SimilaritySearchException,
+            match=f"No embedding vector for {make_entity_id(11)}"
+        ), id=str(11)),
+    ]
+)
+def test_execute_single(forge_factory, similarity_search_query_single, entity_uuid, expectation):
+
+    with expectation:
+        e = execute_query_object(
+            query=query_factory(similarity_search_query_single),
+            forge_factory=forge_factory,
+            parameter_values={"TargetResourceParameter": make_entity_id(entity_uuid)},
+            use_forge=True
+        )
+
+        print(e)
+
+
+@pytest.fixture()
+def similarity_search_query_combine(similarity_search_query_single):
+    new_query = similarity_search_query_single.copy()
+    q2 = new_query["queryConfiguration"][0].copy()
+    # q2["org"] = make_org(1)
+    # q2["project"] = make_project(1)
+    # q2["embeddingModel"]["@id"] = make_model_id(1)
+    new_query["queryConfiguration"].append(q2)
+    return new_query
+
+
+# TODO
+# def test_execute_combine(forge_factory, similarity_search_query_combine):
+#     e = execute_query_object(
+#         query=query_factory(similarity_search_query_combine),
 #         forge_factory=forge_factory,
-#         parameter_values={"TargetResourceParameter": "any"}
+#         parameter_values={"TargetResourceParameter": make_entity_id(1)},
+#         use_forge=True
 #     )
+
+

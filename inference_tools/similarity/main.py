@@ -68,7 +68,9 @@ def execute_similarity_query(
         )
         selected_models = selected_models_spec.get_value(parameter_values)
     except StopIteration:
-        selected_models = []
+        selected_models = [config_i.embedding_model_data_catalog.id for config_i in config]
+        # Keep all if SIMILARITY_MODEL_SELECT_PARAMETER_NAME is not a part of the parameter
+        # specification = all models should be kept
 
     valid_configs = [
         config_i for config_i in config
@@ -164,7 +166,7 @@ def query_similar_resources(
         raise SimilaritySearchException(f"Target parameter value is not specified, a value for the"
                                         f"parameter {target_parameter} is necessary")
 
-    embedding = get_embedding_vector(forge, search_target, debug=debug)
+    embedding = get_embedding_vector(forge, search_target, debug=debug, use_forge=use_forge)
 
     result: List[Tuple[int, Neighbor]] = get_neighbors(
         forge=forge, vector_id=embedding.id, vector=embedding.vector,
