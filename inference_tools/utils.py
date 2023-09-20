@@ -176,24 +176,24 @@ def format_parameters(query: Query, parameter_values: Optional[Dict], forge: Kno
     return limit, parameter_map
 
 
-def get_embedding_models(rule: Rule) -> List[Dict]:
+def get_embedding_models(rule: Rule) -> Dict[str, Dict]:
     if not isinstance(rule.search_query, SimilaritySearchQuery):
-        return []
+        return dict()
 
     def _transform(qc: SimilaritySearchQueryConfiguration):
 
         e = qc.embedding_model_data_catalog
 
         if e is not None:
-            return {
+            return (e.name.replace(" ", "_"), {
                 "name": e.name,
                 "description": e.description,
                 "id": e.id,
                 "distance": e.distance.value
-            }
+            })
         return None
 
-    return [
+    return dict(
         _transform(qc) for qc in rule.search_query.query_configurations
         if _transform(qc) is not None
-    ]
+    )
