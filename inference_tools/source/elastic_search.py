@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from urllib.parse import quote_plus
 import requests
 
@@ -75,7 +75,8 @@ class ElasticSearch(Source):
         return forge.elastic(json.dumps(ElasticSearch.get_all_documents_query()))
 
     @staticmethod
-    def get_by_ids(ids: List[str], forge: KnowledgeGraphForge) -> Optional[List[Resource]]:
+    def get_by_id(ids: Union[str, List[str]], forge: KnowledgeGraphForge) -> \
+            Optional[Union[Resource, List[Resource]]]:
         """
 
         @param ids: the list of ids of the resources to retrieve
@@ -90,7 +91,7 @@ class ElasticSearch(Source):
             'query': {
                 'bool': {
                     'filter': [
-                        {'terms': {'@id': ids}}
+                        {'terms': {'@id': ids}} if isinstance(ids, list) else {'term': {'@id': ids}}
                     ],
                     'must': [
                         {'match': {'_deprecated': False}}
@@ -98,8 +99,8 @@ class ElasticSearch(Source):
                 }
             }
         }
-
-        return forge.elastic(json.dumps(q), debug=False)
+        res = forge.elastic(json.dumps(q), debug=False)
+        return res[0] if isinstance(ids, str) and len(res) == 1 else res
 
     @staticmethod
     def check_view_readiness(

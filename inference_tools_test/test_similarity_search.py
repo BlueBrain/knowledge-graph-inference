@@ -40,7 +40,8 @@ def similarity_search_query_single():
                     "_rev": 1,
                     "org": make_org(1),
                     "project": make_project(1),
-                    "distance": "euclidean"
+                    "distance": "euclidean",
+                    "about": "Entity"
                 },
                 "org": make_org(1),
                 "project": make_project(1),

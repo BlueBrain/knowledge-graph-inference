@@ -22,6 +22,7 @@ class EmbeddingModelDataCatalog:
     id: str
     distance: Formula
     description: str
+    about: str
 
     def __init__(self, obj):
         self.org = obj.get("org", None)
@@ -30,6 +31,7 @@ class EmbeddingModelDataCatalog:
         self.type = get_type_attribute(obj)
         self.id = get_id_attribute(obj)
         self.description = obj.get("description", None)
+        self.about = obj.get("about", None)
 
         t = obj.get("hasPart", None)
         self.hasPart = [EmbeddingModel(e) for e in t] if t is not None else []

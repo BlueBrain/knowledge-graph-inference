@@ -172,7 +172,8 @@ def query_similar_resources(
         forge=forge, vector_id=embedding.id, vector=embedding.vector,
         k=k, score_formula=config.embedding_model_data_catalog.distance,
         result_filter=result_filter, parameters=parameter_values, debug=debug,
-        use_forge=use_forge, get_derivation=True
+        use_forge=use_forge, get_derivation=True,
+        derivation_type=config.embedding_model_data_catalog.about
     )
 
     return embedding.id, result

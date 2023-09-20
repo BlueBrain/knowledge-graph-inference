@@ -4,9 +4,10 @@ import requests
 from string import Template
 from typing import Optional, List, Dict, Tuple
 
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core import KnowledgeGraphForge, Resource
 
 from inference_tools.datatypes.similarity.neighbor import Neighbor
+from inference_tools.helper_functions import _enforce_list
 from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.similarity.formula import Formula
@@ -15,10 +16,11 @@ from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 def get_neighbors(
         forge: KnowledgeGraphForge, vector: List[float], vector_id: str, debug: bool,
+        derivation_type: str,
         k: int = None, score_formula: Formula = Formula.EUCLIDEAN,
         result_filter=None, parameters=None,
         use_forge: bool = False,
-        get_derivation: bool = False
+        get_derivation: bool = False,
 ) -> List[Tuple[int, Optional[Neighbor]]]:
     """Get nearest neighbors of the provided vector.
 
@@ -94,30 +96,47 @@ def get_neighbors(
 
     get_neighbors_fc = _get_neighbors_forge if use_forge else _get_neighbors_delta
 
-    return get_neighbors_fc(forge, similarity_query, debug=debug, get_derivation=get_derivation)
+    return get_neighbors_fc(forge, similarity_query, debug=debug, get_derivation=get_derivation,
+                            derivation_type=derivation_type)
 
 
 def _get_neighbors_forge(
-    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool
+    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
+    derivation_type: str
 ) -> List:
 
     run = forge.elastic(json.dumps(similarity_query), limit=None, debug=debug)
+
+    def _find_derivation_id(obj: Resource, type_):
+        dict_res = forge.as_json(obj)
+        der = _enforce_list(dict_res["derivation"])
+        el = next(e for e in der if e["entity"]["@type"] == type_)
+        return el["entity"]["@id"]
+
     if run is None or len(run) == 0:
         raise SimilaritySearchException("Getting neighbors failed")
     return [
-        (el._store_metadata._score, Neighbor(forge.as_json(el)))
+        (el._store_metadata._score, Neighbor(
+            _find_derivation_id(el, type_=derivation_type)
+        ))
         for el in run
     ]
 
 
 def _get_neighbors_delta(
-    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool
+    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
+    derivation_type: str
 ) -> List:
 
     url = ForgeUtils.get_elastic_search_endpoint(forge)
     token = ForgeUtils.get_token(forge)
 
-    similarity_query["_source"] = ["derivation.entity.@id"] if get_derivation else False
+    similarity_query["_source"] = ["derivation.entity.@id", "derivation.entity.@type"] if \
+        get_derivation else \
+        False
+
+    if debug:
+        print(similarity_query)
 
     run = DeltaUtils.check_response(
         requests.post(url=url, json=similarity_query, headers=DeltaUtils.make_header(token))
@@ -128,11 +147,16 @@ def _get_neighbors_delta(
     except DeltaException:
         raise SimilaritySearchException("Getting neighbors failed")
 
-    def reformat(element):
-        id_ = element["_source"]["derivation"]["entity"]["@id"]
-        return {"derivation": {"entity": {"@id": id_}}}
+    def _find_derivation_id(derivation_field, type_):
+        der = _enforce_list(derivation_field)
+        el = next(e for e in der if e["entity"]["@type"] == type_)
+        return el["entity"]["@id"]
 
     return [
-        (e["_score"], Neighbor(reformat(e)) if get_derivation else None)
+        (e["_score"], Neighbor(
+            _find_derivation_id(e["_source"]["derivation"], type_=derivation_type)
+        ) if get_derivation else None)
         for e in run
     ]
+
+
