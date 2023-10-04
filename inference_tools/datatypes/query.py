@@ -149,7 +149,6 @@ class ElasticSearchQuery(QuerySuper):
 
 class SimilaritySearchQuery(QuerySuper):
 
-    k: Any
     body: SimilaritySearchQueryBody
     search_target_parameter: str
     result_filter: str
@@ -157,7 +156,6 @@ class SimilaritySearchQuery(QuerySuper):
 
     def __init__(self, obj):
         super().__init__(obj)
-        self.k = obj.get("k", None)
         self.body = SimilaritySearchQueryBody(obj.get("hasBody", None))
         self.search_target_parameter = obj.get("searchTargetParameter", None)
         self.result_filter = obj.get("resultFilter", "")

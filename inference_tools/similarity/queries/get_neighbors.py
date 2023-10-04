@@ -12,15 +12,20 @@ from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.similarity.formula import Formula
 from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.source.source import DEFAULT_LIMIT
 
 
 def get_neighbors(
-        forge: KnowledgeGraphForge, vector: List[float], vector_id: str, debug: bool,
+        forge: KnowledgeGraphForge,
+        vector: List[float],
+        vector_id: str,
+        debug: bool,
         derivation_type: str,
-        k: int = None, score_formula: Formula = Formula.EUCLIDEAN,
+        k: int = DEFAULT_LIMIT,
+        score_formula: Formula = Formula.EUCLIDEAN,
         result_filter=None, parameters=None,
         use_forge: bool = False,
-        get_derivation: bool = False,
+        get_derivation: bool = False
 ) -> List[Tuple[int, Optional[Neighbor]]]:
     """Get nearest neighbors of the provided vector.
 
@@ -52,6 +57,7 @@ def get_neighbors(
     parameters : dict, optional
         Parameter dictionary to use in the provided `result_filter` statement.
     debug: bool
+    derivation_type: str
 
     Returns
     -------
@@ -59,9 +65,6 @@ def get_neighbors(
         List of similarity search results, each element is a tuple with the
         score and the corresponding resource (json representation of the resource).
     """
-
-    if k is None:
-        k = 10000
 
     similarity_query = {
         "from": 0,

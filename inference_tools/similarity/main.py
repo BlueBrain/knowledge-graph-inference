@@ -26,7 +26,7 @@ SIMILARITY_MODEL_SELECT_PARAMETER_NAME = "SelectModelsParameter"
 def execute_similarity_query(
         forge_factory: Callable[[str, str], KnowledgeGraphForge],
         query: SimilaritySearchQuery, parameter_values: Dict, debug: bool,
-        use_forge: bool
+        use_forge: bool, limit: int
 ):
     """Execute similarity search query.
 
@@ -40,6 +40,7 @@ def execute_similarity_query(
         Input parameters used in the similarity query
     debug: bool
     use_forge: bool
+    limit: int
 
     Returns
     -------
@@ -57,10 +58,6 @@ def execute_similarity_query(
     if config is None:
         raise MalformedSimilaritySearchQueryException("No similarity search configuration provided")
 
-    k = query.k
-
-    if isinstance(k, str):
-        k = int(Template(k).substitute(parameter_values))
     try:
         selected_models_spec: ParameterSpecification = next(
             p for p in query.parameter_specifications
@@ -91,7 +88,7 @@ def execute_similarity_query(
             target_parameter=target_parameter,
             config=config_i,
             parameter_values=parameter_values,
-            k=k,
+            k=limit,
             result_filter=query.result_filter,
             debug=debug,
             use_forge=use_forge
@@ -107,7 +104,7 @@ def execute_similarity_query(
         ]
 
     return combine_similarity_models(
-        k=k,
+        k=limit,
         forge_factory=forge_factory,
         parameter_values=parameter_values,
         configurations=valid_configs,

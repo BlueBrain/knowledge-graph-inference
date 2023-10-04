@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 
 from inference_tools.datatypes.query import Query, query_factory
 from inference_tools.exceptions.exceptions import InferenceToolsException, InvalidValueException
+from inference_tools.execution import get_limit
 
 from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.type import ParameterType
@@ -20,20 +21,9 @@ field_name = "ValueField"
         {"LimitQueryParameter": 50}, 50, id="input",
     )
 ])
-def test_parameter_format_limit(query_conf, forge, parameter_values, expected_limit):
-    q = {
-        "@type": "SparqlQuery",
-        "hasBody": {"query_string": ""},
-        "hasParameter": [],
-        "queryConfiguration": query_conf,
-        "resultParameterMapping": []
-    }
+def test_get_limit(query_conf, forge, parameter_values, expected_limit):
 
-    query: Query = query_factory(q)
-
-    limit, formatted_parameters = format_parameters(
-        query=query, parameter_values=parameter_values, forge=forge
-    )
+    limit = get_limit(parameter_values)
 
     assert limit == expected_limit
 
@@ -64,7 +54,7 @@ def test_parameter_format_missing_mandatory(query_conf, forge, parameter_values,
     query: Query = query_factory(q)
 
     with expectation:
-        _, formatted_parameters = format_parameters(
+        formatted_parameters = format_parameters(
             query=query, parameter_values=parameter_values, forge=forge
         )
         assert isinstance(formatted_parameters, dict)
@@ -116,7 +106,7 @@ def test_parameter_format_list_formatting(query_conf, forge, type_, expected_val
         "resultParameterMapping": []
     }
 
-    _, formatted_parameters = format_parameters(
+    formatted_parameters = format_parameters(
         query=query_factory(q), parameter_values=parameter_values,
         forge=forge
     )
@@ -178,7 +168,7 @@ def test_parameter_format_value_formatting(
             "resultParameterMapping": []
         }
 
-        _, params = format_parameters(
+        params = format_parameters(
             query=query_factory(q), parameter_values=parameter_values,
             forge=forge
         )

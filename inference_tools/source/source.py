@@ -6,7 +6,7 @@ from kgforge.core import KnowledgeGraphForge
 from inference_tools.datatypes.query import Query
 from inference_tools.datatypes.query_configuration import QueryConfiguration
 
-DEFAULT_LIMIT = 100
+DEFAULT_LIMIT = 20
 
 
 class Source(ABC):

@@ -119,7 +119,7 @@ def build_get_embedding_vector_query(embedding):
 
 
 def build_get_neighbor_query(embedding):
-    get_neighbors_query = """{"from": 0, "size": 50, "query": {"script_score": {"query": {"bool": {
+    get_neighbors_query = """{"from": 0, "size": 20, "query": {"script_score": {"query": {"bool": {
     "must_not": {"term": {"@id": "$EMBEDDING_ID"}}, "must": {"exists": {"field": "embedding"}}}}, 
     "script": {"source": 
     "if (doc['embedding'].size() == 0) { return 0; } double d = l2norm(params.query_vector, 

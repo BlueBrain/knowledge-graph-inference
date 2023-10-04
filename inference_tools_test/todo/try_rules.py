@@ -64,8 +64,8 @@ attempts = [
         "id": all_aspect,
         "parameters": {
             'TargetResourceParameter': sample_neurom_seu,
-            'SelectModelsParameter': ["Brain_region_BBP_ontology-based_embedding_-_BMO_File"],
-            'LimitQueryParameter': 20
+            'SelectModelsParameter': ["Unscaled_Topology_Morphology_Descriptor-based_similarity"],
+            'LimitQueryParameter': 100
         }
     },
     {

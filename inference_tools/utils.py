@@ -157,12 +157,10 @@ def get_rule_parameters(rule: Rule) -> Dict:
 
 
 def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
-        -> Tuple[Optional[int], Dict]:
-
-    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
+        -> Dict:
 
     if len(query.parameter_specifications) == 0:
-        return limit, {}
+        return {}
 
     # side effect: can rewrite into query body
     parameter_spec, parameter_values = multi_check(parameter_values=parameter_values, query=query)
@@ -173,7 +171,7 @@ def format_parameters(query: Query, parameter_values: Optional[Dict], forge: Kno
         query_type=query.type
     )
 
-    return limit, parameter_map
+    return parameter_map
 
 
 def get_embedding_models(rule: Rule) -> Dict[str, Dict]:

@@ -20,15 +20,25 @@ from inference_tools.premise_execution import PremiseExecution
 from inference_tools.similarity.main import execute_similarity_query
 from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.source.forge import Forge
+from inference_tools.source.source import DEFAULT_LIMIT
 from inference_tools.source.sparql import Sparql
 from inference_tools.type import (QueryType, PremiseType)
 from inference_tools.utils import _build_parameter_map, format_parameters
 
 
+def get_limit(parameter_values: Dict):
+    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
+    if not isinstance(limit, int):
+        limit = DEFAULT_LIMIT
+    return limit
+
+
 def execute_query_object(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge], query: Query,
+        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        query: Query,
         parameter_values: Optional[Dict],
-        last_query=False, debug=False,
+        last_query=False,
+        debug=False,
         use_forge: bool = False
 ) -> List[Dict]:
     """
@@ -57,14 +67,16 @@ def execute_query_object(
         QueryType.ELASTIC_SEARCH_QUERY.value: ElasticSearch
     }
 
+    limit = get_limit(parameter_values)
+
     if query.type.value in sources.keys():
 
         query_config_0 = query.query_configurations[0]
         forge = forge_factory(query_config_0.org, query_config_0.project)
 
-        limit, formatted_parameters = format_parameters(query=query,
-                                                        parameter_values=parameter_values,
-                                                        forge=forge)
+        formatted_parameters = format_parameters(
+            query=query, parameter_values=parameter_values, forge=forge
+        )
 
         source = sources[query.type.value]
 
@@ -93,7 +105,8 @@ def execute_query_object(
             parameter_values=parameter_values,
             forge_factory=forge_factory,
             debug=debug,
-            use_forge=use_forge
+            use_forge=use_forge,
+            limit=limit
         )  # TODO better error handling here
     else:
         raise UnsupportedTypeException(query.type.value, "query type")

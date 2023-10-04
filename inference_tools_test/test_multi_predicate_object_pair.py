@@ -139,7 +139,7 @@ def test_parameter_format_multi_predicate(
 ):
     query = query_factory(query_with)
 
-    _, formatted_parameters = format_parameters(
+    formatted_parameters = format_parameters(
         query=query, parameter_values=existing_parameter_values,
         forge=forge
     )
