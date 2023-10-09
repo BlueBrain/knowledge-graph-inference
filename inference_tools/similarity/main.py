@@ -1,24 +1,22 @@
 from collections import defaultdict
-from string import Template
 from typing import Callable, List, Dict, Tuple, Optional
-
-from pandas import DataFrame
 
 from kgforge.core import KnowledgeGraphForge
 
+from inference_tools.datatypes.similarity.embedding import Embedding
+from inference_tools.datatypes.similarity.statistic import Statistic
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.datatypes.similarity.neighbor import Neighbor
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.datatypes.query import SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
-from inference_tools.similarity.queries.get_boosting_factors import get_boosting_factors
+from inference_tools.similarity.queries.get_boosting_factor import get_boosting_factor_for_embedding
 from inference_tools.similarity.queries.get_embedding_vector import get_embedding_vector
 from inference_tools.similarity.queries.get_neighbors import get_neighbors
 from inference_tools.similarity.queries.get_score_stats import get_score_stats
 from inference_tools.similarity.similarity_model_result import SimilarityModelResult
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
-
 
 SIMILARITY_MODEL_SELECT_PARAMETER_NAME = "SelectModelsParameter"
 
@@ -120,7 +118,7 @@ def query_similar_resources(
         config: SimilaritySearchQueryConfiguration,
         parameter_values, k: Optional[int], target_parameter: str,
         result_filter: Optional[str], debug: bool, use_forge: bool = False
-) -> Tuple[str, List[Tuple[int, Neighbor]]]:
+) -> Tuple[Embedding, List[Tuple[int, Neighbor]]]:
     """Query similar resources using the similarity query.
 
     Parameters
@@ -145,8 +143,8 @@ def query_similar_resources(
 
     Returns
     -------
-    result :  Tuple[str, Dict[int, Neighbor]]
-        The id of the embedding vector of the resource being queried, as well as a dictionary
+    result :  Tuple[Embedding, Dict[int, Neighbor]]
+        The embedding vector of the resource being queried, as well as a dictionary
         with keys being scores and values being a Neighbor object holding
         the resource id that is similar
 
@@ -165,7 +163,8 @@ def query_similar_resources(
 
     embedding = get_embedding_vector(
         forge, search_target, debug=debug, use_forge=use_forge,
-        derivation_type=config.embedding_model_data_catalog.about
+        derivation_type=config.embedding_model_data_catalog.about,
+        model_name=config.embedding_model_data_catalog.name
     )
 
     result: List[Tuple[int, Neighbor]] = get_neighbors(
@@ -176,7 +175,7 @@ def query_similar_resources(
         derivation_type=config.embedding_model_data_catalog.about
     )
 
-    return embedding.id, result
+    return embedding, result
 
 
 def combine_similarity_models(
@@ -185,75 +184,124 @@ def combine_similarity_models(
         parameter_values: Dict, k: int, target_parameter: str,
         result_filter: Optional[str], debug: bool, use_forge: bool
 ) -> List[Dict]:
-    """Perform similarity search combining several similarity models"""
+    """
+    Perform similarity search combining several similarity models
+    @param forge_factory: 
+    @type forge_factory: KnowledgeGraphForge
+    @param configurations: 
+    @type configurations: List[SimilaritySearchQueryConfiguration]
+    @param parameter_values: 
+    @type parameter_values: Dict
+    @param k: 
+    @type k: int
+    @param target_parameter: 
+    @type target_parameter: str
+    @param result_filter: 
+    @type result_filter: 
+    @param debug: 
+    @type debug: bool
+    @param use_forge: whether to query with the KnowledgeGraphForge instance or to make direct 
+    calls to Delta
+    @type use_forge: bool
+    @return: 
+    @rtype: List[Dict]
+    """""
+
+    # 1. Get neighbors for all models
 
     model_ids = [config_i.embedding_model_data_catalog.id for config_i in configurations]
 
-    equal_contribution = 1 / len(configurations)  # TODO change to user input model weight
+    # Assume boosting factors and stats are in the same bucket as embeddings
+    forge_instances = [forge_factory(config_i.org, config_i.project) for config_i in configurations]
 
-    weights = dict(
-        (model_id, equal_contribution)
-        for model_id in model_ids
-    )
-
-    # Combine the results
-    combined_results = defaultdict(dict)
-
-    for config_i in configurations:
-        # Assume boosting factors and stats are in the same bucket as embeddings
-        forge_i = forge_factory(config_i.org, config_i.project)
-
-        vector_id, neighbors = query_similar_resources(
+    vector_neighbors_per_model: List[Tuple[Embedding, List[Tuple[int, Neighbor]]]] = [
+        query_similar_resources(
             forge=forge_i, config=config_i,
-            parameter_values=parameter_values, k=None, target_parameter=target_parameter,
+            parameter_values=parameter_values, k=k, target_parameter=target_parameter,
             result_filter=result_filter, debug=debug, use_forge=use_forge
         )
+        for (config_i, forge_i) in zip(configurations, forge_instances)
+    ]
 
-        statistic = get_score_stats(
-            forge_i, config_i, boosted=config_i.boosted, use_forge=use_forge
+    all_neighbors_across_models = set.union(*[
+        set(n.entity_id for _, n in neighbors) for _, neighbors in vector_neighbors_per_model
+    ])
+
+    missing_neighbors_per_model = dict(
+        (
+            embedding,
+            all_neighbors_across_models.difference(set(n.entity_id for _, n in neighbors))
+        )
+        for embedding, neighbors in vector_neighbors_per_model
+    )
+
+    for i, (embedding, missing_list) in enumerate(missing_neighbors_per_model.items()):
+        missing_neighbors: List[Tuple[int, Neighbor]] = get_neighbors(
+            forge=forge_instances[i], vector_id=embedding.id, vector=embedding.vector,
+            k=k, score_formula=configurations[i].embedding_model_data_catalog.distance,
+            result_filter=result_filter, parameters=parameter_values, debug=debug,
+            use_forge=use_forge, get_derivation=True,
+            restricted_ids=list(missing_list),
+            derivation_type=configurations[i].embedding_model_data_catalog.about
+        )
+
+        vector_neighbors_per_model[i][1].extend(missing_neighbors)
+
+    # 2. Boost/Combine models
+
+    equal_contribution = 1 / len(configurations)  # TODO change to user input model weight
+
+    weights = dict((model_id, equal_contribution) for model_id in model_ids)
+
+    combined_results = defaultdict(dict)
+
+    for i, (config_i, forge_i) in enumerate(zip(configurations, forge_instances)):
+
+        embedding, neighbors = vector_neighbors_per_model[i]
+
+        statistic: Statistic = get_score_stats(
+            forge=forge_i, config=config_i, boosted=config_i.boosted, use_forge=use_forge
         )
 
         if config_i.boosted:
-            boosted_factors = get_boosting_factors(forge_i, config_i, use_forge=use_forge)
-            if vector_id not in boosted_factors:
-                print(f"Warning {vector_id} not in boosted_factors")
-            # TODO temporary because some boosting factors are missing
-            factor = boosted_factors[vector_id].value if vector_id in boosted_factors else 1
+            boosting_factor = get_boosting_factor_for_embedding(
+                forge=forge_i, config=config_i, use_forge=use_forge, embedding_id=embedding.id
+            )
+            factor = boosting_factor.value
         else:
             factor = 1
 
+        embedding_model_id = config_i.embedding_model_data_catalog.id
+
         for score_i, n in neighbors:
-            score_i = normalize(score_i * factor, statistic.min, statistic.max)
+            combined_results[n.entity_id][embedding_model_id] = (
+                normalize(score_i * factor, statistic.min, statistic.max),
+                weights[embedding_model_id]
+            )
 
-            combined_results[n.entity_id][config_i.embedding_model_data_catalog.id] = \
-                (score_i, weights[config_i.embedding_model_data_catalog.id])
-
-            # weight is redundant but for confirmation
-            # score of proximity between n.entity_id and
-            # queried resource for the key model
-
-    def get_weighted_score(score_dict):
-        if not all([model_id in score_dict.keys() for model_id in model_ids]):
-            # TODO If a score is not available for all models,
-            #  most likely due to missing data in Nexus, should not happen
-            # TODO change this ???
-            return 0
-
-        return sum([score * weight for score, weight in score_dict.values()])
+        # weight is redundant but for confirmation score of proximity between n.entity_id and
+        # queried resource for the key model
 
     combined_results_mean = [
-        (key, get_weighted_score(value), value)
-        for key, value in combined_results.items()
+        (
+            entity_id,
+            sum([score * weight for score, weight in score_dict.values()]),
+            score_dict
+        )
+        for entity_id, score_dict in combined_results.items()
     ]
 
-    df = DataFrame(combined_results_mean).nlargest(k, columns=[1])
+    combined_results_mean.sort(key=lambda row: row[1], reverse=True)
+
+    if len(combined_results_mean) > k:
+        combined_results_mean = combined_results_mean[:k - 1]
 
     return [
         SimilarityModelResult(
             id=id_, score=score, score_breakdown=score_breakdown
         ).to_json()
 
-        for id_, score, score_breakdown in zip(df[0], df[1], df[2])
+        for id_, score, score_breakdown in combined_results_mean
     ]
 
 

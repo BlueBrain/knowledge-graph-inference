@@ -12,8 +12,12 @@ from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 
+def err_message(entity_id, model_name):
+    return f"{entity_id} was not embedded by the model {model_name}"
+
+
 def get_embedding_vector(
-        forge: KnowledgeGraphForge, search_target: str, debug: bool,
+        forge: KnowledgeGraphForge, search_target: str, debug: bool, model_name: str,
         derivation_type: str, es_endpoint: str = None, use_forge=False
 ) -> Embedding:
     """Get embedding vector for the target of the input similarity query.
@@ -47,6 +51,11 @@ def get_embedding_vector(
                                 "term": {"derivation.entity.@id": search_target}
                             }
                         }
+                    },
+                    {
+                        "term": {
+                            "_deprecated": False
+                        }
                     }
                 ]
             }
@@ -58,21 +67,21 @@ def get_embedding_vector(
             _get_embedding_vector_delta
 
     result = get_embedding_vector_fc(
-        forge, vector_query, debug, search_target, derivation_type, es_endpoint
+        forge, vector_query, debug, search_target, model_name, derivation_type, es_endpoint
     )
 
     return Embedding(result)
 
 
 def _get_embedding_vector_forge(
-        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str,
+        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
         derivation_type: str, es_endpoint: str = None
 ) -> Dict:
 
     result = forge.elastic(json.dumps(query), limit=None, debug=debug)
 
     if result is None or len(result) == 0:
-        raise SimilaritySearchException(f"No embedding vector for {search_target}")
+        raise SimilaritySearchException(err_message(search_target, model_name))
 
     def _find_derivation_id(obj: Dict, type_):
         der = _enforce_list(obj["derivation"])
@@ -89,7 +98,7 @@ def _get_embedding_vector_forge(
 
 
 def _get_embedding_vector_delta(
-        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str,
+        forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
         derivation_type: str, es_endpoint: str = None
 ) -> Dict:
 
@@ -109,10 +118,10 @@ def _get_embedding_vector_delta(
     try:
         result = DeltaUtils.check_hits(result)
     except DeltaException:
-        raise SimilaritySearchException(f"No embedding vector for {search_target}")
+        raise SimilaritySearchException(err_message(search_target, model_name))
 
     if len(result) == 0:
-        raise SimilaritySearchException(f"No embedding vector for {search_target}")
+        raise SimilaritySearchException(err_message(search_target, model_name))
 
     result = result[0]
 

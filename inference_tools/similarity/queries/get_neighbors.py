@@ -25,7 +25,8 @@ def get_neighbors(
         score_formula: Formula = Formula.EUCLIDEAN,
         result_filter=None, parameters=None,
         use_forge: bool = False,
-        get_derivation: bool = False
+        get_derivation: bool = False,
+        restricted_ids: Optional[List[str]] = None
 ) -> List[Tuple[int, Optional[Neighbor]]]:
     """Get nearest neighbors of the provided vector.
 
@@ -56,6 +57,9 @@ def get_neighbors(
         performing similarity search
     parameters : dict, optional
         Parameter dictionary to use in the provided `result_filter` statement.
+    restricted_ids: List, optional
+        A list of entity ids for which the associated embedding's score should be computed.
+        Only these should be returned if specified. Else the top embedding scores will be returned
     debug: bool
     derivation_type: str
 
@@ -76,9 +80,9 @@ def get_neighbors(
                         "must_not": {
                             "term": {"@id": vector_id}
                         },
-                        "must": {
+                        "must": [{
                             "exists": {"field": "embedding"}
-                        }
+                        }]
                     }
                 },
                 "script": {
@@ -91,6 +95,18 @@ def get_neighbors(
         }
     }
 
+    if restricted_ids is not None:
+        similarity_query["query"]["script_score"]["query"]["bool"]["must"].append(
+            {
+                "nested": {
+                    "path": "derivation.entity",
+                    "query": {
+                        "terms": {"derivation.entity.@id": restricted_ids}
+                    }
+                }
+            }
+        )
+
     if result_filter:
         if parameters:
             result_filter = Template(result_filter).substitute(parameters)
@@ -99,8 +115,10 @@ def get_neighbors(
 
     get_neighbors_fc = _get_neighbors_forge if use_forge else _get_neighbors_delta
 
-    return get_neighbors_fc(forge, similarity_query, debug=debug, get_derivation=get_derivation,
-                            derivation_type=derivation_type)
+    return get_neighbors_fc(
+        forge, similarity_query, debug=debug, get_derivation=get_derivation,
+        derivation_type=derivation_type
+    )
 
 
 def _get_neighbors_forge(

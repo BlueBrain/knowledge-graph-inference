@@ -104,7 +104,7 @@ embeddings = [
 def build_get_embedding_vector_query(embedding):
     get_embedding_vector_query = """{"from": 0, "size": 1, "query": {"bool": {"must": [{"nested": {
     "path": "derivation.entity", "query": {"term": {"derivation.entity.@id": 
-    "$EMBEDDING_ID"}}}}]}}}""".replace("\n", "").replace("\t", "").replace("    ", "")
+    "$EMBEDDING_ID"}}}}, {"term": {"_deprecated": false}}]}}}""".replace("\n", "").replace("\t", "").replace("    ", "")
 
     derivation_id = embedding.__dict__["derivation"]["entity"]["@id"]
     embedding_bucket = embedding.__dict__["bucket"]
@@ -120,7 +120,7 @@ def build_get_embedding_vector_query(embedding):
 
 def build_get_neighbor_query(embedding):
     get_neighbors_query = """{"from": 0, "size": 20, "query": {"script_score": {"query": {"bool": {
-    "must_not": {"term": {"@id": "$EMBEDDING_ID"}}, "must": {"exists": {"field": "embedding"}}}}, 
+    "must_not": {"term": {"@id": "$EMBEDDING_ID"}}, "must": [{"exists": {"field": "embedding"}}]}}, 
     "script": {"source": 
     "if (doc['embedding'].size() == 0) { return 0; } double d = l2norm(params.query_vector, 
     'embedding'); return (1 / (1 + d))", "params": {"query_vector": [$QUERY_VECTOR]}}}}}""".\
@@ -132,7 +132,9 @@ def build_get_neighbor_query(embedding):
 
     def eq_check(query, bucket):
         full_q = get_neighbors_query.replace("$EMBEDDING_ID", id_).replace("$QUERY_VECTOR", vec)
-        return query == full_q and bucket == embedding_bucket
+        a = query == full_q
+        b = bucket == embedding_bucket
+        return a and b
 
     return eq_check
 

@@ -5,6 +5,7 @@ from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 from inference_tools.datatypes.query import query_factory
 from inference_tools.execution import execute_query_object
+from inference_tools.similarity.queries.get_embedding_vector import err_message
 
 from inference_tools_test.data.maps.id_data import (
     make_model_id,
@@ -41,7 +42,9 @@ def similarity_search_query_single():
                     "org": make_org(1),
                     "project": make_project(1),
                     "distance": "euclidean",
-                    "about": "Entity"
+                    "about": "Entity",
+                    "name": "Model name",
+                    "description": "Model description"
                 },
                 "org": make_org(1),
                 "project": make_project(1),
@@ -67,7 +70,7 @@ def similarity_search_query_single():
         pytest.param(3,  does_not_raise(), id=str(3)),
         pytest.param(11,  pytest.raises(
             SimilaritySearchException,
-            match=f"No embedding vector for {make_entity_id(11)}"
+            match=err_message(make_entity_id(11), model_name="Model name")
         ), id=str(11)),
     ]
 )

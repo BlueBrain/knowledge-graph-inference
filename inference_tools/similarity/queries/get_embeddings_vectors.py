@@ -52,6 +52,11 @@ def get_embedding_vectors(
                                 "terms": {"derivation.entity.@id": search_targets}
                             }
                         }
+                    },
+                    {
+                        "term": {
+                            "_deprecated": False
+                        }
                     }
                 ]
             }
