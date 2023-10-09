@@ -1,20 +1,22 @@
 """
 Rule fetching
 """
+from copy import deepcopy
 from string import Template
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 import json
-import os
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.query import SparqlQueryBody, SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.rule import Rule
+from inference_tools.datatypes.similarity.embedding import Embedding
 from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.helper_functions import _enforce_list
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.parameter_formatter import ParameterFormatter
 from inference_tools.similarity.main import SIMILARITY_MODEL_SELECT_PARAMETER_NAME
-from inference_tools.similarity.queries.get_embedding_vector import get_embedding_vector
+from inference_tools.similarity.queries.get_embeddings_vectors import get_embedding_vectors
 from inference_tools.source.elastic_search import ElasticSearch
 from inference_tools.type import QueryType, ParameterType, RuleType
 
@@ -62,11 +64,18 @@ def fetch_rules(
         forge_rules: KnowledgeGraphForge,
         resource_types: Optional[List[str]] = None,
         resource_types_descendants: bool = True,
-        resource_id: Optional[str] = None,
-        rule_types: Optional[List[RuleType]] = None
-) -> List[Rule]:
+        resource_ids: Optional[Union[str, List[str]]] = None,
+        rule_types: Optional[List[RuleType]] = None,
+        use_forge: bool = False
+) -> Union[List[Rule], Dict[str, List[Rule]]]:
     """
-    Get the rules using provided view, for an optional set of target resource types.
+    Get rules. Rules can be filtered by
+    - target resource types: getting rules that return only entities of specified types. If
+    resource type descendants is enabled, rules that target parent types of the specified type will
+    also be returned.
+    - rule types: getting rules of specific rule types
+    - resource ids: getting rules that can be used with the specified resources. For each
+    resource, a list of rule will be applicable
 
     @param forge_rules: a Forge instance tied to a bucket containing rules
     @type forge_rules: KnowledgeGraphForge
@@ -76,14 +85,18 @@ def fetch_rules(
     @param resource_types_descendants: When fetching rules with specific target data types, whether
     the rule can also target parents of this data types (be more general but still applicable)
     @type resource_types_descendants: bool
-    @param resource_id: str
-    @param resource_id: a resource id to filter similarity search based rules, based on whether
-     an embedding is available for that resource or not
-    @return: a list of rules that have the specified resource_types
-    @rtype: List[Dict]
+    @param resource_ids: resource ids to filter similarity search based rules, based on whether
+     an embedding is available for these resources or not
+    @type resource_ids: Optional[Union[str, List[str]]]
+    @param rule_types: the rule types to filter by
+    @type rule_types: Optional[List[RuleType]]
+
+    @return: a list of rules if no resource ids were specified, a dictionary of list of rules if
+    resource ids were specified. This dictionary's index are the resource ids.
+    @rtype: Union[List[Rule], Dict[str, List[Rule]]]
     """
 
-    types = [RuleType.DataGeneralizationRule.value] \
+    rule_types = [RuleType.DataGeneralizationRule.value] \
         if rule_types is None or len(rule_types) == 0 \
         else [e.value for e in rule_types]
 
@@ -92,7 +105,7 @@ def fetch_rules(
         'query': {
             'bool': {
                 'filter': [
-                    {'terms': {'@type': types}}
+                    {'terms': {'@type': rule_types}}
                 ],
                 'must': [
                     {'match': {'_deprecated': False}}
@@ -111,59 +124,90 @@ def fetch_rules(
         )
 
     rules = forge_rules.elastic(json.dumps(q))
-
-    with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "rule_ignore.txt")) as f:
-        ignored_rules = [l.strip() for l in f.readlines()]
-
-    rules_with_ignored = [
+    rules = [
         Rule({**forge_rules.as_json(rule), "nexus_link": rule._store_metadata._self})
-        for rule in rules if rule.id not in ignored_rules
+        for rule in rules
     ]
 
-    if resource_id is None:
-        return rules_with_ignored
+    if resource_ids is None:
+        return rules
 
-    return [
-        rule
-        for rule in map(
-            lambda x: rule_has_resource_id_embeddings(x, resource_id, forge_rules),
-            rules_with_ignored
+    resource_ids = _enforce_list(resource_ids)
+
+    rule_check = [
+        rule_has_resource_ids_embeddings(rule, resource_ids, forge_rules, use_forge=use_forge)
+        for rule in rules
+    ]
+
+    final_dict = dict(
+        (
+            res_id,
+            list(
+                e for e in map(lambda dict_rule: dict_rule[res_id], rule_check)
+                if e is not None
+            )
         )
-        if rule is not None
-    ]
+        for res_id in resource_ids
+    )
+
+    return final_dict
 
 
-def rule_has_resource_id_embeddings(
-        rule: Rule, resource_id: str, forge: KnowledgeGraphForge
-) -> Optional[Rule]:
+def rule_has_resource_ids_embeddings(
+        rule: Rule, resource_ids: List[str], forge: KnowledgeGraphForge, use_forge: bool
+) -> Dict[str, Rule]:
     """
-    @param rule: the rule to check
+    Checks whether a rule is relevant for a list of resource ids.
+    @param rule: the rule
     @type rule: Rule
-    @param resource_id: the entity id for which we check that the rule has embeddings for
-    @type resource_id: str
-    @param forge: a forge instance
+    @param resource_ids: the list of resource ids
+    @type resource_ids: List[str]
+    @param forge: a forge instance to query for the embeddings that will indicate if the rule is
+    relevant for a resource or not.
     @type forge: KnowledgeGraphForge
-    @return:
-    - the whole rule if the rule is does not have its search query as a similarity search query
-    - a partial version of the rule if its search query is a similarity search query, and only
-    some of the models it uses have embeddings for the resource id
-    - None if the rule search query is a similarity search query and none of the models it uses
-    have embeddings for the resource id
-    @rtype: Optional[Rule]
+    @return: If a rule's search query is not a SimilaritySearchQuery, the rule is relevant for
+    all resource ids.
+    If the rule's search query is a SimilaritySearchQuery, for each resource id,
+    we look for whether the associated resource has been embedded by the models contained in the
+    rule's query configurations.
+    If only some models are relevant for a resource, a partial version of the
+    rule (with some query configurations filtered out) is returned for a resource id.
+    If all models are relevant for a resource, the whole rule is returned for a resource id.
+    If none of the models are relevant, None is returned for a resource id.
+    @rtype: Dict[str, Rule]
     """
 
     if not isinstance(rule.search_query, SimilaritySearchQuery):
-        return rule
+        return dict((res_id, rule) for res_id in resource_ids)
 
-    query_confs: List[SimilaritySearchQueryConfiguration] = [
-        qc
-        for qc in map(lambda x: _filter_query_conf(x, resource_id, forge),
-                      rule.search_query.query_configurations)
-        if qc is not None
+    has_embedding_dict_list: List[Dict[str, bool]] = [
+        has_embedding_dict(qc, resource_ids, forge, use_forge=use_forge)
+        for qc in rule.search_query.query_configurations
     ]
 
-    if len(query_confs) == 0:
-        return None
+    def _handle_resource_id(res_id) -> Optional[Rule]:
+        query_confs = list(
+            e
+            for e in map(
+                lambda i_qc_res: rule.search_query.query_configurations[i_qc_res[0]]
+                if i_qc_res[1][res_id] else None, enumerate(has_embedding_dict_list)
+            )
+            if e is not None
+        )
+
+        if len(query_confs) == 0:
+            return None
+
+        rule_i = deepcopy(rule)
+        rule_i.search_query.query_configurations = query_confs
+        return _update_parameter_specifications(rule_i, query_confs)
+
+    return dict((res_id, _handle_resource_id(res_id)) for res_id in resource_ids)
+
+
+def _update_parameter_specifications(
+        rule: Rule, query_configurations: List[SimilaritySearchQueryConfiguration]
+):
 
     pos_select = next(
         i for i, e in enumerate(rule.search_query.parameter_specifications)
@@ -171,7 +215,7 @@ def rule_has_resource_id_embeddings(
     )
 
     valid_select_values = [
-        qc.embedding_model_data_catalog.id for qc in query_confs
+        qc.embedding_model_data_catalog.id for qc in query_configurations
     ]
 
     rule.search_query.parameter_specifications[pos_select].values = dict(
@@ -179,15 +223,29 @@ def rule_has_resource_id_embeddings(
         for key, value in rule.search_query.parameter_specifications[pos_select].values.items()
         if value in valid_select_values
     )
-
-    rule.search_query.query_configurations = query_confs
     return rule
 
 
-def _filter_query_conf(
-        query_conf: SimilaritySearchQueryConfiguration, resource_id: str,
-        forge: KnowledgeGraphForge
-) -> Optional[SimilaritySearchQueryConfiguration]:
+def has_embedding_dict(
+        query_conf: SimilaritySearchQueryConfiguration,
+        resource_ids: List[str],
+        forge: KnowledgeGraphForge,
+        use_forge: bool
+) -> Dict[str, bool]:
+    """
+    For each resource id, checks whether it has been embedded by the model associated with the
+    input query configuration. The information is returned a dictionary where the key is the
+    resource id being checked and the value is a boolean indicating whether
+    an embedding was found or not.
+    @param query_conf: the query configuration containing information about the embedding model
+    @type query_conf: SimilaritySearchQueryConfiguration
+    @param resource_ids: a list of resource ids
+    @type resource_ids: List[str]
+    @param forge: a forge instance in order to query for embeddings
+    @type forge: KnowledgeGraphForge
+    @return: a dictionary indexed by the
+    @rtype: Dict[str, bool]
+    """
     es_view = query_conf.similarity_view.id
 
     endpoint, _, _ = ForgeUtils.get_endpoint_org_project(forge)
@@ -197,10 +255,16 @@ def _filter_query_conf(
     )
 
     try:
-        emb = get_embedding_vector(
-            forge=forge, search_target=resource_id,
-            use_forge=False, debug=False, es_endpoint=es_endpoint
+        embs: List[Embedding] = get_embedding_vectors(
+            forge=forge, search_targets=resource_ids,
+            use_forge=use_forge, debug=False,
+            es_endpoint=es_endpoint,
+            derivation_type=query_conf.embedding_model_data_catalog.about
         )
-        return query_conf
+
+        emb_dict: Dict[str, Optional[Embedding]] = dict((e.derivation_id, e) for e in embs)
+
+        return dict((res_id, res_id in emb_dict) for res_id in resource_ids)
+
     except SimilaritySearchException:
-        return None
+        return dict((res_id, False) for res_id in resource_ids)

@@ -13,3 +13,6 @@ class View:
             self.type = get_type_attribute(obj)
         except TypeError:
             self.type = None
+
+    def __repr__(self):
+        return f"{self.type}: {self.id}"

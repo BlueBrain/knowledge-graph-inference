@@ -12,6 +12,9 @@ class EmbeddingModel:
         self.id = get_id_attribute(obj)
         self.rev = obj["_rev"]
 
+    def __repr__(self):
+        return f"Id: {self.id}\nRev: {self.rev}"
+
 
 class EmbeddingModelDataCatalog:
 
@@ -43,4 +46,15 @@ class EmbeddingModelDataCatalog:
         except Exception as e:  # TODO find the specific exception type
             print(f"Invalid distance {tmp_d}")
 
+    def __repr__(self):
+        bucket_str = f"Bucket: {self.org}/{self.project}"
+        name_str = f"Name: {self.name}"
+        type_str = f"Type: {self.type}"
+        id_str = f"Id: {self.id}"
+        desc_str = f"Description: {self.description}"
+        about_str = f"About: {self.about}"
+        has_part_str = f"Has Part: {self.hasPart}"
 
+        return "\n".join(
+            [id_str, name_str, type_str, bucket_str, desc_str, about_str, has_part_str]
+        )

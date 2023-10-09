@@ -39,6 +39,9 @@ class SparqlQueryConfiguration(QueryConfigurationSuper):
         tmp_sv = obj.get("sparqlView", None)
         self.sparql_view = View(tmp_sv) if tmp_sv is not None else None
 
+    def __repr__(self):
+        return f"Sparql Query Configuration: {self.sparql_view}"
+
 
 class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
     elastic_search_view: Optional[View]
@@ -48,13 +51,15 @@ class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
         tmp_esv = obj.get("elasticSearchView", None)
         self.elastic_search_view = View(tmp_esv) if tmp_esv is not None else None
 
+    def __repr__(self):
+        return f"ES Query Configuration: {self.elastic_search_view}"
+
 
 class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
     embedding_model_data_catalog: EmbeddingModelDataCatalog
     similarity_view: View
     boosting_view: View
     statistics_view: View
-    description: Optional[str]
     boosted: bool
 
     def __init__(self, obj, object_type):
@@ -69,13 +74,24 @@ class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
         self.embedding_model_data_catalog = EmbeddingModelDataCatalog(tmp_em) \
             if tmp_em is not None else None
         self.boosted = obj.get("boosted", False)
-        self.description = obj.get("description", None)
+
+    def __repr__(self):
+        sim_view_str = f"Similarity View: {self.similarity_view}"
+        boosting_view_str = f"Boosting View: {self.boosting_view}"
+        stat_view_str = f"Statistics View: {self.boosting_view}"
+        boosted_str = f"Boosted: {self.boosted}"
+        embedding_model_data_catalog_str = f"Embedding Model Data Catalog: " \
+                                           f"{self.embedding_model_data_catalog}"
+
+        return "\n".join([sim_view_str, boosted_str, boosting_view_str, stat_view_str,
+                          embedding_model_data_catalog_str])
 
 
 QueryConfiguration = NewType(
     "QueryConfiguration",
     Union[
-        SparqlQueryConfiguration, ElasticSearchQueryConfiguration,
+        SparqlQueryConfiguration,
+        ElasticSearchQueryConfiguration,
         SimilaritySearchQueryConfiguration
     ]
 )

@@ -13,3 +13,6 @@ class QueryPipe:
         tmp = obj["rest"]
         self.rest = query_factory(tmp) if get_type_attribute(tmp) != "QueryPipe" else \
             QueryPipe(tmp)
+
+    def __repr__(self):
+        return f"QueryPipe: \n\tHead: {self.head} \n\tRest: {self.rest}"

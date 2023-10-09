@@ -23,10 +23,12 @@ class SparqlQueryBody:
     def __init__(self, body_dict):
         self.query_string = body_dict["query_string"]
 
+    def __repr__(self):
+        return self.query_string
+
 
 ElasticSearchQueryBody = NewType('ElasticSearchQueryBody', Dict)
 ForgeQueryBody = NewType("ForgeQueryBody", Dict)
-SimilaritySearchQueryBody = NewType("SimilaritySearchQueryBody", Any)
 
 
 def premise_factory(obj):
@@ -82,6 +84,13 @@ class QuerySuper:
         self.result_parameter_mapping = [ParameterMapping(obj_i) for obj_i in _enforce_list(tmp)] \
             if tmp is not None else None
 
+    def __repr__(self):
+        type_str = f"Type: {self.type.value}"
+        desc_str = f"Description: {self.description}"
+        param_spec_str = f"Parameter specifications: {self.parameter_specifications}"
+        result_param_mapping = f"Result Parameter Mapping: {self.result_parameter_mapping}"
+        return "\n".join([type_str, desc_str, param_spec_str, result_param_mapping])
+
 
 class ForgeQuery(QuerySuper):
     body: ForgeQueryBody
@@ -105,6 +114,12 @@ class ForgeQuery(QuerySuper):
             for obj_i in _enforce_list(tmp_qc)
         ]
 
+    def __repr__(self):
+        query_super_str = super().__repr__()
+        target_parameter_str = f"Target Parameter: {self.targetParameter}"
+        target_path_str = f"Target Path: {self.targetPath}"
+        return "\n".join([query_super_str, target_parameter_str, target_path_str])
+
 
 class SparqlQuery(QuerySuper):
 
@@ -126,6 +141,12 @@ class SparqlQuery(QuerySuper):
             for obj_i in _enforce_list(tmp_qc)
         ]
 
+    def __repr__(self):
+        query_super_str = super().__repr__()
+        sparql_query_str = f"Sparql query: {self.body}"
+        qc_str = f"Query configuration: {self.query_configurations}"
+        return "\n".join([query_super_str, sparql_query_str, qc_str])
+
 
 class ElasticSearchQuery(QuerySuper):
 
@@ -146,29 +167,41 @@ class ElasticSearchQuery(QuerySuper):
             for obj_i in _enforce_list(tmp_qc)
         ]
 
+    def __repr__(self):
+        query_super_str = super().__repr__()
+        es_query_str = f"ES query: {self.body}"
+        qc_str = f"Query configuration: {self.query_configurations}"
+        return "\n".join([query_super_str, es_query_str, qc_str])
+
 
 class SimilaritySearchQuery(QuerySuper):
 
-    body: SimilaritySearchQueryBody
     search_target_parameter: str
     result_filter: str
     query_configurations: List[SimilaritySearchQueryConfiguration]
 
     def __init__(self, obj):
         super().__init__(obj)
-        self.body = SimilaritySearchQueryBody(obj.get("hasBody", None))
         self.search_target_parameter = obj.get("searchTargetParameter", None)
         self.result_filter = obj.get("resultFilter", "")
 
         tmp_qc = obj.get("queryConfiguration", None)
         if tmp_qc is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY,
-                                            attribute="queryConfiguration")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY, attribute="queryConfiguration"
+            )
 
         self.query_configurations = [
             SimilaritySearchQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
             for obj_i in _enforce_list(tmp_qc)
         ]
+
+    def __repr__(self):
+        query_super_str = super().__repr__()
+        qc_str = f"Query configurations: {self.query_configurations}"
+        result_filter_str = f"Result filter: {self.result_filter}"
+        search_target_parameter_str = f"Search Target Parameter: {self.search_target_parameter}"
+        return "\n".join([query_super_str, qc_str, result_filter_str, search_target_parameter_str])
 
 
 Query = NewType("Query", Union[SparqlQuery, ElasticSearchQuery, SimilaritySearchQuery, ForgeQuery])

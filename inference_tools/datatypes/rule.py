@@ -23,12 +23,13 @@ class Rule:
     nexus_link: Optional[str]
 
     def __init__(self, obj):
-        self.type = [RuleType(e) for e in _enforce_list(get_type_attribute(obj))]
-        self.context = obj.get("@context", None)
-        self.description = obj.get("description", None)
         self.id = get_id_attribute(obj)
-        self.target_resource_type = obj.get("targetResourceType", None)
         self.name = obj.get("name", None)
+        self.description = obj.get("description", None)
+        self.type = [RuleType(e) for e in _enforce_list(get_type_attribute(obj))]
+
+        self.context = obj.get("@context", None)
+        self.target_resource_type = obj.get("targetResourceType", None)
         self.nexus_link = obj.get("nexus_link", None)
 
         tmp_premise = obj.get("premise", None)
@@ -44,3 +45,20 @@ class Rule:
         self.search_query = query_factory(tmp_sq) \
             if get_type_attribute(tmp_sq) != "QueryPipe" else \
             QueryPipe(tmp_sq)
+
+    def __repr__(self):
+        id_str = f"Id: {self.id}"
+        name_str = f"Name: {self.name}"
+        desc_str = f"Description: {self.description}"
+        type_str = f"Type: {[e.value for e in self.type]}"
+        target_str = f"Target Resource Type: {self.target_resource_type}"
+        nexus_link = f"Nexus link: {self.nexus_link}"
+        context_str = f"Context: {self.context}"
+        premises_str = f"Premises: {self.premises}"
+        search_query_str = f"Search Query: {self.search_query}"
+
+        return "\n".join([
+            "Rule", id_str, name_str, desc_str, type_str, target_str, nexus_link, context_str,
+            premises_str, search_query_str
+        ]) + "\n"
+

@@ -163,7 +163,10 @@ def query_similar_resources(
         raise SimilaritySearchException(f"Target parameter value is not specified, a value for the"
                                         f"parameter {target_parameter} is necessary")
 
-    embedding = get_embedding_vector(forge, search_target, debug=debug, use_forge=use_forge)
+    embedding = get_embedding_vector(
+        forge, search_target, debug=debug, use_forge=use_forge,
+        derivation_type=config.embedding_model_data_catalog.about
+    )
 
     result: List[Tuple[int, Neighbor]] = get_neighbors(
         forge=forge, vector_id=embedding.id, vector=embedding.vector,

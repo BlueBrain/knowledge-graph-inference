@@ -27,6 +27,15 @@ class ParameterSpecification:
             self.optional == self.optional and self.default == self.default and \
             self.type == self.type and self.values == self.values
 
+    def __repr__(self):
+        name_str = f"Name: {self.name}"
+        desc_str = f"Description: {self.description}"
+        optional_str = f"Optional: {self.optional}"
+        default_str = f"Default: {self.default}"
+        type_str = f"Type: {self.type.value}"
+        values_str = f"Values: {self.values}"
+        return "\n".join([name_str, desc_str, optional_str, default_str, type_str, values_str])
+
     def to_dict(self):
         return {
             "name": self.name,
