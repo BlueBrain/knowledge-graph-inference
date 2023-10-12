@@ -21,14 +21,6 @@ def get_score_stats(
 ) -> Statistic:
     """Retrieve view statistics."""
 
-    if config.statistics_view.id is None:
-        raise MalformedSimilaritySearchQueryException("Statistics view is not defined")
-
-    ForgeUtils.set_elastic_search_view(forge, config.statistics_view.id)
-
-    # TODO because now the targeted view is the aggregated,
-    #  all model_views are being targeted
-    #  instead of one...
     query = {
         "query": {
             "bool": {

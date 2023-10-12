@@ -22,7 +22,7 @@ SIMILARITY_MODEL_SELECT_PARAMETER_NAME = "SelectModelsParameter"
 
 
 def execute_similarity_query(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         query: SimilaritySearchQuery, parameter_values: Dict, debug: bool,
         use_forge: bool, limit: int
 ):
@@ -79,7 +79,11 @@ def execute_similarity_query(
 
     if len(valid_configs) == 1:
         config_i = valid_configs[0]
-        forge = forge_factory(config_i.org, config_i.project)
+
+        if config_i.similarity_view.id is None:
+            raise MalformedSimilaritySearchQueryException("Similarity search view is not defined")
+
+        forge = config_i.use_factory(forge_factory, sub_view="similarity")
 
         _, neighbors = query_similar_resources(
             forge=forge,
@@ -149,12 +153,6 @@ def query_similar_resources(
         the resource id that is similar
 
     """
-    # Set ES view from the config
-    if config.similarity_view.id is None:
-        raise MalformedSimilaritySearchQueryException("Similarity search view is not defined")
-
-    ForgeUtils.set_elastic_search_view(forge, config.similarity_view.id)
-
     search_target = parameter_values.get(target_parameter, None)  # TODO should it be formatted ?
 
     if search_target is None:
@@ -179,7 +177,7 @@ def query_similar_resources(
 
 
 def combine_similarity_models(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         configurations: List[SimilaritySearchQueryConfiguration],
         parameter_values: Dict, k: int, target_parameter: str,
         result_filter: Optional[str], debug: bool, use_forge: bool
@@ -212,7 +210,10 @@ def combine_similarity_models(
     model_ids = [config_i.embedding_model_data_catalog.id for config_i in configurations]
 
     # Assume boosting factors and stats are in the same bucket as embeddings
-    forge_instances = [forge_factory(config_i.org, config_i.project) for config_i in configurations]
+    forge_instances = [
+        config_i.use_factory(forge_factory, sub_view="similarity")
+        for config_i in configurations
+    ]
 
     vector_neighbors_per_model: List[Tuple[Embedding, List[Tuple[int, Neighbor]]]] = [
         query_similar_resources(
@@ -255,17 +256,22 @@ def combine_similarity_models(
 
     combined_results = defaultdict(dict)
 
-    for i, (config_i, forge_i) in enumerate(zip(configurations, forge_instances)):
+    for i, config_i in enumerate(configurations):
 
         embedding, neighbors = vector_neighbors_per_model[i]
 
+        forge_statistics = config_i.use_factory(forge_factory, sub_view="statistic")
         statistic: Statistic = get_score_stats(
-            forge=forge_i, config=config_i, boosted=config_i.boosted, use_forge=use_forge
+            forge=forge_statistics, config=config_i, boosted=config_i.boosted, use_forge=use_forge
         )
 
         if config_i.boosted:
+
+            forge_boosting = config_i.use_factory(forge_factory, sub_view="boosting")
+
             boosting_factor = get_boosting_factor_for_embedding(
-                forge=forge_i, config=config_i, use_forge=use_forge, embedding_id=embedding.id
+                forge=forge_boosting, config=config_i, use_forge=use_forge,
+                embedding_id=embedding.id
             )
             factor = boosting_factor.value
         else:

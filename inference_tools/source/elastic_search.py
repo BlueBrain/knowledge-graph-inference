@@ -21,12 +21,10 @@ class ElasticSearch(Source):
     def execute_query(
             forge: KnowledgeGraphForge, query: ElasticSearchQuery,
             parameter_values: Dict,
-            config: ElasticSearchQueryConfiguration, limit=DEFAULT_LIMIT,
+            config: ElasticSearchQueryConfiguration,
+            limit=DEFAULT_LIMIT,
             debug: bool = False
     ) -> Optional[List[Resource]]:
-
-        if config.elastic_search_view is not None:
-            ForgeUtils.set_elastic_search_view(forge, config.elastic_search_view.id)
 
         query_body = json.dumps(query.body)
 

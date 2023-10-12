@@ -123,9 +123,9 @@ def get_search_query_parameters(rule: Rule) -> Dict[str, ParameterSpecification]
             else (sub_query, None)
 
     if rule.search_query is None:
-        raise IncompleteObjectException(name=rule.name,
-                                        attribute="searchQuery",
-                                        object_type=ObjectTypeStr.RULE)
+        raise IncompleteObjectException(
+            name=rule.name, attribute="searchQuery", object_type=ObjectTypeStr.RULE
+        )
 
     input_parameters = {}
     output_parameters = []

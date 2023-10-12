@@ -24,11 +24,6 @@ def get_boosting_factor_for_embedding(
 ) -> BoostingFactor:
     """Retrieve boosting factors."""
 
-    if config.boosting_view.id is None:
-        raise MalformedSimilaritySearchQueryException("Boosting view is not defined")
-
-    ForgeUtils.set_elastic_search_view(forge, config.boosting_view.id)
-
     get_boosting_factors_fc = _get_boosting_factor_forge if use_forge else \
         _get_boosting_factor_delta
 

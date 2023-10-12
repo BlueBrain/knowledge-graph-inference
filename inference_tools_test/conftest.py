@@ -13,7 +13,7 @@ def query_conf():
 
 @pytest.fixture(scope="session")
 def forge_factory():
-    return lambda a, b: KnowledgeGraphForgeTest({"org": a, "project": b})
+    return lambda a, b, c, d: KnowledgeGraphForgeTest({"org": a, "project": b})
 
 
 @pytest.fixture(scope="session")

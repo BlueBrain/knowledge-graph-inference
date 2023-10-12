@@ -24,6 +24,7 @@ class EmbeddingModelDataCatalog:
     type: str
     id: str
     distance: Formula
+    name: str
     description: str
     about: str
 

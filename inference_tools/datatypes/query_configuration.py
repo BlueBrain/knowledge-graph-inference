@@ -1,13 +1,18 @@
-from typing import Optional, NewType, Union
+from typing import Optional, NewType, Union, Callable
+
+from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.view import View
 from inference_tools.type import ObjectTypeStr
 
 from inference_tools.datatypes.embedding_model_data_catalog import EmbeddingModelDataCatalog
-from inference_tools.exceptions.exceptions import IncompleteObjectException
+from inference_tools.exceptions.exceptions import IncompleteObjectException, \
+    SimilaritySearchException
+
+from abc import ABC, abstractmethod
 
 
-class QueryConfigurationSuper:
+class QueryConfigurationSuper(ABC):
     org: str
     project: str
 
@@ -26,9 +31,22 @@ class QueryConfigurationSuper:
             raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY_CONFIGURATION,
                                             attribute="project")
 
+    @abstractmethod
+    def use_factory(
+            self,
+            forge_factory: Callable[[str, str, Optional[str], Optional[str]],  KnowledgeGraphForge],
+            sub_view: str = None
+    ) -> KnowledgeGraphForge:
+        pass
+
 
 class ForgeQueryConfiguration(QueryConfigurationSuper):
-    ...
+    def use_factory(
+            self,
+            forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
+            sub_view: str = None
+    ) -> KnowledgeGraphForge:
+        return forge_factory(self.org, self.project, None, None)
 
 
 class SparqlQueryConfiguration(QueryConfigurationSuper):
@@ -42,6 +60,17 @@ class SparqlQueryConfiguration(QueryConfigurationSuper):
     def __repr__(self):
         return f"Sparql Query Configuration: {self.sparql_view}"
 
+    def use_factory(
+            self,
+            forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
+            sub_view: str = None
+    ) -> KnowledgeGraphForge:
+
+        return forge_factory(
+            self.org, self.project, None,
+            self.sparql_view.id if self.sparql_view is not None else None
+        )
+
 
 class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
     elastic_search_view: Optional[View]
@@ -53,6 +82,18 @@ class ElasticSearchQueryConfiguration(QueryConfigurationSuper):
 
     def __repr__(self):
         return f"ES Query Configuration: {self.elastic_search_view}"
+
+    def use_factory(
+            self,
+            forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
+            sub_view: str = None
+    ) -> KnowledgeGraphForge:
+
+        return forge_factory(
+            self.org, self.project,
+            self.elastic_search_view.id if self.elastic_search_view is not None else None,
+            None
+        )
 
 
 class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
@@ -80,11 +121,31 @@ class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
         boosting_view_str = f"Boosting View: {self.boosting_view}"
         stat_view_str = f"Statistics View: {self.boosting_view}"
         boosted_str = f"Boosted: {self.boosted}"
-        embedding_model_data_catalog_str = f"Embedding Model Data Catalog: " \
-                                           f"{self.embedding_model_data_catalog}"
+        embedding_model_data_catalog_str = \
+            f"Embedding Model Data Catalog: {self.embedding_model_data_catalog}"
 
         return "\n".join([sim_view_str, boosted_str, boosting_view_str, stat_view_str,
                           embedding_model_data_catalog_str])
+
+    def use_factory(
+            self,
+            forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
+            sub_view: str = None
+    ) -> KnowledgeGraphForge:
+        if sub_view == "similarity":
+            return forge_factory(
+                self.org, self.project, self.similarity_view.id, None
+            )
+        elif sub_view == "boosting":
+            return forge_factory(
+                self.org, self.project, self.boosting_view.id, None
+            )
+        elif sub_view == "statistic":
+            return forge_factory(
+                self.org, self.project, self.statistics_view.id, None
+            )
+
+        raise SimilaritySearchException("Unknown view type for forge initialization")
 
 
 QueryConfiguration = NewType(

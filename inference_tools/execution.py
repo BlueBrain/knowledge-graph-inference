@@ -34,7 +34,7 @@ def get_limit(parameter_values: Dict):
 
 
 def execute_query_object(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         query: Query,
         parameter_values: Optional[Dict],
         last_query=False,
@@ -46,7 +46,7 @@ def execute_query_object(
 
     @param forge_factory:  A function that takes as an input the name of the organization and
     the project, and returns a forge session.
-    @type forge_factory: Callable[[str, str], KnowledgeGraphForge]
+    @type forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge]
     @param query: JSON-representation of a query
     @type query: Query
     @param parameter_values:
@@ -72,7 +72,8 @@ def execute_query_object(
     if query.type.value in sources.keys():
 
         query_config_0 = query.query_configurations[0]
-        forge = forge_factory(query_config_0.org, query_config_0.project)
+
+        forge = query_config_0.use_factory(forge_factory)
 
         formatted_parameters = format_parameters(
             query=query, parameter_values=parameter_values, forge=forge
@@ -88,8 +89,6 @@ def execute_query_object(
             debug=debug,
             limit=limit if last_query else None
         )
-
-        source.restore_default_views(forge)
 
         if resources is None:
             raise FailedQueryException(description=query.description)
@@ -115,7 +114,7 @@ def execute_query_object(
 
 
 def apply_rule(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         rule: Dict,
         parameter_values: Dict,
         premise_check: bool = True, debug: bool = False, use_forge: bool = False
@@ -127,7 +126,7 @@ def apply_rule(
 
     @param forge_factory: A function that takes as an input the name of the organization and
     the project, and returns a forge session.
-    @type forge_factory:  Callable[[str, str], KnowledgeGraphForge]
+    @type forge_factory:  Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge]
     @param rule: JSON-representation of a rule
     @type rule: Dict
     @param parameter_values: Parameter dictionary to use in premises and search queries.
@@ -145,8 +144,9 @@ def apply_rule(
     rule = Rule(rule)
 
     if premise_check:
-        check_premises(forge_factory=forge_factory, rule=rule, parameter_values=parameter_values,
-                       debug=debug)
+        check_premises(
+            forge_factory=forge_factory, rule=rule, parameter_values=parameter_values, debug=debug
+        )
 
     return execute_query_pipe(
         forge_factory=forge_factory, head=rule.search_query,
@@ -183,7 +183,7 @@ def combine_parameters(
 
 
 def execute_query_pipe(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge],
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         head: Union[Query, QueryPipe], parameter_values: Optional[Dict],
         rest: Optional[Union[Query, QueryPipe]], debug: bool = False, use_forge: bool = False
 ):
@@ -195,7 +195,7 @@ def execute_query_pipe(
 
     @param forge_factory: A function that takes as an input the name of the organization and
         the project, and returns a forge session.
-    @type forge_factory: Callable[[str, str], KnowledgeGraphForge]
+    @type forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge]
     @param head: JSON-representation of a head query
     @type head: Dict
     @param parameter_values: Input parameter dictionary to use in the queries.
@@ -238,7 +238,8 @@ def execute_query_pipe(
 
 
 def check_premises(
-        forge_factory: Callable[[str, str], KnowledgeGraphForge], rule: Rule,
+        forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
+        rule: Rule,
         parameter_values: Optional[Dict], debug: bool = False
 ):
     """
@@ -265,7 +266,7 @@ def check_premises(
     for premise in rule.premises:
 
         config: QueryConfiguration = premise.query_configurations[0]
-        forge = forge_factory(config.org, config.project)
+        forge = config.use_factory(forge_factory)
 
         if len(premise.parameter_specifications) > 0:
             try:
@@ -297,8 +298,6 @@ def check_premises(
                 config=config,
                 debug=debug
             )
-
-            source.restore_default_views(forge)
 
             flags.append(flag)
 

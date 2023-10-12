@@ -1,5 +1,6 @@
 from typing import List, Union, Optional
 
+from inference_tools.datatypes.parameter_specification import ParameterSpecification
 from inference_tools.type import ObjectTypeStr, RuleType
 
 from inference_tools.exceptions.exceptions import IncompleteObjectException
@@ -21,6 +22,7 @@ class Rule:
     type: List[RuleType]
     target_resource_type: str
     nexus_link: Optional[str]
+    flattened_input_parameters: List[ParameterSpecification] = None
 
     def __init__(self, obj):
         self.id = get_id_attribute(obj)

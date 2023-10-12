@@ -10,9 +10,7 @@ import yaml
 import urllib
 
 
-def _get_test_forge(org, project):
-    es_rule_view = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/rule_view_no_tag"
-    sparql_rule_view = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/rule_view_no_tag"
+def _get_test_forge(org, project, es_view, sparql_view):
 
     bucket = f"{org}/{project}"
     endpoint = "https://bbp.epfl.ch/nexus/v1"
@@ -34,12 +32,20 @@ def _get_test_forge(org, project):
         endpoint=endpoint,
         token=token,
         bucket=bucket,
-        debug=False,
-        searchendpoints={
-            "elastic": {"endpoint": es_rule_view},
-            "sparql": {"endpoint": sparql_rule_view}
-        }
+        debug=False
     )
+
+    search_endpoints = {}
+
+    if es_view is not None:
+        search_endpoints["elastic"] = {"endpoint": es_view}
+
+    if sparql_view is not None:
+        search_endpoints["sparql"] = {"endpoint": sparql_view}
+
+    if len(search_endpoints) > 0:
+        args["searchendpoints"] = search_endpoints
+
     return KnowledgeGraphForge(**args)
 
 
@@ -89,7 +95,11 @@ attempts = [
     }
 ]
 
-rule_forge = _get_test_forge("bbp", "inference-rules")
+rule_forge = _get_test_forge(
+    "bbp", "inference-rules",
+    "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/rule_view_no_tag",
+    "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/rule_view_no_tag"
+)
 
 with cProfile.Profile() as pr:
     for ai in attempts:

@@ -32,9 +32,6 @@ class Sparql(Source):
                 to_replace = f"${qb.name}"
                 query_body = query_body.replace(to_replace, parameter_values[qb.name])
 
-        if config.sparql_view is not None:
-            ForgeUtils.set_sparql_view(forge, config.sparql_view.id)
-
         query_body = Template(query_body).substitute(**parameter_values)
 
         return forge.sparql(query_body, limit=limit, debug=debug)
