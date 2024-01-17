@@ -38,7 +38,8 @@ setup(
             "tox",
             "pytest-bdd",
             "pytest-mock==3.3.1",
-            "codecov"
+            "codecov",
+            "pytest-cov"
         ],
         "docs": [
             "sphinx", "sphinx-bluebrain-theme"

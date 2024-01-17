@@ -84,8 +84,6 @@ def test_execute_single(forge_factory, similarity_search_query_single, entity_uu
             use_forge=True
         )
 
-        print(e)
-
 
 @pytest.fixture()
 def similarity_search_query_combine(similarity_search_query_single):

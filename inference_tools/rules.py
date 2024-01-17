@@ -57,10 +57,10 @@ def get_resource_type_descendants(forge, types, to_symbol=True, debug: bool = Fa
     query_body = Template(query.query_string).substitute(types=types)
     res = forge.as_json(forge.sparql(query_body, limit=None, debug=debug))
 
-    res_label = [obj["label"] for obj in res]
-
-    return res_label if not to_symbol else \
-        list(map(lambda x: ForgeUtils.to_symbol(forge, x), res_label))
+    return [
+        obj["id"] if not to_symbol else ForgeUtils.to_symbol(forge, obj["id"])
+        for obj in res
+    ]
 
 
 def fetch_rules(
