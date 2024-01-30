@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 
 from kgforge.core.wrappings.dict import DictWrapper
 from numpy import random
 
+from inference_tools.helper_functions import _enforce_list
 from inference_tools_test.data.maps.id_data import (
     make_model_id, make_entity_id,
     make_embedding_id, make_org,
@@ -10,28 +11,56 @@ from inference_tools_test.data.maps.id_data import (
 )
 
 
+def make_derivation_entity(entity_id, entity_type):
+
+    res = DictWrapper({
+        "@context": "https://bbp.neuroshapes.org",
+        "id": entity_id,
+        "type": ["Entity"] + _enforce_list(entity_type),
+        "name": "Test resource tied to embedding",
+    })
+
+    return res
+
+
 def make_embedding(
-        embedding_uuid, derivation_id, model_id, model_rev: int, entity_rev: int, bucket: str,
-        vec_size: Optional[int] = 20, score: Optional[float] = None
+        embedding_uuid,
+        derivation_id,
+        model_id,
+        model_rev: int,
+        entity_rev: int,
+        embedding_vec: List[int],
+        bucket: Optional[str] = None,
+        score: Optional[float] = None,
+        entity_type: str = "Entity"
 ) -> DictWrapper:
     entity_uuid = derivation_id.split("/")[-1]
-    embedding_vec = [int(el) for el in list(random.randint(0, 100, size=vec_size))]
 
     temp = DictWrapper({
         "@context": "https://bbp.neuroshapes.org",
         "@id": make_embedding_id(embedding_uuid),
         "@type": [
             "Entity",
-            "Embedding"
+            "nsg:Embedding"
         ],
-        "derivation": {
-            "@type": "Derivation",
-            "entity": {
-                "@id": derivation_id,
-                "@type": "Entity",
-                "_rev": entity_rev
+        "derivation": [
+            {
+                "@type": "Derivation",
+                "entity": {
+                    "@id": derivation_id,
+                    "@type": entity_type,
+                    "_rev": entity_rev
+                }
+            },
+            {
+                "@type": "Derivation",
+                "entity":  {
+                    "@id": model_id,
+                    "@type": "EmbeddingModel",
+                    "_rev": model_rev
+                }
             }
-        },
+        ],
         "embedding": embedding_vec,
         "generation": {
             "@type": "Generation",
@@ -40,11 +69,18 @@ def make_embedding(
                     "Activity",
                     "EmbeddingActivity"
                 ],
-                "used": {
-                    "@id": model_id,
-                    "@type": "EmbeddingModel",
-                    "_rev": model_rev
-                },
+                "used": [
+                    {
+                        "@id": model_id,
+                        "@type": "EmbeddingModel",
+                        "_rev": model_rev
+                    },
+                    {
+                        "@id": derivation_id,
+                        "@type": entity_type,
+                        "_rev": entity_rev
+                    }
+                ],
                 "wasAssociatedWith": {
                     "@type": "SoftwareAgent",
                     "description":
@@ -60,11 +96,11 @@ def make_embedding(
                 }
             }
         },
-        "name": [
-            f"Embedding of {entity_uuid} at revision 40"
-        ],
-        "bucket": bucket
+        "name":  f"Embedding of {entity_uuid} at revision {entity_rev}"
     })
+
+    if bucket is not None:
+        temp.__dict__["bucket"] = bucket
 
     if score is not None:
         temp.__dict__["_store_metadata"] = DictWrapper({"_score": score})
@@ -82,7 +118,8 @@ embeddings = [
             model_id=make_model_id(model_uuid),
             model_rev=model_rev,
             entity_rev=entity_rev,
-            bucket=bucket
+            bucket=bucket,
+            embedding_vec=[int(el) for el in list(random.randint(0, 100, size=20))]
         ),
         [
             make_embedding(
@@ -92,7 +129,8 @@ embeddings = [
                 model_rev=model_rev,
                 entity_rev=entity_rev,
                 bucket=bucket,
-                score=random.random()
+                score=random.random(),
+                embedding_vec=[int(el) for el in list(random.randint(0, 100, size=20))]
             )
             for res_uuid in range(0, 10)
         ]
@@ -106,7 +144,11 @@ def build_get_embedding_vector_query(embedding):
     "path": "derivation.entity", "query": {"term": {"derivation.entity.@id": 
     "$EMBEDDING_ID"}}}}, {"term": {"_deprecated": false}}]}}}""".replace("\n", "").replace("\t", "").replace("    ", "")
 
-    derivation_id = embedding.__dict__["derivation"]["entity"]["@id"]
+    derivation_id = next(
+        i["entity"]["@id"]
+        for i in embedding.__dict__["derivation"]
+        if i["entity"]["@type"] == "Entity"
+    )
     embedding_bucket = embedding.__dict__["bucket"]
 
     def eq_check(query, bucket):
@@ -126,11 +168,11 @@ def build_get_neighbor_query(embedding):
     'embedding'); return (1 / (1 + d))", "params": {"query_vector": [$QUERY_VECTOR]}}}}}""".\
         replace("\n", "").replace("\t", "").replace("    ", "")
 
-    id_ = embedding.__dict__["@id"]
-    vec = ", ".join([str(e) for e in embedding.__dict__["embedding"]])
-    embedding_bucket = embedding.__dict__["bucket"]
-
     def eq_check(query, bucket):
+        id_ = embedding.__dict__["@id"]
+        vec = ", ".join([str(e) for e in embedding.__dict__["embedding"]])
+        embedding_bucket = embedding.__dict__["bucket"]
+
         full_q = get_neighbors_query.replace("$EMBEDDING_ID", id_).replace("$QUERY_VECTOR", vec)
         a = query == full_q
         b = bucket == embedding_bucket

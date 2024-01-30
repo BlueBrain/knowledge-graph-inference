@@ -10,6 +10,7 @@ from inference_tools.helper_functions import _enforce_list
 from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.similarity.queries.common import _find_derivation_id
 
 
 def get_embedding_vectors(
@@ -89,17 +90,14 @@ def _get_embedding_vectors_forge(
     if result is None or len(result) == 0:
         raise SimilaritySearchException(f"No embedding vector for {search_targets}")
 
-    def _find_derivation_id(obj: Resource, type_):
-        dict_res = forge.as_json(obj)
-        der = _enforce_list(dict_res["derivation"])
-        el = next(e for e in der if e["entity"]["type"] == type_)
-        return el["entity"]["id"]
-
     return [
         {
             "id": e.id,
             "embedding": e.embedding,
-            "derivation": _find_derivation_id(e, type_=derivation_type)
+            "derivation": _find_derivation_id(
+                derivation_field=_enforce_list(forge.as_json(e)["derivation"]),
+                type_=derivation_type
+            )
         } for e in result
     ]
 
@@ -130,13 +128,10 @@ def _get_embedding_vectors_delta(
     if len(result) == 0:
         raise SimilaritySearchException(f"No embedding vector for {search_targets}")
 
-    def _find_derivation_id(derivation_field, type_):
-        der = _enforce_list(derivation_field)
-        el = next(e for e in der if e["entity"]["@type"] == type_)
-        return el["entity"]["@id"]
-
     return [{
         "id": res["_id"],
         "embedding": res["_source"]["embedding"],
-        "derivation": _find_derivation_id(res["_source"]["derivation"], type_=derivation_type)
+        "derivation": _find_derivation_id(
+            derivation_field=_enforce_list(res["_source"]["derivation"]), type_=derivation_type
+        )
     } for res in result]

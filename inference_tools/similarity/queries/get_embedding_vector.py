@@ -1,7 +1,7 @@
 import json
 import requests
 
-from typing import Dict
+from typing import Dict, List
 
 from kgforge.core import KnowledgeGraphForge, Resource
 
@@ -10,6 +10,7 @@ from inference_tools.helper_functions import _enforce_list, get_id_attribute
 from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.similarity.queries.common import _find_derivation_id
 
 
 def err_message(entity_id, model_name):
@@ -83,17 +84,14 @@ def _get_embedding_vector_forge(
     if result is None or len(result) == 0:
         raise SimilaritySearchException(err_message(search_target, model_name))
 
-    def _find_derivation_id(obj: Dict, type_):
-        der = _enforce_list(obj["derivation"])
-        el = next(e for e in der if e["entity"]["@type"] == type_)
-        return el["entity"]["@id"]
-
     e = forge.as_json(result[0])
 
     return {
         "id": get_id_attribute(e),
         "embedding": e["embedding"],
-        "derivation": _find_derivation_id(e, type_=derivation_type)
+        "derivation": _find_derivation_id(
+            derivation_field=_enforce_list(e["derivation"]), type_=derivation_type
+        )
     }
 
 
@@ -125,13 +123,10 @@ def _get_embedding_vector_delta(
 
     result = result[0]
 
-    def _find_derivation_id(derivation_field, type_):
-        der = _enforce_list(derivation_field)
-        el = next(e for e in der if e["entity"]["@type"] == type_)
-        return el["entity"]["@id"]
-
     return {
         "id": result["_id"],
         "embedding": result["_source"]["embedding"],
-        "derivation": _find_derivation_id(result["_source"]["derivation"], type_=derivation_type)
+        "derivation": _find_derivation_id(
+            derivation_field=_enforce_list(result["_source"]["derivation"]), type_=derivation_type
+        )
     }

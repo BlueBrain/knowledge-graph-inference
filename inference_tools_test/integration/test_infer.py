@@ -3,6 +3,7 @@ import pytest
 import json
 import cProfile
 import pstats
+import os
 from pstats import SortKey
 
 from inference_tools.execution import apply_rule
@@ -64,3 +65,44 @@ def test_try_rules(rule_forge, rule_id, parameters, forge_factory):
 
         pstats.Stats(pr).sort_stats(SortKey.CUMULATIVE).print_stats(10)
 
+
+@pytest.mark.parametrize("parameters", [
+    pytest.param(
+        {
+            'TargetResourceParameter': "https://bbp.epfl.ch/entity_1",
+            'SelectModelsParameter': ["Test_Model"],
+            'SpecifiedTargetResourceType': "Type1"
+        },
+        id="param1",
+    ),
+    pytest.param(
+        {
+            'TargetResourceParameter': "https://bbp.epfl.ch/entity_1",
+            'SelectModelsParameter': ["Test_Model"]
+        },
+        id="param1",
+    )
+])
+def test_fake_rule(forge_factory, parameters):
+
+    with open(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/fake_rule.json"),
+            "r"
+    ) as f:
+        fake_rule = json.loads(f.read())
+
+    res = apply_rule(
+        forge_factory=forge_factory,
+        rule=fake_rule,
+        parameter_values=dict(parameters),
+        premise_check=False, debug=False
+    )
+
+    forge = forge_factory("dke", "test")
+
+    if "SpecifiedTargetResourceType" in parameters:
+        type_ = parameters["SpecifiedTargetResourceType"]
+    else:
+        type_ = fake_rule["targetResourceType"]
+
+    assert all(type_ in forge.retrieve(res_i["id"]).type for res_i in res)

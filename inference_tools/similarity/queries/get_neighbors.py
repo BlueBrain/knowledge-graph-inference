@@ -12,6 +12,7 @@ from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.similarity.formula import Formula
 from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.similarity.queries.common import _find_derivation_id
 from inference_tools.source.source import DEFAULT_LIMIT
 
 
@@ -23,10 +24,12 @@ def get_neighbors(
         derivation_type: str,
         k: int = DEFAULT_LIMIT,
         score_formula: Formula = Formula.EUCLIDEAN,
-        result_filter=None, parameters=None,
+        result_filter=None,
+        parameters=None,
         use_forge: bool = False,
         get_derivation: bool = False,
-        restricted_ids: Optional[List[str]] = None
+        restricted_ids: Optional[List[str]] = None,
+        specified_derivation_type=None
 ) -> List[Tuple[int, Optional[Neighbor]]]:
     """Get nearest neighbors of the provided vector.
 
@@ -61,7 +64,10 @@ def get_neighbors(
         A list of entity ids for which the associated embedding's score should be computed.
         Only these should be returned if specified. Else the top embedding scores will be returned
     debug: bool
-    derivation_type: str
+    derivation_type: str : Used to find the appropriate derivation within the list of derivations
+    in the embedding resource
+    specified_derivation_type: str : Optional subtype of derivation_type, if only neighbors of
+    this subtype should be returned
 
     Returns
     -------
@@ -95,7 +101,23 @@ def get_neighbors(
         }
     }
 
+    if specified_derivation_type:  # If only a subtype of derivation_type can be a neighbor
+        similarity_query["query"]["script_score"]["query"]["bool"]["must"].append(
+            {
+                "nested": {
+                    "path": "derivation.entity",
+                    "query": {
+                        "term": {"derivation.entity.@type": specified_derivation_type}
+                    }
+                }
+            }
+        )
+    else:
+        specified_derivation_type = derivation_type
+
     if restricted_ids is not None:
+        # Used to retrieve the distance between the provided embedding's source resource
+        # and this specific set of resources
         similarity_query["query"]["script_score"]["query"]["bool"]["must"].append(
             {
                 "nested": {
@@ -117,7 +139,7 @@ def get_neighbors(
 
     return get_neighbors_fc(
         forge, similarity_query, debug=debug, get_derivation=get_derivation,
-        derivation_type=derivation_type
+        derivation_type=specified_derivation_type
     )
 
 
@@ -128,18 +150,18 @@ def _get_neighbors_forge(
 
     run = forge.elastic(json.dumps(similarity_query), limit=None, debug=debug)
 
-    def _find_derivation_id(obj: Resource, type_):
-        dict_res = forge.as_json(obj)
-        der = _enforce_list(dict_res["derivation"])
-        el = next(e for e in der if e["entity"]["@type"] == type_)
-        return el["entity"]["@id"]
-
     if run is None or len(run) == 0:
         raise SimilaritySearchException("Getting neighbors failed")
     return [
-        (el._store_metadata._score, Neighbor(
-            _find_derivation_id(el, type_=derivation_type)
-        ))
+        (
+            el._store_metadata._score,
+            Neighbor(
+                _find_derivation_id(
+                    derivation_field=_enforce_list(forge.as_json(el)["derivation"]),
+                    type_=derivation_type
+                )
+            )
+        )
         for el in run
     ]
 
@@ -168,14 +190,11 @@ def _get_neighbors_delta(
     except DeltaException:
         raise SimilaritySearchException("Getting neighbors failed")
 
-    def _find_derivation_id(derivation_field, type_):
-        der = _enforce_list(derivation_field)
-        el = next(e for e in der if e["entity"]["@type"] == type_)
-        return el["entity"]["@id"]
-
     return [
         (e["_score"], Neighbor(
-            _find_derivation_id(e["_source"]["derivation"], type_=derivation_type)
+            _find_derivation_id(
+                derivation_field=_enforce_list(e["_source"]["derivation"]), type_=derivation_type
+            )
         ) if get_derivation else None)
         for e in run
     ]

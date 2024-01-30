@@ -19,6 +19,7 @@ from inference_tools.similarity.similarity_model_result import SimilarityModelRe
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
 
 SIMILARITY_MODEL_SELECT_PARAMETER_NAME = "SelectModelsParameter"
+SPECIFIED_TARGET_RESOURCE_TYPE = "SpecifiedTargetResourceType"
 
 
 def execute_similarity_query(
@@ -72,6 +73,8 @@ def execute_similarity_query(
         if config_i.embedding_model_data_catalog.id in selected_models
     ]
 
+    specified_derivation_type = parameter_values.get(SPECIFIED_TARGET_RESOURCE_TYPE, None)
+
     # selected model = embedding model catalog id
 
     if len(valid_configs) == 0:
@@ -93,7 +96,8 @@ def execute_similarity_query(
             k=limit,
             result_filter=query.result_filter,
             debug=debug,
-            use_forge=use_forge
+            use_forge=use_forge,
+            specified_derivation_type=specified_derivation_type
         )
 
         return [
@@ -113,7 +117,8 @@ def execute_similarity_query(
         target_parameter=target_parameter,
         result_filter=query.result_filter,
         debug=debug,
-        use_forge=use_forge
+        use_forge=use_forge,
+        specified_derivation_type=specified_derivation_type
     )
 
 
@@ -121,7 +126,8 @@ def query_similar_resources(
         forge: KnowledgeGraphForge,
         config: SimilaritySearchQueryConfiguration,
         parameter_values, k: Optional[int], target_parameter: str,
-        result_filter: Optional[str], debug: bool, use_forge: bool = False
+        result_filter: Optional[str], debug: bool, use_forge: bool = False,
+        specified_derivation_type: Optional[str] = None
 ) -> Tuple[Embedding, List[Tuple[int, Neighbor]]]:
     """Query similar resources using the similarity query.
 
@@ -144,6 +150,9 @@ def query_similar_resources(
         format
     debug: bool
     use_forge: bool
+    specified_derivation_type: str
+        Optional subtype of the rule's target resource type, specifying only neighbors of this
+        subtype should be returned
 
     Returns
     -------
@@ -170,7 +179,8 @@ def query_similar_resources(
         k=k, score_formula=config.embedding_model_data_catalog.distance,
         result_filter=result_filter, parameters=parameter_values, debug=debug,
         use_forge=use_forge, get_derivation=True,
-        derivation_type=config.embedding_model_data_catalog.about
+        derivation_type=config.embedding_model_data_catalog.about,
+        specified_derivation_type=specified_derivation_type
     )
 
     return embedding, result
@@ -180,7 +190,8 @@ def combine_similarity_models(
         forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         configurations: List[SimilaritySearchQueryConfiguration],
         parameter_values: Dict, k: int, target_parameter: str,
-        result_filter: Optional[str], debug: bool, use_forge: bool
+        result_filter: Optional[str], debug: bool, use_forge: bool,
+        specified_derivation_type: Optional[str] = None
 ) -> List[Dict]:
     """
     Perform similarity search combining several similarity models
@@ -202,6 +213,9 @@ def combine_similarity_models(
     calls to Delta
     @type use_forge: bool
     @return: 
+    @param specified_derivation_type: Optional subtype of the rule's target resource type,
+     specifying only neighbors of this subtype should be returned
+    @type specified_derivation_type: str
     @rtype: List[Dict]
     """""
 
@@ -219,7 +233,8 @@ def combine_similarity_models(
         query_similar_resources(
             forge=forge_i, config=config_i,
             parameter_values=parameter_values, k=k, target_parameter=target_parameter,
-            result_filter=result_filter, debug=debug, use_forge=use_forge
+            result_filter=result_filter, debug=debug, use_forge=use_forge,
+            specified_derivation_type=specified_derivation_type
         )
         for (config_i, forge_i) in zip(configurations, forge_instances)
     ]
@@ -243,7 +258,8 @@ def combine_similarity_models(
             result_filter=result_filter, parameters=parameter_values, debug=debug,
             use_forge=use_forge, get_derivation=True,
             restricted_ids=list(missing_list),
-            derivation_type=configurations[i].embedding_model_data_catalog.about
+            derivation_type=configurations[i].embedding_model_data_catalog.about,
+            specified_derivation_type=specified_derivation_type
         )
 
         vector_neighbors_per_model[i][1].extend(missing_neighbors)

@@ -1,0 +1,61 @@
+{
+  "@context": "https://bbp.neuroshapes.org",
+  "@id": "no_id",
+  "@type": [
+    "DataGeneralizationRule",
+    "EmbeddingBasedGeneralizationRule",
+    "ResourceGeneralizationRule"
+  ],
+  "description": "Test Rule desc.",
+  "name": "Test Rule name",
+  "searchQuery": {
+    "@type": "SimilarityQuery",
+    "hasParameter": [
+      {
+        "@type": "uri",
+        "description": "Id of a resource",
+        "name": "TargetResourceParameter"
+      },
+      {
+        "@type": "str",
+        "description": "Sub-type of target resource type to only consider subset of types",
+        "name": "SpecifiedTargetResourceType",
+        "optional": true
+      },
+      {
+        "@type": "list",
+        "description": "Similarity models to use",
+        "name": "SelectModelsParameter",
+        "optional": true,
+        "values": {
+          "Test_Model": "https://bbp.epfl.ch/data/bbp/atlas/no_id"
+        }
+      }
+    ],
+    "k": 20,
+    "queryConfiguration": [
+      {
+        "boosted": false,
+        "embeddingModelDataCatalog": {
+          "@id": "https://bbp.epfl.ch/data/bbp/atlas/no_id",
+          "@type": "EmbeddingModeDataCatalog",
+          "about": "FakeType",
+          "description": "Test model desc.",
+          "distance": "euclidean",
+          "name": "Test model name",
+          "org": "bbp",
+          "project": "atlas"
+        },
+        "org": "dke",
+        "project": "test",
+        "similarityView": {
+          "@id": "https://bbp.epfl.ch/nexus/v1/resources/dke/test/_/85eb18c9-d82a-46c1-bcd7-266fd0866362",
+          "@type": "AggregateElasticSearchView"
+        }
+
+      }
+    ],
+    "searchTargetParameter": "TargetResourceParameter"
+  },
+  "targetResourceType": "FakeType"
+}

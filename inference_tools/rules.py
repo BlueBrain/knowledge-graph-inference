@@ -24,6 +24,17 @@ from inference_tools.type import QueryType, ParameterType, RuleType
 from inference_tools.utils import get_search_query_parameters
 
 
+
+ignore_list = [
+    "https://bbp.epfl.ch/neurosciencegraph/data/b5542787-b127-46ee-baa5-798d5d9a33bc",  # multiple sp
+    "https://bbp.epfl.ch/neurosciencegraph/data/54c336ad-4017-4fd7-973c-f1926c4b0c16",  # multiple br
+    "https://bbp.epfl.ch/neurosciencegraph/data/70e8e757-1834-420c-bcc1-37ea850ddfe3",  # location
+    "https://bbp.epfl.ch/neurosciencegraph/data/ac5885c8-bb70-4336-ae7f-3e1425356fe8",  # shape
+    "https://bbp.epfl.ch/neurosciencegraph/data/da2c61f5-59d9-4347-9c3a-0cdf2c093547",  # sscx
+    # "https://bbp.epfl.ch/neurosciencegraph/data/9d64dc0d-07d1-4624-b409-cdc47ccda212" # BR bbp/ont
+]
+
+
 def get_resource_type_descendants(forge, types, to_symbol=True, debug: bool = False) -> List[str]:
     """
     Gets the descendant types of a list of data types
@@ -61,6 +72,7 @@ def get_resource_type_descendants(forge, types, to_symbol=True, debug: bool = Fa
         obj["id"] if not to_symbol else ForgeUtils.to_symbol(forge, obj["id"])
         for obj in res
     ]
+
 
 
 def fetch_rules(
@@ -139,6 +151,10 @@ def fetch_rules(
     rules = [
         Rule({**forge_rules.as_json(r), "nexus_link": r._store_metadata._self})
         for r in rules
+    ]
+
+    rules = [
+        r for r in rules if r.id not in ignore_list
     ]
 
     if input_filters is not None:

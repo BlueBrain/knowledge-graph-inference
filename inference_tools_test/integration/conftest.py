@@ -5,8 +5,8 @@ from kgforge.core import KnowledgeGraphForge
 
 
 RULE_ORG, RULE_PROJ = "bbp", "inference-rules"
-RULE_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/rule_view"
-RULE_SP_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/rule_view"
+RULE_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/rule_view_no_tag"
+RULE_SP_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/rule_view_no_tag"
 
 
 def pytest_addoption(parser):
@@ -57,7 +57,7 @@ def forge_factory(token):
     return lambda org, proj, es=None, sp=None: init_forge(token, org, proj, es, sp)
 
 
-def init_forge(token, org, project, es_view, sparql_view):
+def init_forge(token, org, project, es_view=None, sparql_view=None):
 
     bucket = f"{org}/{project}"
     config = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
