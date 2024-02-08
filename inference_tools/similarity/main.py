@@ -7,7 +7,6 @@ from inference_tools.datatypes.similarity.embedding import Embedding
 from inference_tools.datatypes.similarity.statistic import Statistic
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.datatypes.similarity.neighbor import Neighbor
-from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.datatypes.query import SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
@@ -86,7 +85,7 @@ def execute_similarity_query(
         if config_i.similarity_view.id is None:
             raise MalformedSimilaritySearchQueryException("Similarity search view is not defined")
 
-        forge = config_i.use_factory(forge_factory, sub_view="similarity")
+        forge = config_i.use_factory(forge_factory, sub_view=None)
 
         _, neighbors = query_similar_resources(
             forge=forge,
@@ -125,8 +124,12 @@ def execute_similarity_query(
 def query_similar_resources(
         forge: KnowledgeGraphForge,
         config: SimilaritySearchQueryConfiguration,
-        parameter_values, k: Optional[int], target_parameter: str,
-        result_filter: Optional[str], debug: bool, use_forge: bool = False,
+        parameter_values,
+        k: Optional[int],
+        target_parameter: str,
+        result_filter: Optional[str],
+        debug: bool,
+        use_forge: bool = False,
         specified_derivation_type: Optional[str] = None
 ) -> Tuple[Embedding, List[Tuple[int, Neighbor]]]:
     """Query similar resources using the similarity query.
@@ -171,7 +174,7 @@ def query_similar_resources(
     embedding = get_embedding_vector(
         forge, search_target, debug=debug, use_forge=use_forge,
         derivation_type=config.embedding_model_data_catalog.about,
-        model_name=config.embedding_model_data_catalog.name
+        model_name=config.embedding_model_data_catalog.name, view=config.similarity_view.id
     )
 
     result: List[Tuple[int, Neighbor]] = get_neighbors(
@@ -180,7 +183,8 @@ def query_similar_resources(
         result_filter=result_filter, parameters=parameter_values, debug=debug,
         use_forge=use_forge, get_derivation=True,
         derivation_type=config.embedding_model_data_catalog.about,
-        specified_derivation_type=specified_derivation_type
+        specified_derivation_type=specified_derivation_type,
+        view=config.similarity_view.id
     )
 
     return embedding, result
@@ -195,24 +199,24 @@ def combine_similarity_models(
 ) -> List[Dict]:
     """
     Perform similarity search combining several similarity models
-    @param forge_factory: 
+    @param forge_factory:
     @type forge_factory: KnowledgeGraphForge
-    @param configurations: 
+    @param configurations:
     @type configurations: List[SimilaritySearchQueryConfiguration]
-    @param parameter_values: 
+    @param parameter_values:
     @type parameter_values: Dict
-    @param k: 
+    @param k:
     @type k: int
-    @param target_parameter: 
+    @param target_parameter:
     @type target_parameter: str
-    @param result_filter: 
-    @type result_filter: 
-    @param debug: 
+    @param result_filter:
+    @type result_filter:
+    @param debug:
     @type debug: bool
-    @param use_forge: whether to query with the KnowledgeGraphForge instance or to make direct 
+    @param use_forge: whether to query with the KnowledgeGraphForge instance or to make direct
     calls to Delta
     @type use_forge: bool
-    @return: 
+    @return:
     @param specified_derivation_type: Optional subtype of the rule's target resource type,
      specifying only neighbors of this subtype should be returned
     @type specified_derivation_type: str
@@ -224,19 +228,28 @@ def combine_similarity_models(
     model_ids = [config_i.embedding_model_data_catalog.id for config_i in configurations]
 
     # Assume boosting factors and stats are in the same bucket as embeddings
-    forge_instances = [
-        config_i.use_factory(forge_factory, sub_view="similarity")
-        for config_i in configurations
-    ]
+
+    buckets = {(c.org, c.project) for c in configurations}
+
+    print(len(buckets))
+
+    forge_instances = dict(
+        (f"{org}/{project}", forge_factory(org, project, None, None)) for org, project in buckets
+    )
+
+    # forge_instances = [
+    #     config_i.use_factory(forge_factory, sub_view="similarity")
+    #     for config_i in configurations
+    # ]
 
     vector_neighbors_per_model: List[Tuple[Embedding, List[Tuple[int, Neighbor]]]] = [
         query_similar_resources(
-            forge=forge_i, config=config_i,
+            forge=forge_instances[config_i.get_bucket()], config=config_i,
             parameter_values=parameter_values, k=k, target_parameter=target_parameter,
             result_filter=result_filter, debug=debug, use_forge=use_forge,
             specified_derivation_type=specified_derivation_type
         )
-        for (config_i, forge_i) in zip(configurations, forge_instances)
+        for config_i in configurations
     ]
 
     all_neighbors_across_models = set.union(*[
@@ -253,13 +266,15 @@ def combine_similarity_models(
 
     for i, (embedding, missing_list) in enumerate(missing_neighbors_per_model.items()):
         missing_neighbors: List[Tuple[int, Neighbor]] = get_neighbors(
-            forge=forge_instances[i], vector_id=embedding.id, vector=embedding.vector,
+            forge=forge_instances[configurations[i].get_bucket()],
+            vector_id=embedding.id, vector=embedding.vector,
             k=k, score_formula=configurations[i].embedding_model_data_catalog.distance,
             result_filter=result_filter, parameters=parameter_values, debug=debug,
             use_forge=use_forge, get_derivation=True,
             restricted_ids=list(missing_list),
             derivation_type=configurations[i].embedding_model_data_catalog.about,
-            specified_derivation_type=specified_derivation_type
+            specified_derivation_type=specified_derivation_type,
+            view=configurations[i].similarity_view.id
         )
 
         vector_neighbors_per_model[i][1].extend(missing_neighbors)
@@ -276,17 +291,16 @@ def combine_similarity_models(
 
         embedding, neighbors = vector_neighbors_per_model[i]
 
-        forge_statistics = config_i.use_factory(forge_factory, sub_view="statistic")
+        # forge_statistics = config_i.use_factory(forge_factory, sub_view="statistic")
         statistic: Statistic = get_score_stats(
-            forge=forge_statistics, config=config_i, boosted=config_i.boosted, use_forge=use_forge
+            forge=forge_instances[config_i.get_bucket()],
+            config=config_i, boosted=config_i.boosted, use_forge=use_forge
         )
 
         if config_i.boosted:
-
-            forge_boosting = config_i.use_factory(forge_factory, sub_view="boosting")
-
+            # forge_boosting = config_i.use_factory(forge_factory, sub_view="boosting")
             boosting_factor = get_boosting_factor_for_embedding(
-                forge=forge_boosting, config=config_i, use_forge=use_forge,
+                forge=forge_instances[config_i.get_bucket()], config=config_i, use_forge=use_forge,
                 embedding_id=embedding.id
             )
             factor = boosting_factor.value

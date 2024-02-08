@@ -4,7 +4,7 @@ import requests
 from string import Template
 from typing import Optional, List, Dict, Tuple
 
-from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.similarity.neighbor import Neighbor
 from inference_tools.helper_functions import _enforce_list
@@ -29,7 +29,8 @@ def get_neighbors(
         use_forge: bool = False,
         get_derivation: bool = False,
         restricted_ids: Optional[List[str]] = None,
-        specified_derivation_type=None
+        specified_derivation_type=None,
+        view: Optional[str] = None
 ) -> List[Tuple[int, Optional[Neighbor]]]:
     """Get nearest neighbors of the provided vector.
 
@@ -139,16 +140,16 @@ def get_neighbors(
 
     return get_neighbors_fc(
         forge, similarity_query, debug=debug, get_derivation=get_derivation,
-        derivation_type=specified_derivation_type
+        derivation_type=specified_derivation_type, view=view
     )
 
 
 def _get_neighbors_forge(
     forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
-    derivation_type: str
+    derivation_type: str, view: Optional[str] = None
 ) -> List:
 
-    run = forge.elastic(json.dumps(similarity_query), limit=None, debug=debug)
+    run = forge.elastic(json.dumps(similarity_query), limit=None, debug=debug, view=view)
 
     if run is None or len(run) == 0:
         raise SimilaritySearchException("Getting neighbors failed")
@@ -168,10 +169,14 @@ def _get_neighbors_forge(
 
 def _get_neighbors_delta(
     forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
-    derivation_type: str
+    derivation_type: str, view: Optional[str] = None
 ) -> List:
 
-    url = ForgeUtils.get_elastic_search_endpoint(forge)
+    url = ForgeUtils.get_elastic_search_endpoint(forge) if view is None \
+        else forge._store.service.make_endpoint(
+        view=view, endpoint_type="elastic"
+    )
+
     token = ForgeUtils.get_token(forge)
 
     similarity_query["_source"] = ["derivation.entity.@id", "derivation.entity.@type"] if \
@@ -198,5 +203,3 @@ def _get_neighbors_delta(
         ) if get_derivation else None)
         for e in run
     ]
-
-

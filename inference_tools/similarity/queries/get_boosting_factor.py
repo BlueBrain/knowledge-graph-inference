@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 import requests
 import json
@@ -8,13 +8,11 @@ from kgforge.core import KnowledgeGraphForge
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.similarity.boosting_factor import BoostingFactor
 
-from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
-
-from inference_tools.source.elastic_search import ElasticSearch
+from inference_tools.similarity.queries.common import _find_derivation_id
 
 
 def get_boosting_factor_for_embedding(
@@ -49,23 +47,30 @@ def get_boosting_factor_for_embedding(
         }
     }
 
-    result: Dict = get_boosting_factors_fc(forge, query)
+    result: Dict = get_boosting_factors_fc(forge, query, config)
 
     return BoostingFactor(result)
 
 
-def _get_boosting_factor_forge(forge: KnowledgeGraphForge, query: Dict) -> Dict:
+def _get_boosting_factor_forge(
+        forge: KnowledgeGraphForge, query: Dict, config: SimilaritySearchQueryConfiguration
+) -> Dict:
 
-    factor = forge.elastic(json.dumps(query))
+    factor = forge.elastic(json.dumps(query), view=config.boosting_view.id)
 
     if factor is None or len(factor) == 0:
         raise SimilaritySearchException("No boosting factor found")
 
-    return forge.as_json(factor)
+    return forge.as_json(factor)[0]
 
 
-def _get_boosting_factor_delta(forge: KnowledgeGraphForge, query: Dict) -> Dict:
-    url = ForgeUtils.get_elastic_search_endpoint(forge)
+def _get_boosting_factor_delta(
+        forge: KnowledgeGraphForge, query: Dict, config: SimilaritySearchQueryConfiguration
+) -> Dict:
+
+    url = forge._store.service.make_endpoint(
+        view=config.boosting_view.id, endpoint_type="elastic"
+    )
     token = ForgeUtils.get_token(forge)
 
     query["_source"] = ["derivation.entity.@id", "value"]
@@ -79,14 +84,16 @@ def _get_boosting_factor_delta(forge: KnowledgeGraphForge, query: Dict) -> Dict:
     except DeltaException:
         raise SimilaritySearchException("No boosting factors found")
 
-    def change_el(el):
-        return {
-            "value": el["_source"]["value"],
-            "derivation": {"entity": {"id": el["_source"]["derivation"]["entity"]["@id"]}}
-        }
-
     if factor is None or len(factor) == 0:
         raise SimilaritySearchException("No boosting factor found")
 
-    return change_el(factor[0])
+    factor = factor[0]
 
+    return {
+        "value": factor["_source"]["value"],
+        "derivation": {
+            "entity": {
+                "id": _find_derivation_id(factor["_source"]["derivation"], type_="Embedding")
+            }
+        }
+    }

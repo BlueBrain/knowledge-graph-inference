@@ -24,7 +24,6 @@ from inference_tools.type import QueryType, ParameterType, RuleType
 from inference_tools.utils import get_search_query_parameters
 
 
-
 ignore_list = [
     "https://bbp.epfl.ch/neurosciencegraph/data/b5542787-b127-46ee-baa5-798d5d9a33bc",  # multiple sp
     "https://bbp.epfl.ch/neurosciencegraph/data/54c336ad-4017-4fd7-973c-f1926c4b0c16",  # multiple br
@@ -72,7 +71,6 @@ def get_resource_type_descendants(forge, types, to_symbol=True, debug: bool = Fa
         obj["id"] if not to_symbol else ForgeUtils.to_symbol(forge, obj["id"])
         for obj in res
     ]
-
 
 
 def fetch_rules(
@@ -187,7 +185,7 @@ def fetch_rules(
         # list -> per rule, dict: value is rule (or partial) if relevant else None
         rule_check_per_res_id: List[Dict[str, Optional[Rule]]] = [
             rule_has_resource_ids_embeddings(
-                rule, resource_ids, forge_rules, use_forge=use_forge, debug=debug
+                rule, resource_ids, forge_factory=forge_factory, use_forge=use_forge, debug=debug
             )
             for rule in rules
         ]
@@ -208,7 +206,7 @@ def fetch_rules(
 
 
 def rule_has_resource_ids_embeddings(
-        rule: Rule, resource_ids: List[str], forge: KnowledgeGraphForge, use_forge: bool,
+        rule: Rule, resource_ids: List[str], forge_factory: Callable, use_forge: bool,
         debug: bool
 ) -> Dict[str, Optional[Rule]]:
     """
@@ -235,8 +233,19 @@ def rule_has_resource_ids_embeddings(
     if not isinstance(rule.search_query, SimilaritySearchQuery):
         return dict((res_id, rule) for res_id in resource_ids)
 
+    buckets = {(c.org, c.project) for c in rule.search_query.query_configurations}
+
+    print(len(buckets))
+
+    forge_instances = dict(
+        (f"{org}/{project}", forge_factory(org, project, None, None)) for org, project in buckets
+    )
+
     has_embedding_dict_list: List[Dict[str, bool]] = [
-        has_embedding_dict(qc, resource_ids, forge, use_forge=use_forge, debug=debug)
+        has_embedding_dict(
+            qc, resource_ids, forge=forge_instances[qc.get_bucket()],
+            use_forge=use_forge, debug=debug
+        )
         for qc in rule.search_query.query_configurations
     ]
 
@@ -308,19 +317,14 @@ def has_embedding_dict(
     @return: a dictionary indexed by the
     @rtype: Dict[str, bool]
     """
-    es_view = query_conf.similarity_view.id
 
     endpoint, _, _ = ForgeUtils.get_endpoint_org_project(forge)
-
-    es_endpoint = ForgeUtils.make_elastic_search_endpoint(
-        org=query_conf.org, project=query_conf.project, endpoint=endpoint, view=es_view
-    )
 
     try:
         embs: List[Embedding] = get_embedding_vectors(
             forge=forge, search_targets=resource_ids,
             use_forge=use_forge, debug=debug,
-            es_endpoint=es_endpoint,
+            view=query_conf.similarity_view.id,
             derivation_type=query_conf.embedding_model_data_catalog.about
         )
 

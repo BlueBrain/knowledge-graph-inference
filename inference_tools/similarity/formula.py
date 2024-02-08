@@ -22,18 +22,18 @@ class Formula(Enum):
                 "double am = doc['embedding'].magnitude; "
                 "double bm = 0; "
                 "double dist = 0; "
-                
+
                 "for (int i = 0; i < v.length; i++) { "
                 "   bm += Math.pow(params.query_vector[i], 2); "
                 "   dist += Math.pow(v[i] - params.query_vector[i], 2); "
                 "} "
-                
+
                 "bm = Math.sqrt(bm); "
                 "dist = Math.sqrt(dist); "
-                
+
                 "double x = 1 + (2 * Math.pow(dist, 2)) / "
                 "   ( (1 - Math.pow(bm, 2)) * (1 - Math.pow(am, 2)) ); "
-                
+
                 "double d = Math.log(x + Math.sqrt(Math.pow(x, 2) - 1)); "
                 "return 1 / (1 + d);"  # from distance to similarity
         }

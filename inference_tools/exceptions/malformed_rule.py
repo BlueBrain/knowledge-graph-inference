@@ -22,4 +22,3 @@ class InvalidParameterTypeException(MalformedRuleException):
 class MalformedSimilaritySearchQueryException(MalformedRuleException):
     def __init__(self, message):
         super().__init__(message)
-

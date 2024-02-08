@@ -1,7 +1,6 @@
 """Collection of utils for performing various inference queries."""
 
-import getpass
-from typing import Dict, Optional, Union, List, Tuple
+from typing import Dict, Optional, Union, List
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -14,12 +13,11 @@ from inference_tools.datatypes.rule import Rule
 from inference_tools.exceptions.exceptions import (
     IncompleteObjectException,
     MissingPremiseParameterValue,
-    ObjectTypeStr, InferenceToolsException
+    ObjectTypeStr
 )
 
 from inference_tools.helper_functions import _enforce_unique
 from inference_tools.multi_predicate_object_pair import multi_check
-from inference_tools.source.source import DEFAULT_LIMIT
 
 from inference_tools.type import (QueryType, PremiseType)
 

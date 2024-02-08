@@ -16,8 +16,8 @@ class FailedPremiseException(PremiseException):
 class IrrelevantPremiseParametersException(PremiseException):
     def __init__(self):
 
-        super().__init__(f"The premise(s) failed because the provided parameters are "
-                         f"irrelevant to the ones required by the premises")
+        super().__init__("The premise(s) failed because the provided parameters are "
+                         "irrelevant to the ones required by the premises")
 
 
 class UnsupportedPremiseCaseException(PremiseException):

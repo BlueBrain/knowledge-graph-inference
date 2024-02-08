@@ -1,6 +1,6 @@
 from typing import List
 
-from inference_tools.helper_functions import _enforce_list
+from inference_tools.helper_functions import get_type_attribute, get_id_attribute
 
 
 def _find_derivation_id(derivation_field: List, type_: str) -> str:
@@ -14,9 +14,11 @@ def _find_derivation_id(derivation_field: List, type_: str) -> str:
     @rtype:
     """
     el = next(
-        (e for e in derivation_field if type_ in _enforce_list(e["entity"]["@type"])), None
+        (
+            e for e in derivation_field if type_ in get_type_attribute(e["entity"])
+        ), None
     )
     if el is None:
-        raise Exception(f"Couldn't find derivation of type {type_} within an embedding")  # TODO
+        raise Exception(f"Couldn't find derivation of type {type_} within an embedding")
 
-    return el["entity"]["@id"]
+    return get_id_attribute(el["entity"])

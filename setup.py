@@ -39,7 +39,8 @@ setup(
             "pytest-bdd",
             "pytest-mock==3.3.1",
             "codecov",
-            "pytest-cov"
+            "pytest-cov",
+            "flake8"
         ],
         "docs": [
             "sphinx", "sphinx-bluebrain-theme"

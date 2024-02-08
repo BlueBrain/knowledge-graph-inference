@@ -21,7 +21,11 @@ sample_neurom_public_thalamus = \
     pytest.param(
         all_aspect, {
             'TargetResourceParameter': sample_neurom_seu,
-            'SelectModelsParameter': ["Unscaled_Topology_Morphology_Descriptor-based_similarity"],
+            'SelectModelsParameter': [
+                "Unscaled_Topology_Morphology_Descriptor-based_similarity",
+                "Axon_co-projection-based_similarity",
+                "Coordinates-based_similarity"
+            ],
             'LimitQueryParameter': 100
         },
         id="param1",
@@ -55,14 +59,19 @@ sample_neurom_public_thalamus = \
     )
 ])
 def test_try_rules(rule_forge, rule_id, parameters, forge_factory):
+
+    print(parameters)
+
     with cProfile.Profile() as pr:
         res = apply_rule(
             forge_factory=forge_factory,
             rule=rule_forge.as_json(ElasticSearch.get_by_id(ids=rule_id, forge=rule_forge)),
             parameter_values=dict(parameters),
-            premise_check=False, debug=False
+            premise_check=False,
+            debug=False
         )
 
+        print(len(res))
         pstats.Stats(pr).sort_stats(SortKey.CUMULATIVE).print_stats(10)
 
 

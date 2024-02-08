@@ -8,7 +8,6 @@ from kgforge.core import KnowledgeGraphForge
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.similarity.statistic import Statistic
 
-from inference_tools.exceptions.malformed_rule import MalformedSimilaritySearchQueryException
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 
 from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
@@ -34,13 +33,18 @@ def get_score_stats(
 
     get_score_stats_fc = _get_score_stats_forge if use_forge else _get_score_stats_delta
 
-    statistics = get_score_stats_fc(forge, query)
+    statistics = get_score_stats_fc(forge, query, config)
 
     return Statistic.from_json(statistics)
 
 
-def _get_score_stats_delta(forge: KnowledgeGraphForge, query: Dict) -> Dict:
-    url = ForgeUtils.get_elastic_search_endpoint(forge)
+def _get_score_stats_delta(
+        forge: KnowledgeGraphForge, query: Dict, config: SimilaritySearchQueryConfiguration
+) -> Dict:
+
+    url = forge._store.service.make_endpoint(
+        view=config.statistics_view.id, endpoint_type="elastic"
+    )
     token = ForgeUtils.get_token(forge)
     query["_source"] = ["series.*"]
 
@@ -59,8 +63,10 @@ def _get_score_stats_delta(forge: KnowledgeGraphForge, query: Dict) -> Dict:
     return run[0]["_source"]
 
 
-def _get_score_stats_forge(forge: KnowledgeGraphForge, query: Dict) -> Dict:
-    statistics = forge.elastic(json.dumps(query))
+def _get_score_stats_forge(
+        forge: KnowledgeGraphForge, query: Dict, config: SimilaritySearchQueryConfiguration
+) -> Dict:
+    statistics = forge.elastic(json.dumps(query), view=config.statistics_view.id)
 
     if statistics is None or len(statistics) == 0:
         raise SimilaritySearchException("No view statistics found")

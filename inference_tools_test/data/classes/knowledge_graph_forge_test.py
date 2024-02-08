@@ -47,13 +47,13 @@ class KnowledgeGraphForgeTest(KnowledgeGraphForge):
 
         self._model = ModelTest(self.bucket, self.endpoint)
 
-
     def elastic(
             self,
             query: str,
             debug: bool = False,
             limit: Optional[int] = None,
             offset: Optional[int] = None,
+            **params
     ) -> List[ResourceTest]:
 
         for pattern, res in elastic_patterns:

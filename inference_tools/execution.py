@@ -117,7 +117,7 @@ def apply_rule(
         forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         rule: Dict,
         parameter_values: Dict,
-        premise_check: bool = True, debug: bool = False, use_forge: bool = False
+        premise_check: bool = True, debug: bool = False, use_forge: bool = True
 ) -> List[Dict]:
     """
     Apply a rule given the input parameters.

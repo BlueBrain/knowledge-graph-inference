@@ -39,6 +39,9 @@ class QueryConfigurationSuper(ABC):
     ) -> KnowledgeGraphForge:
         pass
 
+    def get_bucket(self):
+        return f"{self.org}/{self.project}"
+
 
 class ForgeQueryConfiguration(QueryConfigurationSuper):
     def use_factory(
@@ -144,7 +147,10 @@ class SimilaritySearchQueryConfiguration(QueryConfigurationSuper):
             return forge_factory(
                 self.org, self.project, self.statistics_view.id, None
             )
-
+        elif sub_view is None:
+            return forge_factory(
+                self.org, self.project, None, None
+            )
         raise SimilaritySearchException("Unknown view type for forge initialization")
 
 

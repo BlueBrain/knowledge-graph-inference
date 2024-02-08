@@ -44,7 +44,7 @@ class EmbeddingModelDataCatalog:
         tmp_d = obj.get("distance", None)
         try:
             self.distance = Formula(tmp_d)
-        except Exception as e:  # TODO find the specific exception type
+        except ValueError:
             print(f"Invalid distance {tmp_d}")
 
     def __repr__(self):

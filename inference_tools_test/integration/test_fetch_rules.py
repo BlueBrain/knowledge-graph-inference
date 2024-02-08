@@ -18,7 +18,7 @@ def test_fetch_by_resource_id_lots(forge_factory, rule_forge):
 
     # with cProfile.Profile() as pr:
     test: Dict[str, List[Rule]] = fetch_rules(
-        rule_forge, resource_ids=ids
+        rule_forge, resource_ids=ids, forge_factory=forge_factory
     )
 
     for res_id, list_rules in test.items():
@@ -39,7 +39,7 @@ def test_fetch_by_resource_id_lots(forge_factory, rule_forge):
         # pstats.Stats(pr).sort_stats(SortKey.CUMULATIVE).print_stats(10)
 
 
-def test_fetch_by_resource_id(rule_forge):
+def test_fetch_by_resource_id(rule_forge, forge_factory):
 
     public_hippocampus_nm = "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/402ba796-81f4-460c-870e-98e8fb1bd982"
     bbp_external_nm = "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/608c996a-15a3-4d8a-aa4a-827fa6946f9b"
@@ -62,7 +62,7 @@ def test_fetch_by_resource_id(rule_forge):
     }
 
     test: Dict[str, List[Rule]] = fetch_rules(
-        rule_forge, resource_ids=list(nm_to_expected.keys())
+        rule_forge, resource_ids=list(nm_to_expected.keys()), forge_factory=forge_factory
     )
 
     for res_id, list_rules in test.items():

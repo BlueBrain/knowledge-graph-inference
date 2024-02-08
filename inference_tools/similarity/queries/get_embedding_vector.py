@@ -1,9 +1,9 @@
 import json
 import requests
 
-from typing import Dict, List
+from typing import Dict
 
-from kgforge.core import KnowledgeGraphForge, Resource
+from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.similarity.embedding import Embedding
 from inference_tools.helper_functions import _enforce_list, get_id_attribute
@@ -18,8 +18,8 @@ def err_message(entity_id, model_name):
 
 
 def get_embedding_vector(
-        forge: KnowledgeGraphForge, search_target: str, debug: bool, model_name: str,
-        derivation_type: str, es_endpoint: str = None, use_forge=False
+        forge: KnowledgeGraphForge, search_target: str, debug: bool,
+        model_name: str, use_forge: bool, derivation_type: str, view: str = None
 ) -> Embedding:
     """Get embedding vector for the target of the input similarity query.
 
@@ -32,8 +32,8 @@ def get_embedding_vector(
         want to retrieve its nearest neighbors).
     debug : bool
     use_forge : bool
-    es_endpoint : Optional[str]
-        an elastic search endpoint to use, other than the one set in the forge instance, optional
+    view : Optional[str]
+        an elastic view to use, other than the one set in the forge instance, optional
     Returns
     -------
     embedding : Embedding
@@ -64,11 +64,14 @@ def get_embedding_vector(
     }
 
     get_embedding_vector_fc = \
-        _get_embedding_vector_forge if use_forge else \
-            _get_embedding_vector_delta
+        _get_embedding_vector_forge if use_forge else _get_embedding_vector_delta
 
     result = get_embedding_vector_fc(
-        forge, vector_query, debug, search_target, model_name, derivation_type, es_endpoint
+        forge=forge,
+        query=vector_query, debug=debug,
+        search_target=search_target, model_name=model_name,
+        derivation_type=derivation_type,
+        view=view
     )
 
     return Embedding(result)
@@ -76,10 +79,10 @@ def get_embedding_vector(
 
 def _get_embedding_vector_forge(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
-        derivation_type: str, es_endpoint: str = None
+        derivation_type: str, view: str = None
 ) -> Dict:
 
-    result = forge.elastic(json.dumps(query), limit=None, debug=debug)
+    result = forge.elastic(query=json.dumps(query), limit=None, debug=debug, view=view)
 
     if result is None or len(result) == 0:
         raise SimilaritySearchException(err_message(search_target, model_name))
@@ -97,10 +100,11 @@ def _get_embedding_vector_forge(
 
 def _get_embedding_vector_delta(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
-        derivation_type: str, es_endpoint: str = None
+        derivation_type: str, view: str = None
 ) -> Dict:
 
-    es_endpoint = es_endpoint if es_endpoint else ForgeUtils.get_elastic_search_endpoint(forge)
+    url = ForgeUtils.get_elastic_search_endpoint(forge) if view is None \
+        else forge._store.service.make_endpoint(view=view, endpoint_type="elastic")
 
     token = ForgeUtils.get_token(forge)
 
@@ -110,7 +114,7 @@ def _get_embedding_vector_delta(
         print(json.dumps(query, indent=4))
 
     result = DeltaUtils.check_response(
-        requests.post(url=es_endpoint, json=query, headers=DeltaUtils.make_header(token))
+        requests.post(url=url, json=query, headers=DeltaUtils.make_header(token))
     )
 
     try:

@@ -63,4 +63,3 @@ class Rule:
             "Rule", id_str, name_str, desc_str, type_str, target_str, nexus_link, context_str,
             premises_str, search_query_str
         ]) + "\n"
-

@@ -1,4 +1,4 @@
-from typing import List, Optional, Any, Dict, NewType, Union
+from typing import List, Optional, Dict, NewType, Union
 
 from inference_tools.helper_functions import _enforce_list, _get_type
 from inference_tools.type import QueryType, ObjectTypeStr, PremiseType
