@@ -1,5 +1,4 @@
 import json
-import requests
 
 from string import Template
 from typing import Optional, List, Dict, Tuple
@@ -8,8 +7,6 @@ from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.similarity.neighbor import Neighbor
 from inference_tools.helper_functions import _enforce_list
-from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
-from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.similarity.formula import Formula
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.similarity.queries.common import _find_derivation_id
@@ -26,7 +23,7 @@ def get_neighbors(
         score_formula: Formula = Formula.EUCLIDEAN,
         result_filter=None,
         parameters=None,
-        use_forge: bool = False,
+        use_resources: bool = False,
         get_derivation: bool = False,
         restricted_ids: Optional[List[str]] = None,
         specified_derivation_type=None,
@@ -53,7 +50,7 @@ def get_neighbors(
         to the search query
         Must be parsable to a dict
         (e.g. "{'must': {'terms': {'tag': ['a', 'b', 'c']}} }" )).
-    use_forge: bool, optional
+    use_resources: bool, optional
         Whether to retrieve the neighbors (embeddings) or not. May be used when performing
         similarity search, but not necessary when computing statistics
     get_derivation:
@@ -136,7 +133,7 @@ def get_neighbors(
 
         similarity_query["query"]["script_score"]["query"]["bool"].update(json.loads(result_filter))
 
-    get_neighbors_fc = _get_neighbors_forge if use_forge else _get_neighbors_delta
+    get_neighbors_fc = _get_neighbors if use_resources else _get_neighbors_json
 
     return get_neighbors_fc(
         forge, similarity_query, debug=debug, get_derivation=get_derivation,
@@ -144,7 +141,7 @@ def get_neighbors(
     )
 
 
-def _get_neighbors_forge(
+def _get_neighbors(
     forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
     derivation_type: str, view: Optional[str] = None
 ) -> List:
@@ -167,32 +164,20 @@ def _get_neighbors_forge(
     ]
 
 
-def _get_neighbors_delta(
+def _get_neighbors_json(
     forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
     derivation_type: str, view: Optional[str] = None
 ) -> List:
-
-    url = ForgeUtils.get_elastic_search_endpoint(forge) if view is None \
-        else forge._store.service.make_endpoint(
-        view=view, endpoint_type="elastic"
-    )
-
-    token = ForgeUtils.get_token(forge)
 
     similarity_query["_source"] = ["derivation.entity.@id", "derivation.entity.@type"] if \
         get_derivation else \
         False
 
-    if debug:
-        print(similarity_query)
-
-    run = DeltaUtils.check_response(
-        requests.post(url=url, json=similarity_query, headers=DeltaUtils.make_header(token))
+    run = forge.elastic(
+        json.dumps(similarity_query), limit=None, debug=debug, view=view, as_resource=False
     )
 
-    try:
-        run = DeltaUtils.check_hits(run)
-    except DeltaException:
+    if run is None or len(run) == 0:
         raise SimilaritySearchException("Getting neighbors failed")
 
     return [

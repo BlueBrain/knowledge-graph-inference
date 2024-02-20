@@ -7,6 +7,7 @@ class BoostingFactor:
     value: int
 
     def __init__(self, obj):
-        derivation = _enforce_list(obj["derivation"])
-        self.entity_id = _find_derivation_id(derivation, type_="Embedding")
+        self.entity_id = _find_derivation_id(
+            derivation_field=_enforce_list(obj["derivation"]), type_="Embedding"
+        )
         self.value = obj["value"]

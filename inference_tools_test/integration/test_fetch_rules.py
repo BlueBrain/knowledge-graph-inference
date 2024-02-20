@@ -118,3 +118,14 @@ def test_fetch_by_resource_type(rule_forge):
     assert len(test) == 3
 
 
+def test_non_similarity_based_rule_format_resource_id_provided(rule_forge, forge_factory):
+    resource_id = "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/97340ac1-d5ed-48b9-a4ff-ff0323e91a8f"
+
+    rules = fetch_rules(
+        rule_forge, resource_ids=[resource_id], forge_factory=forge_factory
+    )
+
+    rules_tied_to_id = rules[resource_id]
+
+    if len(rules_tied_to_id) > 0:  # Not true in all environments, due to rule tagging
+        assert all(r.flattened_input_parameters for r in rules_tied_to_id)

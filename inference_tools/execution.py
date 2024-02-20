@@ -39,7 +39,7 @@ def execute_query_object(
         parameter_values: Optional[Dict],
         last_query=False,
         debug=False,
-        use_forge: bool = False
+        use_resources: bool = False
 ) -> List[Dict]:
     """
     Execute an individual query given parameters.
@@ -55,8 +55,8 @@ def execute_query_object(
     @type last_query:  bool
     @param debug:
     @type debug: bool
-    @param use_forge:
-    @type use_forge: bool
+    @param use_resources:
+    @type use_resources: bool
     @return:  List of the result resources
     @rtype: List[Dict]
     """
@@ -104,7 +104,7 @@ def execute_query_object(
             parameter_values=parameter_values,
             forge_factory=forge_factory,
             debug=debug,
-            use_forge=use_forge,
+            use_resources=use_resources,
             limit=limit
         )  # TODO better error handling here
     else:
@@ -117,7 +117,7 @@ def apply_rule(
         forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         rule: Dict,
         parameter_values: Dict,
-        premise_check: bool = True, debug: bool = False, use_forge: bool = True
+        premise_check: bool = True, debug: bool = False, use_resources: bool = True
 ) -> List[Dict]:
     """
     Apply a rule given the input parameters.
@@ -135,8 +135,8 @@ def apply_rule(
     @type premise_check: bool
     @param debug:
     @type debug: bool
-    @param use_forge:
-    @type use_forge: bool
+    @param use_resources:
+    @type use_resources: bool
     @return: The list of inference resources' ids, if any
     @rtype: List[Dict]
     """
@@ -151,7 +151,7 @@ def apply_rule(
     return execute_query_pipe(
         forge_factory=forge_factory, head=rule.search_query,
         parameter_values=parameter_values, rest=None,
-        debug=debug, use_forge=use_forge
+        debug=debug, use_resources=use_resources
     )
 
 
@@ -185,7 +185,7 @@ def combine_parameters(
 def execute_query_pipe(
         forge_factory: Callable[[str, str, Optional[str], Optional[str]], KnowledgeGraphForge],
         head: Union[Query, QueryPipe], parameter_values: Optional[Dict],
-        rest: Optional[Union[Query, QueryPipe]], debug: bool = False, use_forge: bool = False
+        rest: Optional[Union[Query, QueryPipe]], debug: bool = False, use_resources: bool = False
 ):
     """
     Execute a query pipe given the input parameters.
@@ -204,8 +204,8 @@ def execute_query_pipe(
     @type rest: Optional[Dict]
     @param debug:   Whether to run queries in debug mode
     @type debug: bool
-    @param use_forge:
-    @type use_forge: bool
+    @param use_resources:
+    @type use_resources: bool
     @return:
     @rtype:
     """
@@ -215,12 +215,12 @@ def execute_query_pipe(
         if isinstance(el, QueryPipe):
             return execute_query_pipe(
                 forge_factory=forge_factory, parameter_values=params, debug=debug,
-                head=el.head, rest=el.rest, use_forge=use_forge
+                head=el.head, rest=el.rest, use_resources=use_resources
             )
 
         return execute_query_object(
             forge_factory=forge_factory, parameter_values=params, debug=debug,
-            query=el, last_query=last_q, use_forge=use_forge
+            query=el, last_query=last_q, use_resources=use_resources
         )  # TODO try catch??
 
     last_query = rest is None

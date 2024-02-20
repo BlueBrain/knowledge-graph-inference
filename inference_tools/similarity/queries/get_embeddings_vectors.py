@@ -1,5 +1,4 @@
 import json
-import requests
 
 from typing import Dict, List
 
@@ -7,8 +6,6 @@ from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.similarity.embedding import Embedding
 from inference_tools.helper_functions import _enforce_list
-from inference_tools.nexus_utils.delta_utils import DeltaUtils, DeltaException
-from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.similarity.queries.common import _find_derivation_id
 
@@ -18,7 +15,7 @@ def get_embedding_vectors(
         search_targets: List[str],
         debug: bool,
         derivation_type: str,
-        use_forge: bool,
+        use_resources: bool,
         view: str = None
 ) -> List[Embedding]:
     """Get embedding vector for the target of the input similarity query.
@@ -31,7 +28,7 @@ def get_embedding_vectors(
         Value of the search target (usually, a resource ID for which we
         want to retrieve its nearest neighbors).
     debug : bool
-    use_forge : bool
+    use_resources : bool
     derivation_type: str in order to retrieve the derivation entity id, its type is needed to
     filter out the many entities in the derivation
     view : Optional[str]
@@ -64,9 +61,8 @@ def get_embedding_vectors(
         }
     }
 
-    # TODO problem is that forge is tied to wrong bucket when getting embeddings -> rule bucket
-    get_embedding_vectors_fc = _get_embedding_vectors_forge if use_forge else \
-        _get_embedding_vectors_delta
+    get_embedding_vectors_fc = _get_embedding_vectors if use_resources else \
+        _get_embedding_vectors_json
 
     results: List[Dict] = get_embedding_vectors_fc(
         forge=forge, query=vector_query,
@@ -77,7 +73,7 @@ def get_embedding_vectors(
     return [Embedding(res) for res in results]
 
 
-def _get_embedding_vectors_forge(
+def _get_embedding_vectors(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_targets: List[str],
         derivation_type: str,
         view: str = None
@@ -100,32 +96,17 @@ def _get_embedding_vectors_forge(
     ]
 
 
-def _get_embedding_vectors_delta(
+def _get_embedding_vectors_json(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_targets: List[str],
         derivation_type: str,
         view: str = None
 ) -> List[Dict]:
 
-    url = ForgeUtils.get_elastic_search_endpoint(forge) if view is None \
-        else forge._store.service.make_endpoint(view=view, endpoint_type="elastic")
-
-    token = ForgeUtils.get_token(forge)
-
     query["_source"] = ["embedding", "derivation.entity.@id", "derivation.entity.@type"]
 
-    if debug:
-        print(json.dumps(query, indent=4))
+    result = forge.elastic(json.dumps(query), limit=None, debug=debug, view=view, as_resource=False)
 
-    result = DeltaUtils.check_response(
-        requests.post(url=url, json=query, headers=DeltaUtils.make_header(token))
-    )
-
-    try:
-        result = DeltaUtils.check_hits(result)
-    except DeltaException:
-        raise SimilaritySearchException(f"No embedding vector for {search_targets}")
-
-    if len(result) == 0:
+    if result is None or len(result) == 0:
         raise SimilaritySearchException(f"No embedding vector for {search_targets}")
 
     return [{

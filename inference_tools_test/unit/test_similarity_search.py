@@ -81,7 +81,7 @@ def test_execute_single(forge_factory, similarity_search_query_single, entity_uu
             query=query_factory(similarity_search_query_single),
             forge_factory=forge_factory,
             parameter_values={"TargetResourceParameter": make_entity_id(entity_uuid)},
-            use_forge=True
+            use_resources=True
         )
 
 
@@ -102,7 +102,7 @@ def similarity_search_query_combine(similarity_search_query_single):
 #         query=query_factory(similarity_search_query_combine),
 #         forge_factory=forge_factory,
 #         parameter_values={"TargetResourceParameter": make_entity_id(1)},
-#         use_forge=True
+#         use_resources=True
 #     )
 
 
