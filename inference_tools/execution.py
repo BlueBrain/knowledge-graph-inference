@@ -1,16 +1,21 @@
-from typing import Dict, Callable, Optional, Union, List
+from typing import Dict, Callable, Optional, Union, List, Type
 
 from kgforge.core import KnowledgeGraphForge
 
 from inference_tools.datatypes.parameter_mapping import ParameterMapping
-from inference_tools.datatypes.query import Query
+from inference_tools.datatypes.query import Query, SimilaritySearchQuery
 from inference_tools.datatypes.query_configuration import QueryConfiguration
 from inference_tools.datatypes.query_pipe import QueryPipe
 from inference_tools.datatypes.rule import Rule
 from inference_tools.exceptions.exceptions import (
     UnsupportedTypeException,
-    MissingPremiseParameterValue, FailedQueryException
+    MissingPremiseParameterValue, FailedQueryException, SimilaritySearchException,
+    InferenceToolsException
 )
+from inference_tools.source.elastic_search import ElasticSearch
+from inference_tools.source.sparql import Sparql
+from inference_tools.source.forge import Forge
+
 from inference_tools.exceptions.malformed_rule import InvalidParameterSpecificationException
 from inference_tools.exceptions.premise import IrrelevantPremiseParametersException
 from inference_tools.exceptions.premise import UnsupportedPremiseCaseException, \
@@ -18,16 +23,32 @@ from inference_tools.exceptions.premise import UnsupportedPremiseCaseException, 
 from inference_tools.helper_functions import _follow_path, get_id_attribute, _enforce_list
 from inference_tools.premise_execution import PremiseExecution
 from inference_tools.similarity.main import execute_similarity_query
-from inference_tools.source.elastic_search import ElasticSearch
-from inference_tools.source.forge import Forge
-from inference_tools.source.source import DEFAULT_LIMIT
-from inference_tools.source.sparql import Sparql
-from inference_tools.type import (QueryType, PremiseType)
+from inference_tools.source.source import DEFAULT_LIMIT, Source
+from inference_tools.type import QueryType, PremiseType
 from inference_tools.utils import _build_parameter_map, format_parameters
 
 
-def get_limit(parameter_values: Dict):
-    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT)
+sources: Dict[Union[QueryType, PremiseType], Type[Source]] = {
+    QueryType.SPARQL_QUERY: Sparql,  # type: ignore
+    QueryType.FORGE_SEARCH_QUERY: Forge,  # type: ignore
+    QueryType.ELASTIC_SEARCH_QUERY: ElasticSearch,  # type: ignore
+    PremiseType.SPARQL_PREMISE: Sparql,  # type: ignore
+    PremiseType.FORGE_SEARCH_PREMISE: Forge,  # type: ignore
+    PremiseType.ELASTIC_SEARCH_PREMISE: ElasticSearch  # type: ignore
+}
+
+
+def get_limit(parameter_values: Optional[Dict]):
+    """
+    Look into optionally user-provided parameter values for max number of results
+    to apply on inference.
+    @param parameter_values:
+    @type parameter_values: Dict
+    @return: the user provided limit, or a default value of 20
+    @rtype: int
+    """
+    limit = parameter_values.get("LimitQueryParameter", DEFAULT_LIMIT) \
+        if parameter_values else DEFAULT_LIMIT
     if not isinstance(limit, int):
         limit = DEFAULT_LIMIT
     return limit
@@ -61,25 +82,19 @@ def execute_query_object(
     @rtype: List[Dict]
     """
 
-    sources = {
-        QueryType.SPARQL_QUERY.value: Sparql,
-        QueryType.FORGE_SEARCH_QUERY.value: Forge,
-        QueryType.ELASTIC_SEARCH_QUERY.value: ElasticSearch
-    }
-
     limit = get_limit(parameter_values)
 
-    if query.type.value in sources.keys():
+    source: Optional[Type[Source]] = sources.get(query.type, None)
+
+    if source:
 
         query_config_0 = query.query_configurations[0]
 
         forge = query_config_0.use_factory(forge_factory)
 
         formatted_parameters = format_parameters(
-            query=query, parameter_values=parameter_values, forge=forge
+            query=query, parameter_values=parameter_values or {}, forge=forge
         )
-
-        source = sources[query.type.value]
 
         resources = source.execute_query(
             forge=forge,
@@ -98,7 +113,12 @@ def execute_query_object(
         if query.type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
             resources = [{"id": get_id_attribute(el)} for el in resources]
 
-    elif query.type == QueryType.SIMILARITY_QUERY:
+    elif isinstance(query, SimilaritySearchQuery):
+        if parameter_values is None:
+            raise SimilaritySearchException(
+                "Cannot run similarity search query without input parameters"
+            )
+
         resources = execute_similarity_query(
             query=query,
             parameter_values=parameter_values,
@@ -141,22 +161,23 @@ def apply_rule(
     @rtype: List[Dict]
     """
 
-    rule = Rule(rule)
+    rule_object = Rule(rule)
 
     if premise_check:
         check_premises(
-            forge_factory=forge_factory, rule=rule, parameter_values=parameter_values, debug=debug
+            forge_factory=forge_factory, rule=rule_object,
+            parameter_values=parameter_values, debug=debug
         )
 
     return execute_query_pipe(
-        forge_factory=forge_factory, head=rule.search_query,
+        forge_factory=forge_factory, head=rule_object.search_query,
         parameter_values=parameter_values, rest=None,
         debug=debug, use_resources=use_resources
     )
 
 
 def combine_parameters(
-        result_parameter_mapping: List[ParameterMapping], parameter_values: Dict,
+        result_parameter_mapping: Optional[List[ParameterMapping]], parameter_values: Optional[Dict],
         result: List
 ) -> Dict:  # TODO enforce result to be a list # used to be a check
     """
@@ -177,7 +198,10 @@ def combine_parameters(
     mapping_values = dict(
         (mapping.parameter_name, [_follow_path(el, mapping.path) for el in result])
         for mapping in result_parameter_mapping
-    )
+    ) if result_parameter_mapping else {}
+
+    if not parameter_values:
+        return mapping_values
 
     return {**parameter_values, **mapping_values}
 
@@ -229,6 +253,9 @@ def execute_query_pipe(
     if last_query:
         return result
 
+    if not isinstance(head, Query):
+        raise InferenceToolsException("Unexpected case: combine parameters called on QueryPipe")
+
     new_parameters = combine_parameters(
         result_parameter_mapping=head.result_parameter_mapping,
         parameter_values=parameter_values, result=result
@@ -244,7 +271,7 @@ def check_premises(
 ):
     """
 
-    @param forge_factory:   A function that takes as an input the name of the organization and
+    @param forge_factory: A function that takes as an input the name of the organization and
         the project, and returns a forge session.
     @type forge_factory:
     @param rule: JSON-representation of a rule
@@ -268,43 +295,37 @@ def check_premises(
         config: QueryConfiguration = premise.query_configurations[0]
         forge = config.use_factory(forge_factory)
 
-        if len(premise.parameter_specifications) > 0:
+        if len(premise.parameter_specifications) > 0 and parameter_values is not None:
             try:
                 current_parameters = _build_parameter_map(
-                    forge, premise.parameter_specifications, parameter_values, premise.type)
+                    forge, premise.parameter_specifications, parameter_values, premise.type
+                )
             except MissingPremiseParameterValue:
                 flags.append(PremiseExecution.MISSING_PARAMETER)
                 continue
             except InvalidParameterSpecificationException as e2:
-                raise MalformedPremiseException(e2.message)
+                raise MalformedPremiseException(e2.message) from e2
                 # TODO invalid premise, independently from input params
         else:
             current_parameters = {}
 
-        sources = {
-            PremiseType.SPARQL_PREMISE.value: Sparql,
-            PremiseType.FORGE_SEARCH_PREMISE.value: Forge,
-            PremiseType.ELASTIC_SEARCH_PREMISE.value: ElasticSearch
-        }
+        source: Optional[Type[Source]] = sources.get(premise.type, None)
 
-        if premise.type.value in sources.keys():
-
-            source = sources[premise.type.value]
-
-            flag = source.check_premise(
-                forge=forge,
-                premise=premise,
-                parameter_values=current_parameters,
-                config=config,
-                debug=debug
-            )
-
-            flags.append(flag)
-
-            if flag == PremiseExecution.FAIL:
-                raise FailedPremiseException(description=premise.description)
-        else:
+        if not source:
             raise UnsupportedTypeException(premise.type.value, "premise type")
+
+        flag = source.check_premise(
+            forge=forge,
+            premise=premise,
+            parameter_values=current_parameters,
+            config=config,
+            debug=debug
+        )
+
+        flags.append(flag)
+
+        if flag == PremiseExecution.FAIL:
+            raise FailedPremiseException(description=premise.description)
 
     if all(flag == PremiseExecution.SUCCESS for flag in flags):
         # All premises are successful
@@ -314,7 +335,7 @@ def check_premises(
     #     # One premise has failed
     #     return False
     if all(flag == PremiseExecution.MISSING_PARAMETER for flag in flags):
-        if len(parameter_values) == 0:
+        if (parameter_values and len(parameter_values) == 0) or not parameter_values:
             # Nothing is provided, all premises are missing parameters
             return True
 

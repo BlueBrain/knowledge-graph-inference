@@ -1,6 +1,7 @@
 from typing import Dict
-import requests
 import json
+
+import requests
 
 
 class DeltaException(Exception):

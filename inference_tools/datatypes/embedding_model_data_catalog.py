@@ -20,7 +20,7 @@ class EmbeddingModelDataCatalog:
 
     org: str
     project: str
-    hasPart: List[EmbeddingModel]
+    has_part: List[EmbeddingModel]
     type: str
     id: str
     distance: Formula
@@ -38,7 +38,7 @@ class EmbeddingModelDataCatalog:
         self.about = obj.get("about", None)
 
         t = obj.get("hasPart", None)
-        self.hasPart = [EmbeddingModel(e) for e in t] if t is not None else []
+        self.has_part = [EmbeddingModel(e) for e in t] if t is not None else []
         # TODO more processing?
 
         tmp_d = obj.get("distance", None)
@@ -54,7 +54,7 @@ class EmbeddingModelDataCatalog:
         id_str = f"Id: {self.id}"
         desc_str = f"Description: {self.description}"
         about_str = f"About: {self.about}"
-        has_part_str = f"Has Part: {self.hasPart}"
+        has_part_str = f"Has Part: {self.has_part}"
 
         return "\n".join(
             [id_str, name_str, type_str, bucket_str, desc_str, about_str, has_part_str]

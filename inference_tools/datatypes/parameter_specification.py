@@ -36,7 +36,12 @@ class ParameterSpecification:
         values_str = f"Values: {self.values}"
         return "\n".join([name_str, desc_str, optional_str, default_str, type_str, values_str])
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
+        """
+        Returns the dict version of the parameter specification, in the format initially parsed
+        @return: the original dict format of a ParameterSpecification
+        @rtype: Dict
+        """
         return {
             "name": self.name,
             "description": self.description,
@@ -60,7 +65,7 @@ class ParameterSpecification:
                 return []
             if self.values is not None:
                 selected_value_keys = _enforce_list(parameter_values[self.name])
-                if any([v not in list(self.values.keys()) for v in selected_value_keys]):
+                if any(v not in list(self.values.keys()) for v in selected_value_keys):
                     raise InferenceToolsException(f"Invalid value for parameter {self.name}")
 
                 selected_values = [self.values[v] for v in selected_value_keys]

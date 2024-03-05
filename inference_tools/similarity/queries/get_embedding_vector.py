@@ -1,6 +1,7 @@
+# pylint: disable=R0801
 import json
 
-from typing import Dict
+from typing import Optional, Dict
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -17,7 +18,7 @@ def err_message(entity_id, model_name):
 
 def get_embedding_vector(
         forge: KnowledgeGraphForge, search_target: str, debug: bool,
-        model_name: str, use_resources: bool, derivation_type: str, view: str = None
+        model_name: str, use_resources: bool, derivation_type: str, view: Optional[str] = None
 ) -> Embedding:
     """Get embedding vector for the target of the input similarity query.
 
@@ -77,7 +78,7 @@ def get_embedding_vector(
 
 def _get_embedding_vector(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
-        derivation_type: str, view: str = None
+        derivation_type: str, view: Optional[str] = None
 ) -> Dict:
 
     result = forge.elastic(query=json.dumps(query), limit=None, debug=debug, view=view)
@@ -98,7 +99,7 @@ def _get_embedding_vector(
 
 def _get_embedding_vector_json(
         forge: KnowledgeGraphForge, query: Dict, debug: bool, search_target: str, model_name: str,
-        derivation_type: str, view: str = None
+        derivation_type: str, view: Optional[str] = None
 ) -> Dict:
 
     query["_source"] = ["embedding", "derivation.entity.@id", "derivation.entity.@type"]

@@ -1,5 +1,6 @@
 from typing import List
 
+from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.helper_functions import get_type_attribute, get_id_attribute
 
 
@@ -19,6 +20,8 @@ def _find_derivation_id(derivation_field: List, type_: str) -> str:
         ), None
     )
     if el is None:
-        raise Exception(f"Couldn't find derivation of type {type_} within an embedding")
+        raise SimilaritySearchException(
+            f"Couldn't find derivation of type {type_} within an embedding"
+        )
 
     return get_id_attribute(el["entity"])

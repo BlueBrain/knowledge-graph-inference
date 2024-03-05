@@ -2,14 +2,17 @@
 Describes a set of types for some objects inside the rule
 """
 from enum import Enum
-from typing import NewType, Union
+from typing import Union
 
 
 class RuleType(Enum):
-    DataGeneralizationRule = "DataGeneralizationRule"
-    EmbeddingBasedGeneralizationRule = "EmbeddingBasedGeneralizationRule"
-    ResourceGeneralizationRule = "ResourceGeneralizationRule"
-    HierarchyBasedGeneralizationRule = "HierarchyBasedGeneralizationRule"
+    """
+    The different values a Rule type can take
+    """
+    DATA_GENERALIZATION_RULE = "DataGeneralizationRule"
+    EMBEDDING_BASED_GENERALIZATION_RULE = "EmbeddingBasedGeneralizationRule"
+    RESOURCE_GENERALIZATION_RULE = "ResourceGeneralizationRule"
+    HIERARCHY_BASED_GENERALIZATION_RULE = "HierarchyBasedGeneralizationRule"
 
 
 class ParameterType(Enum):
@@ -52,7 +55,7 @@ class PremiseType(Enum):
     FORGE_SEARCH_PREMISE = "ForgeSearchPremise"
 
 
-ObjectType = NewType('ObjectType', Union[QueryType, PremiseType, ParameterType])
+ObjectType = Union[QueryType, PremiseType, ParameterType]
 
 
 class ObjectTypeStr(Enum):

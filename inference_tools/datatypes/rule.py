@@ -22,7 +22,7 @@ class Rule:
     type: List[RuleType]
     target_resource_type: str
     nexus_link: Optional[str]
-    flattened_input_parameters: List[ParameterSpecification] = None
+    flattened_input_parameters: Optional[List[ParameterSpecification]] = None
 
     def __init__(self, obj):
         self.id = get_id_attribute(obj)

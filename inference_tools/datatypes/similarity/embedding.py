@@ -5,7 +5,7 @@ from inference_tools.helper_functions import get_id_attribute
 
 class Embedding:
     id: str
-    vector: List[int]
+    vector: List[float]
     derivation_id: str
 
     def __init__(self, obj):

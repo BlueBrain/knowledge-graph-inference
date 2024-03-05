@@ -3,8 +3,6 @@ from typing import Dict
 
 from kgforge.core import KnowledgeGraphForge
 
-from inference_tools.datatypes.query import Query
-from inference_tools.datatypes.query_configuration import QueryConfiguration
 
 DEFAULT_LIMIT = 20
 
@@ -13,14 +11,18 @@ class Source(ABC):
 
     @staticmethod
     @abstractmethod
-    def execute_query(forge: KnowledgeGraphForge, query: Query, parameter_values: Dict,
-                      config: QueryConfiguration, limit=DEFAULT_LIMIT, debug: bool = False):
+    def execute_query(
+            forge: KnowledgeGraphForge, query, parameter_values: Dict,
+            config, limit=DEFAULT_LIMIT, debug: bool = False
+    ):
         pass
 
     @staticmethod
     @abstractmethod
-    def check_premise(forge: KnowledgeGraphForge, premise: Query, parameter_values: Dict,
-                      config: QueryConfiguration, debug: bool = False):
+    def check_premise(
+            forge: KnowledgeGraphForge, premise, parameter_values: Dict,
+            config, debug: bool = False
+    ):
         pass
 
     @staticmethod

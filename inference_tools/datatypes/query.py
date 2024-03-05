@@ -1,16 +1,15 @@
-from typing import List, Optional, Dict, NewType, Union
+from typing import List, Optional, Dict, NewType, Sequence
 
 from inference_tools.helper_functions import _enforce_list, _get_type
 from inference_tools.type import QueryType, ObjectTypeStr, PremiseType
 from inference_tools.datatypes.parameter_mapping import ParameterMapping
 from inference_tools.datatypes.parameter_specification import ParameterSpecification
-
 from inference_tools.datatypes.query_configuration import (
-    QueryConfiguration,
     SparqlQueryConfiguration,
     ElasticSearchQueryConfiguration,
     SimilaritySearchQueryConfiguration,
-    ForgeQueryConfiguration
+    ForgeQueryConfiguration,
+    QueryConfiguration
 )
 from inference_tools.exceptions.exceptions import (
     IncompleteObjectException,
@@ -31,36 +30,12 @@ ElasticSearchQueryBody = NewType('ElasticSearchQueryBody', Dict)
 ForgeQueryBody = NewType("ForgeQueryBody", Dict)
 
 
-def premise_factory(obj):
-    premise_type = _get_type(obj, obj_type=ObjectTypeStr.PREMISE, type_type=PremiseType)
-    if premise_type == PremiseType.SPARQL_PREMISE:
-        return SparqlQuery(obj)
-    if premise_type == PremiseType.FORGE_SEARCH_PREMISE:
-        return ForgeQuery(obj)
-    if premise_type == PremiseType.ELASTIC_SEARCH_PREMISE:
-        return ElasticSearchQuery(obj)
-    raise InferenceToolsException(f"Unsupported premise type {premise_type.value}")
-
-
-def query_factory(obj):
-    query_type = _get_type(obj, obj_type=ObjectTypeStr.QUERY, type_type=QueryType)
-    if query_type == QueryType.SPARQL_QUERY:
-        return SparqlQuery(obj)
-    if query_type == QueryType.SIMILARITY_QUERY:
-        return SimilaritySearchQuery(obj)
-    if query_type == QueryType.ELASTIC_SEARCH_QUERY:
-        return ElasticSearchQuery(obj)
-    if query_type == QueryType.FORGE_SEARCH_QUERY:
-        return ForgeQuery(obj)
-    raise InferenceToolsException(f"Unsupported query type {query_type.value}")
-
-
-class QuerySuper:
+class Query:
 
     type: QueryType
     parameter_specifications: List[ParameterSpecification]
     result_parameter_mapping: Optional[List[ParameterMapping]]
-    query_configurations: List[QueryConfiguration]
+    query_configurations: Sequence[QueryConfiguration]
     description: Optional[str]
 
     def __init__(self, obj):
@@ -92,22 +67,23 @@ class QuerySuper:
         return "\n".join([type_str, desc_str, param_spec_str, result_param_mapping])
 
 
-class ForgeQuery(QuerySuper):
+class ForgeQuery(Query):
     body: ForgeQueryBody
 
-    targetParameter: str  # For forge premises
-    targetPath: str
+    target_parameter: str  # For forge premises
+    target_path: str
 
     def __init__(self, obj):
         super().__init__(obj)
         self.body = ForgeQueryBody(obj.get("pattern", None))
-        self.targetParameter = obj.get("targetParameter", None)
-        self.targetPath = obj.get("targetPath", None)
+        self.target_parameter = obj.get("targetParameter", None)
+        self.target_path = obj.get("targetPath", None)
 
         tmp_qc = obj.get("queryConfiguration", None)
         if tmp_qc is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY,
-                                            attribute="queryConfiguration")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY, attribute="queryConfiguration"
+            )
 
         self.query_configurations = [
             ForgeQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
@@ -116,12 +92,12 @@ class ForgeQuery(QuerySuper):
 
     def __repr__(self):
         query_super_str = super().__repr__()
-        target_parameter_str = f"Target Parameter: {self.targetParameter}"
-        target_path_str = f"Target Path: {self.targetPath}"
+        target_parameter_str = f"Target Parameter: {self.target_parameter}"
+        target_path_str = f"Target Path: {self.target_path}"
         return "\n".join([query_super_str, target_parameter_str, target_path_str])
 
 
-class SparqlQuery(QuerySuper):
+class SparqlQuery(Query):
 
     body: SparqlQueryBody
     query_configurations: List[SparqlQueryConfiguration]
@@ -148,7 +124,7 @@ class SparqlQuery(QuerySuper):
         return "\n".join([query_super_str, sparql_query_str, qc_str])
 
 
-class ElasticSearchQuery(QuerySuper):
+class ElasticSearchQuery(Query):
 
     body: ElasticSearchQueryBody
     query_configurations: List[ElasticSearchQueryConfiguration]
@@ -174,7 +150,7 @@ class ElasticSearchQuery(QuerySuper):
         return "\n".join([query_super_str, es_query_str, qc_str])
 
 
-class SimilaritySearchQuery(QuerySuper):
+class SimilaritySearchQuery(Query):
 
     search_target_parameter: str
     result_filter: str
@@ -204,4 +180,41 @@ class SimilaritySearchQuery(QuerySuper):
         return "\n".join([query_super_str, qc_str, result_filter_str, search_target_parameter_str])
 
 
-Query = NewType("Query", Union[SparqlQuery, ElasticSearchQuery, SimilaritySearchQuery, ForgeQuery])
+def premise_factory(obj: Dict) -> Query:
+    """
+    Builds a Query object out of a dictionary
+    @param obj: the dictionary
+    @type obj: Dict
+    @return: a premise instance
+    @rtype: Query
+    @raise InferenceToolsException if the type inside the dictionary is not a valid PremiseType
+    """
+    premise_type = _get_type(obj, obj_type=ObjectTypeStr.PREMISE, type_type=PremiseType)
+    if premise_type == PremiseType.SPARQL_PREMISE:
+        return SparqlQuery(obj)
+    if premise_type == PremiseType.FORGE_SEARCH_PREMISE:
+        return ForgeQuery(obj)
+    if premise_type == PremiseType.ELASTIC_SEARCH_PREMISE:
+        return ElasticSearchQuery(obj)
+    raise InferenceToolsException(f"Unsupported premise type {premise_type.value}")
+
+
+def query_factory(obj: Dict) -> Query:
+    """
+       Builds a Query object out of a dictionary
+       @param obj: the dictionary
+       @type obj: Dict
+       @return: a query instance
+       @rtype: Query
+       @raise InferenceToolsException if the type inside the dictionary is not a valid QueryType
+       """
+    query_type = _get_type(obj, obj_type=ObjectTypeStr.QUERY, type_type=QueryType)
+    if query_type == QueryType.SPARQL_QUERY:
+        return SparqlQuery(obj)
+    if query_type == QueryType.SIMILARITY_QUERY:
+        return SimilaritySearchQuery(obj)
+    if query_type == QueryType.ELASTIC_SEARCH_QUERY:
+        return ElasticSearchQuery(obj)
+    if query_type == QueryType.FORGE_SEARCH_QUERY:
+        return ForgeQuery(obj)
+    raise InferenceToolsException(f"Unsupported query type {query_type.value}")

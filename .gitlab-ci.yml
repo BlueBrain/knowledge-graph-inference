@@ -11,17 +11,17 @@ stages:
 
 linting:
   stage: lint
-  script: flake8 inference_tools
+  script:
+    - tox -e lint
+    - tox -e type
 
 unit-tests:
   stage: test
-  script:
-    - pytest -v --cov=inference_tools inference_tools_test/unit
+  script: tox -e unit_test
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
 integration-tests:
   stage: test
   script:
-    - echo $SERVICE_ACCOUNT_USERNAME
-    - pytest -v --cov=inference_tools --username=$SERVICE_ACCOUNT_USERNAME --password=$SERVICE_ACCOUNT_PASSWORD --token=$TOKEN  inference_tools_test/integration
+    - tox -e integration_test
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'

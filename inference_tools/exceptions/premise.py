@@ -27,5 +27,4 @@ class UnsupportedPremiseCaseException(PremiseException):
 
 
 class MalformedPremiseException(PremiseException):
-    def __init__(self, message):
-        super().__init__(message)
+    ...

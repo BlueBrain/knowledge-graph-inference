@@ -1,19 +1,29 @@
+from typing import Dict, List
+
+
 class Statistic:
     min: float
     max: float
     std: float
     mean: float
-    N: float
+    count: float
 
-    def __init__(self, min_, max_, std_, mean_, N_):
+    def __init__(self, min_, max_, std_, mean_, count_):
         self.min = min_
         self.max = max_
         self.std = std_
         self.mean = mean_
-        self.N = N_
+        self.count = count_
 
     @staticmethod
-    def from_json(obj):
+    def from_json(obj: Dict) -> 'Statistic':
+        """
+        Builds an instance of this class from a dictionary
+        @param obj: the dictionary
+        @type obj: Dict
+        @return: an instance of this class
+        @rtype: Statistic
+        """
         statistics = dict((el["statistic"], el) for el in obj["series"])
 
         def _get_value(value_str):
@@ -21,16 +31,16 @@ class Statistic:
 
         return Statistic(
             min_=_get_value("min"), max_=_get_value("max"), std_=_get_value("standard deviation"),
-            mean_=_get_value("mean"), N_=_get_value("N")
+            mean_=_get_value("mean"), count_=_get_value("N")
         )
 
-    def to_series(self):
+    def to_series(self) -> List[Dict]:
         stats_dict = {
             "min": self.min,
             "max": self.max,
             "mean": self.mean,
             "standard deviation": self.std,
-            "N": self.N
+            "N": self.count
         }
 
         return [{

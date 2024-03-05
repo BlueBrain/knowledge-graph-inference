@@ -1,7 +1,7 @@
 import json
 
 from string import Template
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Any
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -19,16 +19,15 @@ def get_neighbors(
         vector_id: str,
         debug: bool,
         derivation_type: str,
-        k: int = DEFAULT_LIMIT,
+        k: Optional[int] = DEFAULT_LIMIT,
         score_formula: Formula = Formula.EUCLIDEAN,
         result_filter=None,
         parameters=None,
         use_resources: bool = False,
-        get_derivation: bool = False,
         restricted_ids: Optional[List[str]] = None,
         specified_derivation_type=None,
         view: Optional[str] = None
-) -> List[Tuple[int, Optional[Neighbor]]]:
+) -> List[Tuple[int, Neighbor]]:
     """Get nearest neighbors of the provided vector.
 
     Parameters
@@ -53,9 +52,6 @@ def get_neighbors(
     use_resources: bool, optional
         Whether to retrieve the neighbors (embeddings) or not. May be used when performing
         similarity search, but not necessary when computing statistics
-    get_derivation:
-        Whether to retrieve the derivation (original entity) or not. Necessary when
-        performing similarity search
     parameters : dict, optional
         Parameter dictionary to use in the provided `result_filter` statement.
     restricted_ids: List, optional
@@ -74,7 +70,7 @@ def get_neighbors(
         score and the corresponding resource (json representation of the resource).
     """
 
-    similarity_query = {
+    similarity_query: Dict[str, Any] = {
         "from": 0,
         "size": k,
         "query": {
@@ -136,13 +132,13 @@ def get_neighbors(
     get_neighbors_fc = _get_neighbors if use_resources else _get_neighbors_json
 
     return get_neighbors_fc(
-        forge, similarity_query, debug=debug, get_derivation=get_derivation,
+        forge, similarity_query, debug=debug,
         derivation_type=specified_derivation_type, view=view
     )
 
 
 def _get_neighbors(
-    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
+    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool,
     derivation_type: str, view: Optional[str] = None
 ) -> List:
 
@@ -165,13 +161,11 @@ def _get_neighbors(
 
 
 def _get_neighbors_json(
-    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool, get_derivation: bool,
+    forge: KnowledgeGraphForge, similarity_query: Dict, debug: bool,
     derivation_type: str, view: Optional[str] = None
 ) -> List:
 
-    similarity_query["_source"] = ["derivation.entity.@id", "derivation.entity.@type"] if \
-        get_derivation else \
-        False
+    similarity_query["_source"] = ["derivation.entity.@id", "derivation.entity.@type"]
 
     run = forge.elastic(
         json.dumps(similarity_query), limit=None, debug=debug, view=view, as_resource=False
@@ -185,6 +179,6 @@ def _get_neighbors_json(
             _find_derivation_id(
                 derivation_field=_enforce_list(e["_source"]["derivation"]), type_=derivation_type
             )
-        ) if get_derivation else None)
+        ))
         for e in run
     ]

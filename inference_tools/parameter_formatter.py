@@ -8,7 +8,7 @@ from inference_tools.helper_functions import _enforce_unique
 from inference_tools.exceptions.exceptions import (
     UnsupportedTypeException,
     InvalidValueException,
-    ObjectTypeStr
+    ObjectTypeStr, InferenceToolsException
 )
 from inference_tools.helper_functions import _enforce_list
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
@@ -51,6 +51,10 @@ class ParameterFormatter:
         @rtype: str
         """
 
+        if self.join_string is None and self.wrap_string is None:
+            raise InferenceToolsException(
+                "Cannot turn a list into a string without a join string or a wrap string"
+            )
         final_value = self.format_value(value=value, forge=forge)
 
         if self.join_string is not None:
@@ -59,11 +63,11 @@ class ParameterFormatter:
         if self.wrap_string is not None:
             final_value = self.wrap_string.format(final_value)
 
-        return final_value
+        return final_value  # type: ignore
 
-    def format_value(self, value: Union[str, List[str]],
-                     forge: KnowledgeGraphForge) \
-            -> Union[str, List[str]]:
+    def format_value(
+            self, value: Union[str, List[str]], forge: KnowledgeGraphForge
+    ) -> Union[str, List[str]]:
         """
         Formats a value by optionally expanding it as an uri, and then applying a format string.
         If multiple values are specified, this logic is applied to all of them.
@@ -85,8 +89,10 @@ class ParameterFormatter:
             if isinstance(value, list) else format_singular(value)
 
     @staticmethod
-    def format_parameter(parameter_type: ParameterType, provided_value: Any, query_type: QueryType,
-                         forge: KnowledgeGraphForge) -> str:
+    def format_parameter(
+            parameter_type: ParameterType, provided_value: Any,
+            query_type: Union[QueryType, PremiseType], forge: KnowledgeGraphForge
+    ) -> str:
         """
         Formats the user provided value following the formatting associated with the parameter type
         @param parameter_type: the type of the parameter whose user input value is being formatted
@@ -170,4 +176,4 @@ class ParameterFormatter:
 
         value = _enforce_unique(provided_value)
 
-        return formatter.format_value(value=value, forge=forge)
+        return formatter.format_value(value=value, forge=forge)  # type: ignore

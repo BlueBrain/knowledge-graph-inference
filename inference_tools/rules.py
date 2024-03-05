@@ -3,7 +3,7 @@ Rule fetching
 """
 from copy import deepcopy
 from string import Template
-from typing import List, Optional, Dict, Union, Callable
+from typing import List, Optional, Dict, Union, Callable, Any
 import json
 from kgforge.core import KnowledgeGraphForge
 
@@ -12,7 +12,8 @@ from inference_tools.datatypes.query import SparqlQueryBody, SimilaritySearchQue
 from inference_tools.datatypes.query_configuration import SimilaritySearchQueryConfiguration
 from inference_tools.datatypes.rule import Rule
 from inference_tools.datatypes.similarity.embedding import Embedding
-from inference_tools.exceptions.exceptions import SimilaritySearchException
+from inference_tools.exceptions.exceptions import SimilaritySearchException, InferenceToolsException
+from inference_tools.exceptions.malformed_rule import InvalidParameterSpecificationException
 from inference_tools.execution import check_premises
 from inference_tools.helper_functions import _enforce_list
 from inference_tools.nexus_utils.forge_utils import ForgeUtils
@@ -111,9 +112,9 @@ def fetch_rules(
         rule_types: Optional[List[RuleType]] = None,
         input_filters: Optional[Dict] = None,
         use_resources: bool = False,
-        forge_factory: Callable[
+        forge_factory: Optional[Callable[
             [str, str, Optional[str], Optional[str]], KnowledgeGraphForge
-        ] = None,
+        ]] = None,
         debug: bool = False
 
 ) -> Union[List[Rule], Dict[str, List[Rule]]]:
@@ -154,17 +155,17 @@ def fetch_rules(
     @rtype: Union[List[Rule], Dict[str, List[Rule]]]
     """
     # Rule filter by type: default filter or provided
-    rule_types = [RuleType.DataGeneralizationRule.value] \
+    rule_types_str = [RuleType.DATA_GENERALIZATION_RULE.value] \
         if rule_types is None or len(rule_types) == 0 \
         else [e.value for e in rule_types]
 
     # Query by rule type
-    q = {
+    q: Dict[str, Any] = {
         "size": ElasticSearch.NO_LIMIT,
         'query': {
             'bool': {
                 'filter': [
-                    {'terms': {'@type': rule_types}}
+                    {'terms': {'@type': rule_types_str}}
                 ],
                 'must': [
                     {'match': {'_deprecated': False}}
@@ -197,6 +198,10 @@ def fetch_rules(
 
     # Check premises of rules if some input filters were provided
     if input_filters is not None:
+
+        if forge_factory is None:
+            raise InferenceToolsException("Cannot check premises without a forge factory specified")
+
         rules = [
             r for r in rules if check_premises(
                 forge_factory=forge_factory,
@@ -208,40 +213,43 @@ def fetch_rules(
     # If no resource id is provided, apply basic formatting on rules
     if resource_ids is None:
         return [rule_format_basic(r) for r in rules]
-    else:
-        resource_ids = _enforce_list(resource_ids)
 
-        # Non similarity search rules have basic formatting applied
-        non_sim_formatted = [
-            rule_format_basic(r) for r in rules
-            if not isinstance(r.search_query, SimilaritySearchQuery)
-        ]
+    resource_id_list: List[str] = _enforce_list(resource_ids)
 
-        # list -> per rule, dict: value is rule (or partial) if relevant else None
-        rule_check_per_res_id: List[Dict[str, Optional[Rule]]] = [
-            rule_has_resource_ids_embeddings(
-                rule, resource_ids, forge_factory=forge_factory, use_resources=use_resources, debug=debug
-            )
-            for rule in rules if isinstance(rule.search_query, SimilaritySearchQuery)
-        ] + [
-            dict((res_id, rule) for res_id in resource_ids)
-            for rule in non_sim_formatted
-        ]
+    # Non similarity search rules have basic formatting applied
+    non_sim_formatted = [
+        rule_format_basic(r) for r in rules
+        if not isinstance(r.search_query, SimilaritySearchQuery)
+    ]
 
-        # Dict: key: res_id, value: List[Rule], iterate over
-        final_dict: Dict[str, List[Rule]] = dict(
-            (
-                res_id,
-                list(
-                    e
-                    for e in map(lambda dict_rule: dict_rule[res_id], rule_check_per_res_id)
-                    if e is not None
-                )
-            )
-            for res_id in resource_ids
+    if forge_factory is None:
+        raise SimilaritySearchException(
+            "Cannot check resource id has embeddings without a forge factory specified"
         )
 
-        return final_dict
+    # list -> per rule, dict: value is rule (or partial) if relevant else None
+    rule_check_per_res_id: List[Dict[str, Optional[Rule]]] = [
+        rule_has_resource_ids_embeddings(
+            rule, resource_id_list, forge_factory=forge_factory, use_resources=use_resources,
+            debug=debug
+        )
+        for rule in rules if isinstance(rule.search_query, SimilaritySearchQuery)
+    ] + [
+        dict((res_id, rule) for res_id in resource_ids)
+        for rule in non_sim_formatted
+    ]
+
+    # Dict: key: res_id, value: List[Rule], iterate over
+    final_dict: Dict[str, List[Rule]] = dict(
+        (
+            res_id,
+            [dict_rule[res_id] for dict_rule in rule_check_per_res_id  # type: ignore
+             if dict_rule[res_id] is not None]
+        )
+        for res_id in resource_ids
+    )
+
+    return final_dict
 
 
 def rule_has_resource_ids_embeddings(
@@ -276,14 +284,12 @@ def rule_has_resource_ids_embeddings(
     """
 
     if not isinstance(rule.search_query, SimilaritySearchQuery):
-        raise Exception(
+        raise SimilaritySearchException(
             "Cannot check if rule has resource id embeddings for a rule "
             "that does not hold a similarity search query"
         )
 
     buckets = {(c.org, c.project) for c in rule.search_query.query_configurations}
-
-    print(len(buckets))
 
     forge_instances = dict(
         (f"{org}/{project}", forge_factory(org, project, None, None)) for org, project in buckets
@@ -298,19 +304,28 @@ def rule_has_resource_ids_embeddings(
     ]
 
     def _handle_resource_id(res_id) -> Optional[Rule]:
-        query_confs = list(
-            e
-            for e in map(
-                lambda i_qc_res: rule.search_query.query_configurations[i_qc_res[0]]
-                if i_qc_res[1][res_id] else None, enumerate(has_embedding_dict_list)
+        if not isinstance(rule.search_query, SimilaritySearchQuery):
+            raise SimilaritySearchException(
+                "Cannot check if rule has resource id embeddings for a rule "
+                "that does not hold a similarity search query"
             )
-            if e is not None
+
+        query_confs: List[SimilaritySearchQueryConfiguration] = list(
+            rule.search_query.query_configurations[i]
+            for i, per_qc in enumerate(has_embedding_dict_list) if per_qc[res_id]
         )
 
         if len(query_confs) == 0:
             return None
 
         rule_i = deepcopy(rule)
+
+        if not isinstance(rule_i.search_query, SimilaritySearchQuery):
+            raise SimilaritySearchException(
+                "Cannot check if rule has resource id embeddings for a rule "
+                "that does not hold a similarity search query"
+            )
+
         rule_i.search_query.query_configurations = query_confs
         rule_i.search_query.parameter_specifications = _update_parameter_specifications(
             rule_i.search_query.parameter_specifications, query_confs
@@ -335,9 +350,16 @@ def _update_parameter_specifications(
         (qc.embedding_model_data_catalog.id, qc) for qc in query_configurations
     )
 
+    f = parameter_specifications[pos_select].values
+
+    if f is None:
+        raise InvalidParameterSpecificationException(
+            f"{SIMILARITY_MODEL_SELECT_PARAMETER_NAME} should have a predefined list of values"
+        )
+
     parameter_specifications[pos_select].values = dict(
         (key, valid_select_values[value].embedding_model_data_catalog)
-        for key, value in parameter_specifications[pos_select].values.items()
+        for key, value in f.items()
         if value in valid_select_values.keys()
     )
 
@@ -370,8 +392,6 @@ def has_embedding_dict(
     @return: a dictionary indexed by the
     @rtype: Dict[str, bool]
     """
-
-    endpoint, _, _ = ForgeUtils.get_endpoint_org_project(forge)
 
     try:
         embs: List[Embedding] = get_embedding_vectors(

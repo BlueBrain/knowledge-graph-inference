@@ -27,23 +27,11 @@ setup(
         "setuptools_scm",
     ],
     install_requires=[
-        "pytest==7.2.1",
-        "pytest-cov==4.1.0",
-        "nexusforge@git+https://github.com/BlueBrain/nexus-forge",
-        "requests==2.31.0",
-        "kaleido==0.2.1"
+        "nexusforge@git+https://github.com/BlueBrain/nexus-forge"
     ],
     extras_require={
         "dev": [
-            "tox",
-            "pytest-bdd",
-            "pytest-mock==3.3.1",
-            "codecov",
-            "pytest-cov",
-            "flake8"
-        ],
-        "docs": [
-            "sphinx", "sphinx-bluebrain-theme"
+            "tox==4.13.0"
         ]
     },
     classifiers=[

@@ -181,7 +181,7 @@ def query_similar_resources(
         forge=forge, vector_id=embedding.id, vector=embedding.vector,
         k=k, score_formula=config.embedding_model_data_catalog.distance,
         result_filter=result_filter, parameters=parameter_values, debug=debug,
-        use_resources=use_resources, get_derivation=True,
+        use_resources=use_resources,
         derivation_type=config.embedding_model_data_catalog.about,
         specified_derivation_type=specified_derivation_type,
         view=config.similarity_view.id
@@ -270,7 +270,7 @@ def combine_similarity_models(
             vector_id=embedding.id, vector=embedding.vector,
             k=k, score_formula=configurations[i].embedding_model_data_catalog.distance,
             result_filter=result_filter, parameters=parameter_values, debug=debug,
-            use_resources=use_resources, get_derivation=True,
+            use_resources=use_resources,
             restricted_ids=list(missing_list),
             derivation_type=configurations[i].embedding_model_data_catalog.about,
             specified_derivation_type=specified_derivation_type,
@@ -285,7 +285,7 @@ def combine_similarity_models(
 
     weights = dict((model_id, equal_contribution) for model_id in model_ids)
 
-    combined_results = defaultdict(dict)
+    combined_results: Dict[str, Dict] = defaultdict(dict)
 
     for i, config_i in enumerate(configurations):
 
@@ -321,7 +321,7 @@ def combine_similarity_models(
     combined_results_mean = [
         (
             entity_id,
-            sum([score * weight for score, weight in score_dict.values()]),
+            sum(score * weight for score, weight in score_dict.values()),
             score_dict
         )
         for entity_id, score_dict in combined_results.items()

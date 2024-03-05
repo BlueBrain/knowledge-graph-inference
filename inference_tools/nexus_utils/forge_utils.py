@@ -1,7 +1,7 @@
 from typing import Tuple
+from urllib.parse import quote_plus
 
 from kgforge.core import KnowledgeGraphForge
-from urllib.parse import quote_plus
 
 
 class ForgeUtils:

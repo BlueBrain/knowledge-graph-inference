@@ -12,7 +12,16 @@ from inference_tools.exceptions.exceptions import (
 )
 
 
-def get_type_attribute(obj):
+def get_type_attribute(obj: Dict) -> str:
+    """
+    Looks into a dictionary for a type, located either at key "type" or "@type". Raises an error
+    if the type is not present
+    @param obj: the dictionary holding a type
+    @type obj: Dict
+    @return: the type value
+    @rtype: str
+    @raise TypeError
+    """
     type_value = obj["type"] if "type" in obj else (obj["@type"] if "@type" in obj else None)
     if type_value:
         return type_value
@@ -20,6 +29,15 @@ def get_type_attribute(obj):
 
 
 def get_id_attribute(obj) -> str:
+    """
+        Looks into a dictionary for an id, located either at key "id" or "@id". Raises an error
+        if the id is not present
+        @param obj: the dictionary holding an id
+        @type obj: Dict
+        @return: the id value
+        @rtype: str
+        @raise TypeError
+        """
     id_value = obj["id"] if "id" in obj else (obj["@id"] if "@id" in obj else None)
     if id_value:
         return id_value

@@ -1,6 +1,6 @@
 """Collection of utils for performing various inference queries."""
 
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, Union, List, Tuple
 
 from kgforge.core import KnowledgeGraphForge
 
@@ -114,7 +114,7 @@ def get_search_query_parameters(rule: Rule) -> Dict[str, ParameterSpecification]
         return [p.parameter_name for p in sub_query.result_parameter_mapping]
 
     def _get_head_rest(sub_query: Union[QueryPipe, Query]) -> \
-            Union[Query, Optional[Union[Query, QueryPipe]]]:
+            Tuple[Query, Optional[Union[Query, QueryPipe]]]:
 
         return (sub_query.head, sub_query.rest) \
             if isinstance(sub_query, QueryPipe) \
@@ -126,8 +126,8 @@ def get_search_query_parameters(rule: Rule) -> Dict[str, ParameterSpecification]
         )
 
     input_parameters = {}
-    output_parameters = []
-    rest = rule.search_query
+    output_parameters: List[str] = []
+    rest: Optional[Union[Query, QueryPipe]] = rule.search_query
 
     while rest is not None:
         head, rest = _get_head_rest(rest)
@@ -154,9 +154,22 @@ def get_rule_parameters(rule: Rule) -> Dict:
     }
 
 
-def format_parameters(query: Query, parameter_values: Optional[Dict], forge: KnowledgeGraphForge) \
-        -> Dict:
-
+def format_parameters(
+        query: Query, parameter_values: Dict, forge: KnowledgeGraphForge
+) -> Dict:
+    """
+    Formats the parameters provided by the user.
+    May also alter the body of the query in the case of Sparql queries and the usage of a
+    MultiPredicateObjectPair
+    @param query: the query, holding the parameter specification and its query body
+    @type query: Query
+    @param parameter_values: tha parameters provided by the user
+    @type parameter_values: Dict
+    @param forge:
+    @type forge: KnowledgeGraphForge
+    @return: the formatted input parameter values
+    @rtype: Dict
+    """
     if len(query.parameter_specifications) == 0:
         return {}
 
@@ -172,9 +185,18 @@ def format_parameters(query: Query, parameter_values: Optional[Dict], forge: Kno
     return parameter_map
 
 
+# TODO where is it used
 def get_embedding_models(rule: Rule) -> Dict[str, Dict]:
+    """
+    Gets the embedding models inside the search query of a rule, if this search query is
+    of type SimilaritySearchQuery. Formats useful information into a dictionary
+    @param rule:
+    @type rule: Rule
+    @return:
+    @rtype: Dict[str, Dict]
+    """
     if not isinstance(rule.search_query, SimilaritySearchQuery):
-        return dict()
+        return {}
 
     def _transform(qc: SimilaritySearchQueryConfiguration):
 

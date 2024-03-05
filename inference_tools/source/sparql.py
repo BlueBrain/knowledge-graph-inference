@@ -8,13 +8,9 @@ from inference_tools.type import ParameterType
 from inference_tools.datatypes.query import SparqlQuery
 from inference_tools.datatypes.query_configuration import SparqlQueryConfiguration
 from inference_tools.premise_execution import PremiseExecution
-from inference_tools.nexus_utils.forge_utils import ForgeUtils
 from inference_tools.source.source import Source, DEFAULT_LIMIT
 
 DEFAULT_SPARQL_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-sp/dataset"
-
-
-# TODO get rid of the edit of views
 
 
 class Sparql(Source):
@@ -46,7 +42,3 @@ class Sparql(Source):
 
         return PremiseExecution.SUCCESS if results is not None and len(results) > 0 else \
             PremiseExecution.FAIL
-
-    @staticmethod
-    def restore_default_views(forge: KnowledgeGraphForge):
-        ForgeUtils.set_sparql_view(forge, DEFAULT_SPARQL_VIEW)

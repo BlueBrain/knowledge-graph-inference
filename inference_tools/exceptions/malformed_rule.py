@@ -8,8 +8,7 @@ class MalformedRuleException(Exception):
 
 
 class InvalidParameterSpecificationException(MalformedRuleException):
-    def __init__(self, message):
-        super().__init__(message)
+    ...
 
 
 class InvalidParameterTypeException(MalformedRuleException):
@@ -20,5 +19,4 @@ class InvalidParameterTypeException(MalformedRuleException):
 
 
 class MalformedSimilaritySearchQueryException(MalformedRuleException):
-    def __init__(self, message):
-        super().__init__(message)
+    ...
