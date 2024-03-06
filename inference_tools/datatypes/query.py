@@ -208,13 +208,18 @@ def query_factory(obj: Dict) -> Query:
        @rtype: Query
        @raise InferenceToolsException if the type inside the dictionary is not a valid QueryType
        """
-    query_type = _get_type(obj, obj_type=ObjectTypeStr.QUERY, type_type=QueryType)
-    if query_type == QueryType.SPARQL_QUERY:
-        return SparqlQuery(obj)
-    if query_type == QueryType.SIMILARITY_QUERY:
-        return SimilaritySearchQuery(obj)
-    if query_type == QueryType.ELASTIC_SEARCH_QUERY:
-        return ElasticSearchQuery(obj)
-    if query_type == QueryType.FORGE_SEARCH_QUERY:
-        return ForgeQuery(obj)
-    raise InferenceToolsException(f"Unsupported query type {query_type.value}")
+    query_type: QueryType = _get_type(obj, obj_type=ObjectTypeStr.QUERY, type_type=QueryType)  # type: ignore
+
+    query_type_to_class = {
+        QueryType.SPARQL_QUERY: SparqlQuery,
+        QueryType.ELASTIC_SEARCH_QUERY: ElasticSearchQuery,
+        QueryType.FORGE_SEARCH_QUERY: ForgeQuery,
+        QueryType.SIMILARITY_QUERY: SimilaritySearchQuery
+    }
+
+    class_to_instanciate = query_type_to_class.get(query_type, None)
+
+    if class_to_instanciate is None:
+        raise InferenceToolsException(f"Unsupported query type {query_type.value}")
+
+    return class_to_instanciate(obj)

@@ -20,14 +20,14 @@ class ElasticSearch(Source):
             config: ElasticSearchQueryConfiguration,
             limit=DEFAULT_LIMIT,
             debug: bool = False
-    ) -> Optional[List[Resource]]:
+    ) -> Optional[List[Dict]]:
 
         query_body = json.dumps(query.body)
 
         for k, v in parameter_values.items():
-            query_body = query_body.replace(f"\"${k}\"", v)
+            query_body = query_body.replace(f"\"${k}\"", str(v))
 
-        return forge.elastic(query_body, limit=limit, debug=debug)
+        return forge.elastic(query_body, limit=limit, debug=debug, as_resource=False)
 
     @staticmethod
     def check_premise(

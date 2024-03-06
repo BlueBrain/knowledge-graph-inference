@@ -44,12 +44,12 @@ def get_id_attribute(obj) -> str:
     raise TypeError
 
 
-def _follow_path(json_resource, path):
+def _follow_path(json_resource: Dict, path: str):
     """Follow a path in a JSON-resource."""
     value = json_resource
-    path = path.split(".")
+    path_list = path.split(".")
 
-    for el in path:
+    for el in path_list:
         if el not in value:
             ex = InferenceToolsException(
                 f"Invalid path for retrieving results: '{el}' is not in the path.")

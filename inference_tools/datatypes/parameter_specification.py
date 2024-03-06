@@ -61,21 +61,30 @@ class ParameterSpecification:
         @rtype: Any
         """
         if self.name in parameter_values and parameter_values[self.name] is not None:
-            if len(parameter_values[self.name]) == 0:
+            v = parameter_values[self.name]
+
+            if len(v) == 0:
                 return []
-            if self.values is not None:
-                selected_value_keys = _enforce_list(parameter_values[self.name])
-                if any(v not in list(self.values.keys()) for v in selected_value_keys):
-                    raise InferenceToolsException(f"Invalid value for parameter {self.name}")
 
-                selected_values = [self.values[v] for v in selected_value_keys]
-                return selected_values if len(selected_values) > 1 else selected_values[0]
+            if self.values is None:
+                return v
 
-            return parameter_values[self.name]
+            # restricted set of valid values
+            selected_value_keys = _enforce_list(v)
+            valid_values = list(self.values.keys())
+
+            if any(vi not in valid_values for vi in selected_value_keys):
+                raise InferenceToolsException(
+                    f"Invalid value for parameter {self.name}, valid values are {valid_values}"
+                )
+
+            selected_values = [self.values[v] for v in selected_value_keys]
+            return selected_values if len(selected_values) > 1 else selected_values[0]
 
         if self.default is not None:
             return self.default
         if self.optional:
             return None if self.type not in parameter_list_types else []
-        raise IncompleteObjectException(name=self.name, attribute="value",
-                                        object_type=ObjectTypeStr.PARAMETER)
+        raise IncompleteObjectException(
+            name=self.name, attribute="value", object_type=ObjectTypeStr.PARAMETER
+        )

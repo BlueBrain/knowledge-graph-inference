@@ -1,6 +1,6 @@
 from typing import Dict, Callable, Optional, Union, List, Type
 
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core import KnowledgeGraphForge, Resource
 
 from inference_tools.datatypes.parameter_mapping import ParameterMapping
 from inference_tools.datatypes.query import Query, SimilaritySearchQuery
@@ -20,7 +20,7 @@ from inference_tools.exceptions.malformed_rule import InvalidParameterSpecificat
 from inference_tools.exceptions.premise import IrrelevantPremiseParametersException
 from inference_tools.exceptions.premise import UnsupportedPremiseCaseException, \
     FailedPremiseException, MalformedPremiseException
-from inference_tools.helper_functions import _follow_path, get_id_attribute, _enforce_list
+from inference_tools.helper_functions import _follow_path, _enforce_list
 from inference_tools.premise_execution import PremiseExecution
 from inference_tools.similarity.main import execute_similarity_query
 from inference_tools.source.source import DEFAULT_LIMIT, Source
@@ -108,10 +108,22 @@ def execute_query_object(
         if resources is None:
             raise FailedQueryException(description=query.description)
 
-        resources = forge.as_json(resources)
+        if isinstance(resources, Resource) or all(isinstance(r, Resource) for r in resources):
+            resources = forge.as_json(resources)
 
-        if query.type == QueryType.ELASTIC_SEARCH_QUERY and last_query:
-            resources = [{"id": get_id_attribute(el)} for el in resources]
+        if last_query:
+
+            if not query.result_parameter_mapping or len(query.result_parameter_mapping) == 0:
+                return resources
+
+            mapping = process_result_parameter_mapping(
+                result_parameter_mapping=query.result_parameter_mapping, result=resources
+            )
+
+            return [
+                dict((k, v[idx]) for k, v in mapping.items())
+                for idx in range(len(resources))
+            ]
 
     elif isinstance(query, SimilaritySearchQuery):
         if parameter_values is None:
@@ -176,6 +188,25 @@ def apply_rule(
     )
 
 
+def process_result_parameter_mapping(
+        result_parameter_mapping: List[ParameterMapping], result: List[Dict]
+):
+    """
+    In the results of a query ahead in the query pipe, follows paths of interest and
+    puts the values there into a field of choice
+    @param result_parameter_mapping:
+    @type result_parameter_mapping: List[ParameterMapping]
+    @param result:
+    @type result: List[Dict]
+    @return: For each parameter mapping, a list of values
+    @rtype: Dict[str, List]
+    """
+    return dict(
+        (mapping.parameter_name, [_follow_path(el, mapping.path) for el in result])
+        for mapping in result_parameter_mapping
+    )
+
+
 def combine_parameters(
         result_parameter_mapping: Optional[List[ParameterMapping]], parameter_values: Optional[Dict],
         result: List
@@ -194,16 +225,20 @@ def combine_parameters(
     @return:
     @rtype:
     """
+    if not result_parameter_mapping:
+        if parameter_values:
+            return parameter_values
+        return {}
 
-    mapping_values = dict(
-        (mapping.parameter_name, [_follow_path(el, mapping.path) for el in result])
-        for mapping in result_parameter_mapping
-    ) if result_parameter_mapping else {}
+    mapping_values = process_result_parameter_mapping(result_parameter_mapping, result)
 
     if not parameter_values:
         return mapping_values
 
-    return {**parameter_values, **mapping_values}
+    return {
+        **parameter_values,
+        **mapping_values
+    }
 
 
 def execute_query_pipe(
