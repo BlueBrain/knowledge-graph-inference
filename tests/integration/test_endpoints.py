@@ -1,14 +1,11 @@
 import pytest
 
-import json
 import cProfile
 import pstats
 from pstats import SortKey
 
-import requests
 
 from inference_tools.execution import apply_rule
-from inference_tools.nexus_utils.delta_utils import DeltaUtils
 from inference_tools.source.elastic_search import ElasticSearch
 
 all_aspect = "https://bbp.epfl.ch/neurosciencegraph/data/abb1949e-dc16-4719-b43b-ff88dabc4cb8"

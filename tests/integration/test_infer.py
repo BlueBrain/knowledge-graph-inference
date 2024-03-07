@@ -63,9 +63,12 @@ def test_try_rules(rule_forge, rule_id, parameters, forge_factory):
     print(parameters)
 
     with cProfile.Profile() as pr:
+
+        rule = rule_forge.as_json(ElasticSearch.get_by_id(ids=rule_id, forge=rule_forge))
+
         res = apply_rule(
             forge_factory=forge_factory,
-            rule=rule_forge.as_json(ElasticSearch.get_by_id(ids=rule_id, forge=rule_forge)),
+            rule=rule,
             parameter_values=dict(parameters),
             premise_check=False,
             debug=False

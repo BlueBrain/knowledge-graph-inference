@@ -18,10 +18,8 @@ linting:
 unit-tests:
   stage: test
   script: tox -e unit_test
-  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
 integration-tests:
   stage: test
   script:
     - tox -e integration_test
-  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
