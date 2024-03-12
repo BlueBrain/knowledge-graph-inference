@@ -5,6 +5,7 @@ class Formula(Enum):
     COSINE = "cosine"
     EUCLIDEAN = "euclidean"
     POINCARE = "poincare"
+    CUSTOM_TMD = "custom_tmd"
 
     def get_formula(self):
         formulas = {
@@ -35,6 +36,9 @@ class Formula(Enum):
                 "   ( (1 - Math.pow(bm, 2)) * (1 - Math.pow(am, 2)) ); "
 
                 "double d = Math.log(x + Math.sqrt(Math.pow(x, 2) - 1)); "
-                "return 1 / (1 + d);"  # from distance to similarity
+                "return 1 / (1 + d);",  # from distance to similarity
+            "custom_tmd":
+                "double d = Math.sum(Math.abs(doc['embedding'].vectorValue - params.query_vector));"
+                "return 1 / (1 + d);"
         }
         return formulas[self.value]
