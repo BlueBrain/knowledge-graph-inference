@@ -32,10 +32,34 @@ class Forge(Source):
 
     @staticmethod
     def execute_query(
-            forge: KnowledgeGraphForge, query: ForgeQuery,
-            parameter_values: Dict, config: ForgeQueryConfiguration,
-            limit=DEFAULT_LIMIT, debug: bool = False
+            forge: KnowledgeGraphForge,
+            query: ForgeQuery,
+            parameter_values: Dict,
+            config: ForgeQueryConfiguration,
+            limit: Optional[int] = DEFAULT_LIMIT,
+            debug: bool = False
     ) -> Optional[List[Resource]]:
+        """
+        Executes a forge.search query by turning it into a sparql query,
+        within the bucket defined by the config,
+        and targeting the sparql view defined by the config
+
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param query: the query to execute
+        @type query: ForgeQuery
+        @param parameter_values: the parameters to use inside the parametrisable query
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and
+        the sparql view within it
+        @type config: ForgeQueryConfiguration
+        @param limit: the maximum number of results to get from the execution
+        @type limit: int
+        @param debug: Whether to print out the query before its execution
+        @type debug: bool
+        @return: the results of the query execution
+        @rtype: List[Dict]
+        """
 
         q = json.loads(
             Template(json.dumps(query.body)).substitute(**parameter_values)
@@ -46,11 +70,30 @@ class Forge(Source):
     @staticmethod
     def check_premise(
             forge: KnowledgeGraphForge, premise: ForgeQuery,
-            parameter_values: Dict, config: ForgeQueryConfiguration, debug: bool = False):
+            parameter_values: Dict, config: ForgeQueryConfiguration, debug: bool = False
+    ) -> PremiseExecution:
+        """
+        Executes a premise based on a forge.search query.
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param premise: the premise holding the query to execute
+        @type premise: ForgeQuery
+        @param parameter_values: the parameters to use inside the parametrisable query of the premise
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and the view within it
+        @type config: ForgeQueryConfiguration
+        @param debug: Whether to print out the premise's query before its execution
+        @type debug: bool
+        @return: PremiseExecution.FAIL is running the query within it has returned no results,
+        PremiseExecution.SUCCESS otherwise.
+        @rtype: PremiseExecution
+        """
 
-        resources = Forge.execute_query(forge=forge, query=premise,
-                                        parameter_values=parameter_values, config=config,
-                                        debug=debug, limit=None)
+        resources = Forge.execute_query(
+            forge=forge, query=premise,
+            parameter_values=parameter_values, config=config,
+            debug=debug, limit=None
+        )
 
         if resources is None:
             return PremiseExecution.FAIL

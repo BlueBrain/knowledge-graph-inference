@@ -14,6 +14,12 @@
 # limitations under the License.
 
 class ParameterMapping:
+    """
+    When obtaining results from the execution of a query, the query results will be consumed.
+    A parameter mapping can be used in other to specify what information to extract within each
+    result, through a path to follow inside a dictionary. The information found at that path will be
+    set as the value tied to the key defined by the parameter name of the parameter mapping.
+    """
     parameter_name: str
     path: str
 

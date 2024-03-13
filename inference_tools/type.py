@@ -74,6 +74,11 @@ ObjectType = Union[QueryType, PremiseType, ParameterType]
 
 
 class ObjectTypeStr(Enum):
+    """
+    Helper enum used when manipulating dictionaries. When a dictionary is expected to be
+    of a specific type, if it does not match expectations,
+    the enum value will be used in the message of the exception being thrown.
+    """
     QUERY_PIPE = "query pipe"
     PARAMETER = "parameter"
     RULE = "rule"

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+from typing import Dict
 
 
 class Statistic:
@@ -48,18 +48,3 @@ class Statistic:
             min_=_get_value("min"), max_=_get_value("max"), std_=_get_value("standard deviation"),
             mean_=_get_value("mean"), count_=_get_value("N")
         )
-
-    def to_series(self) -> List[Dict]:
-        stats_dict = {
-            "min": self.min,
-            "max": self.max,
-            "mean": self.mean,
-            "standard deviation": self.std,
-            "N": self.count
-        }
-
-        return [{
-            "statistic": key,
-            "unitCode": "dimensionless",
-            "value": val
-        } for key, val in stats_dict.items()]

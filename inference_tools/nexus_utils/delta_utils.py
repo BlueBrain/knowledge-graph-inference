@@ -31,7 +31,14 @@ class DeltaException(Exception):
 class DeltaUtils:
 
     @staticmethod
-    def make_header(token):
+    def make_header(token) -> Dict:
+        """
+        Makes request headers for delta API calls
+        @param token: the authentication token to put inside the headers
+        @type token:  str
+        @return: the headers
+        @rtype: Dict
+        """
         return {
             "mode": "cors",
             "Content-Type": "application/json",
@@ -41,13 +48,13 @@ class DeltaUtils:
 
     @staticmethod
     def check_response(response: requests.Response) -> Dict:
+        """
+        Checks the status code of a response and returns
+        @param response: the response to check
+        @type response: requests.Response
+        @return: the response body parsed as json
+        @rtype: Dict
+        """
         if response.status_code not in range(200, 229):
             raise DeltaException(body=json.loads(response.text), status_code=response.status_code)
         return json.loads(response.text)
-
-    @staticmethod
-    def check_hits(response_body: Dict):
-        if "hits" not in response_body or len(response_body["hits"]) == 0:
-            raise DeltaException(body={}, status_code=100)  # TODO
-
-        return response_body["hits"]["hits"]

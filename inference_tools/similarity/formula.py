@@ -21,7 +21,12 @@ class Formula(Enum):
     EUCLIDEAN = "euclidean"
     POINCARE = "poincare"
 
-    def get_formula(self):
+    def get_formula(self) -> str:
+        """
+        Returns the formula to be used in the script score query of a similarity search-based query.
+        @see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-script-score-query.html
+        """
+
         formulas = {
             "cosine":
                 "if (doc['embedding'].size() == 0) { return 0; } "

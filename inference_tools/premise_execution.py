@@ -21,6 +21,9 @@ from enum import Enum
 
 
 class PremiseExecution(Enum):
+    """
+    Represents the state of the execution of a premise
+    """
     FAIL = "fail"
     SUCCESS = "success"
     MISSING_PARAMETER = "missing_parameter"

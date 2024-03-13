@@ -23,7 +23,10 @@ class SimilarityModelResult:
     score: float
     score_breakdown: Dict[str, Tuple[float, float]]
 
-    def to_json(self):
+    def to_json(self) -> Dict:
+        """
+        Returns the json format of a similarity model result
+        """
         return {
             "id": self.id,
             "score": self.score,

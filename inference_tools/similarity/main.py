@@ -356,5 +356,16 @@ def combine_similarity_models(
     ]
 
 
-def normalize(score, min_v, max_v):
+def normalize(score: float, min_v: float, max_v: float) -> float:
+    """
+    Normalises a score, using min-max normalisation
+    @param score: the score to normalise
+    @type score: float
+    @param min_v: the minimum score of proximity between all pairs within the population considered
+    @type min_v: float
+    @param max_v: the maximum score of proximity between all pairs within the population considered
+    @type max_v: float
+    @return: the normalised score
+    @rtype: float
+    """
     return (score - min_v) / (max_v - min_v)

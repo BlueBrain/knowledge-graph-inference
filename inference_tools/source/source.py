@@ -18,6 +18,7 @@ from typing import Dict
 
 from kgforge.core import KnowledgeGraphForge
 
+from inference_tools.premise_execution import PremiseExecution
 
 DEFAULT_LIMIT = 20
 
@@ -27,20 +28,53 @@ class Source(ABC):
     @staticmethod
     @abstractmethod
     def execute_query(
-            forge: KnowledgeGraphForge, query, parameter_values: Dict,
-            config, limit=DEFAULT_LIMIT, debug: bool = False
+            forge: KnowledgeGraphForge,
+            query,
+            parameter_values: Dict,
+            config,
+            limit=DEFAULT_LIMIT,
+            debug: bool = False
     ):
-        pass
+        """
+        Executes a query
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param query: the query to execute
+        @type query:
+        @param parameter_values: the parameters to use inside the parametrisable query
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and the view within it
+        @type config:
+        @param limit: the maximum number of results to get from the execution
+        @type limit: int
+        @param debug: Whether to print out the query before its execution
+        @type debug: bool
+        @return: the results of the query execution
+        @rtype:
+        """
 
     @staticmethod
     @abstractmethod
     def check_premise(
-            forge: KnowledgeGraphForge, premise, parameter_values: Dict,
-            config, debug: bool = False
-    ):
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def restore_default_views(forge: KnowledgeGraphForge):
-        pass
+            forge: KnowledgeGraphForge,
+            premise,
+            parameter_values: Dict,
+            config,
+            debug: bool = False
+    ) -> PremiseExecution:
+        """
+        Executes a premise.
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param premise: the premise holding the query to execute
+        @type premise:
+        @param parameter_values: the parameters to use inside the parametrisable query of the premise
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and the view within it
+        @type config:
+        @param debug: Whether to print out the premise's query before its execution
+        @type debug: bool
+        @return: PremiseExecution.FAIL is running the query within it has returned no results,
+        PremiseExecution.SUCCESS otherwise.
+        @rtype: PremiseExecution
+        """

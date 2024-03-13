@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import ABC
 from typing import List, Optional, Dict, NewType, Sequence
 
 from inference_tools.helper_functions import _enforce_list, _get_type
@@ -45,8 +46,7 @@ ElasticSearchQueryBody = NewType('ElasticSearchQueryBody', Dict)
 ForgeQueryBody = NewType("ForgeQueryBody", Dict)
 
 
-class Query:
-
+class Query(ABC):
     type: QueryType
     parameter_specifications: List[ParameterSpecification]
     result_parameter_mapping: Optional[List[ParameterMapping]]
@@ -101,8 +101,7 @@ class ForgeQuery(Query):
             )
 
         self.query_configurations = [
-            ForgeQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
-            for obj_i in _enforce_list(tmp_qc)
+            ForgeQueryConfiguration(obj_i) for obj_i in _enforce_list(tmp_qc)
         ]
 
     def __repr__(self):
@@ -124,12 +123,12 @@ class SparqlQuery(Query):
 
         tmp_qc = obj.get("queryConfiguration", None)
         if tmp_qc is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY,
-                                            attribute="queryConfiguration")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY, attribute="queryConfiguration"
+            )
 
         self.query_configurations = [
-            SparqlQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
-            for obj_i in _enforce_list(tmp_qc)
+            SparqlQueryConfiguration(obj_i) for obj_i in _enforce_list(tmp_qc)
         ]
 
     def __repr__(self):
@@ -150,11 +149,12 @@ class ElasticSearchQuery(Query):
 
         tmp_qc = obj.get("queryConfiguration", None)
         if tmp_qc is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY,
-                                            attribute="queryConfiguration")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY, attribute="queryConfiguration"
+            )
 
         self.query_configurations = [
-            ElasticSearchQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
+            ElasticSearchQueryConfiguration(obj_i)
             for obj_i in _enforce_list(tmp_qc)
         ]
 
@@ -183,8 +183,7 @@ class SimilaritySearchQuery(Query):
             )
 
         self.query_configurations = [
-            SimilaritySearchQueryConfiguration(obj_i, ObjectTypeStr.QUERY)
-            for obj_i in _enforce_list(tmp_qc)
+            SimilaritySearchQueryConfiguration(obj_i) for obj_i in _enforce_list(tmp_qc)
         ]
 
     def __repr__(self):

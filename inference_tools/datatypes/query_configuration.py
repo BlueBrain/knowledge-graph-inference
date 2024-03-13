@@ -30,20 +30,24 @@ class QueryConfiguration(ABC):
     org: str
     project: str
 
-    def __init__(self, obj, object_type: ObjectTypeStr):
+    def __init__(self, obj):
         if obj is None:
-            raise IncompleteObjectException(object_type=object_type, attribute="queryConfiguration")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY, attribute="queryConfiguration"
+            )
 
         self.org = obj.get("org", None)
         self.project = obj.get("project", None)
 
         if self.org is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY_CONFIGURATION,
-                                            attribute="org")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY_CONFIGURATION, attribute="org"
+            )
 
         if self.project is None:
-            raise IncompleteObjectException(object_type=ObjectTypeStr.QUERY_CONFIGURATION,
-                                            attribute="project")
+            raise IncompleteObjectException(
+                object_type=ObjectTypeStr.QUERY_CONFIGURATION, attribute="project"
+            )
 
     @abstractmethod
     def use_factory(
@@ -68,6 +72,11 @@ class QueryConfiguration(ABC):
         """
 
     def get_bucket(self):
+        """
+        Get bucket the query configuration is tied to
+        @return: the bucket string, containing the organisation and project
+        @rtype: str
+        """
         return f"{self.org}/{self.project}"
 
 
@@ -83,8 +92,8 @@ class ForgeQueryConfiguration(QueryConfiguration):
 class SparqlQueryConfiguration(QueryConfiguration):
     sparql_view: Optional[View]
 
-    def __init__(self, obj, object_type):
-        super().__init__(obj, object_type)
+    def __init__(self, obj):
+        super().__init__(obj)
         tmp_sv = obj.get("sparqlView", None)
         self.sparql_view = View(tmp_sv) if tmp_sv is not None else None
 
@@ -106,8 +115,8 @@ class SparqlQueryConfiguration(QueryConfiguration):
 class ElasticSearchQueryConfiguration(QueryConfiguration):
     elastic_search_view: Optional[View]
 
-    def __init__(self, obj, object_type):
-        super().__init__(obj, object_type)
+    def __init__(self, obj):
+        super().__init__(obj)
         tmp_esv = obj.get("elasticSearchView", None)
         self.elastic_search_view = View(tmp_esv) if tmp_esv is not None else None
 
@@ -134,8 +143,8 @@ class SimilaritySearchQueryConfiguration(QueryConfiguration):
     statistics_view: View
     boosted: bool
 
-    def __init__(self, obj, object_type):
-        super().__init__(obj, object_type)
+    def __init__(self, obj):
+        super().__init__(obj)
         tmp_siv = obj.get("similarityView", None)
         self.similarity_view = View(tmp_siv) if tmp_siv is not None else None
         tmp_stv = obj.get("statisticsView", None)

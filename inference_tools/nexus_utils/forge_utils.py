@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=C0116
 from typing import Tuple
 from urllib.parse import quote_plus
 

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# pylint: disable=R0801
 import json
 from typing import Dict, Optional, List, Union, Any
 
@@ -33,10 +34,27 @@ class ElasticSearch(Source):
             query: ElasticSearchQuery,
             parameter_values: Dict,
             config: ElasticSearchQueryConfiguration,
-            limit=DEFAULT_LIMIT,
+            limit: Optional[int] = DEFAULT_LIMIT,
             debug: bool = False
-    ) -> Optional[List[Dict]]:
-
+    ) -> List[Dict]:
+        """
+        Executes an elastic search query
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param query: the query to execute
+        @type query: ElasticSearchQuery
+        @param parameter_values: the parameters to use inside the parametrisable query
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and
+        the elastic search view within it
+        @type config: ElasticSearchQueryConfiguration
+        @param limit: the maximum number of results to get from the execution
+        @type limit: int
+        @param debug: Whether to print out the query before its execution
+        @type debug: bool
+        @return: the results of the query execution
+        @rtype: List[Dict]
+        """
         query_body = json.dumps(query.body)
 
         for k, v in parameter_values.items():
@@ -46,11 +64,28 @@ class ElasticSearch(Source):
 
     @staticmethod
     def check_premise(
-            forge: KnowledgeGraphForge, premise: ElasticSearchQuery,
+            forge: KnowledgeGraphForge,
+            premise: ElasticSearchQuery,
             parameter_values: Dict,
-            config: ElasticSearchQueryConfiguration, debug: bool = False
-    ):
-
+            config: ElasticSearchQueryConfiguration,
+            debug: bool = False
+    ) -> PremiseExecution:
+        """
+        Executes a premise based on an elastic search query.
+        @param forge: a forge instance
+        @type forge: KnowledgeGraphForge
+        @param premise: the premise holding the query to execute
+        @type premise: ElasticSearchQuery
+        @param parameter_values: the parameters to use inside the parametrisable query of the premise
+        @type parameter_values: Dict
+        @param config: the query configuration, holding the bucket to target and the view within it
+        @type config: ElasticSearchQueryConfiguration
+        @param debug: Whether to print out the premise's query before its execution
+        @type debug: bool
+        @return: PremiseExecution.FAIL is running the query within it has returned no results,
+        PremiseExecution.SUCCESS otherwise.
+        @rtype: PremiseExecution
+        """
         results = ElasticSearch.execute_query(
             forge=forge, query=premise,
             parameter_values=parameter_values,
@@ -61,7 +96,13 @@ class ElasticSearch(Source):
             PremiseExecution.FAIL
 
     @staticmethod
-    def get_all_documents_query():
+    def get_all_documents_query() -> Dict:
+        """
+        Return a query which would return all documents that are not deprecated in an ES index.
+        A hardcoded limit of 10000 is set, so that forge doesn't add its default limit.
+        @return: the ES query as a dictionary
+        @rtype: Dict
+        """
         return {
             "size": ElasticSearch.NO_LIMIT,
             "query": {
@@ -87,10 +128,11 @@ class ElasticSearch(Source):
     def get_by_id(ids: Union[str, List[str]], forge: KnowledgeGraphForge) -> \
             Optional[Union[Resource, List[Resource]]]:
         """
-
+        Get a document by id from the elastic search index associated to the
+        forge instance's elastic search view
         @param ids: the list of ids of the resources to retrieve
         @type ids: List[str]
-        @param forge: a forge instance
+        @param forge: a forge instance, holding the elastic search view to target
         @type forge: KnowledgeGraphForge
         @return: the list of Resources retrieved, if successful else None
         @rtype: Optional[List[Resource]]

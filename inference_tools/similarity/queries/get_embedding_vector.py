@@ -27,7 +27,7 @@ from inference_tools.exceptions.exceptions import SimilaritySearchException
 from inference_tools.similarity.queries.common import _find_derivation_id
 
 
-def err_message(entity_id, model_name):
+def _err_message(entity_id: str, model_name: str) -> str:
     return f"{entity_id} was not embedded by the model {model_name}"
 
 
@@ -99,7 +99,7 @@ def _get_embedding_vector(
     result = forge.elastic(query=json.dumps(query), limit=None, debug=debug, view=view)
 
     if result is None or len(result) == 0:
-        raise SimilaritySearchException(err_message(search_target, model_name))
+        raise SimilaritySearchException(_err_message(search_target, model_name))
 
     e = forge.as_json(result[0])
 
@@ -124,7 +124,7 @@ def _get_embedding_vector_json(
     )
 
     if result is None or len(result) == 0:
-        raise SimilaritySearchException(err_message(search_target, model_name))
+        raise SimilaritySearchException(_err_message(search_target, model_name))
 
     result = result[0]
 
