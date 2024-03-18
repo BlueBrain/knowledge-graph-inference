@@ -5,7 +5,7 @@ import re
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-with open(os.path.join(HERE, "../version.py"), encoding="utf-8") as f2:
+with open(os.path.join(HERE, "../inference_tools/version.py"), encoding="utf-8") as f2:
     version_content = f2.read()
     version_template = "__version__ = '(.*)'\n"
     m = re.match(version_template, version_content)
