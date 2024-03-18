@@ -4,11 +4,6 @@ include:
 
 image: python:3.8
 
-before_script:
-  - python -m venv venv
-  - source venv/bin/activate
-  - pip install .[dev]
-
 stages:
   - lint
   - test
@@ -16,16 +11,28 @@ stages:
   - deploy
 
 linting:
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install .[dev]
   stage: lint
   script:
     - tox -e lint
     - tox -e type
 
 unit-tests:
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install .[dev]
   stage: test
   script: tox -e unit_test
 
 integration-tests:
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install .[dev]
   stage: test
   script:
     - tox -e integration_test
