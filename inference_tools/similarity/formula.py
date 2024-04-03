@@ -20,6 +20,7 @@ class Formula(Enum):
     COSINE = "cosine"
     EUCLIDEAN = "euclidean"
     POINCARE = "poincare"
+    CUSTOM_TMD = "custom_tmd"
 
     def get_formula(self) -> str:
         """
@@ -55,6 +56,33 @@ class Formula(Enum):
                 "   ( (1 - Math.pow(bm, 2)) * (1 - Math.pow(am, 2)) ); "
 
                 "double d = Math.log(x + Math.sqrt(Math.pow(x, 2) - 1)); "
-                "return 1 / (1 + d);"  # from distance to similarity
+                "return 1 / (1 + d);",  # from distance to similarity
+            "custom_tmd": """
+                float[] toFloat(byte[] arr) {
+
+                    int length = arr.length/4;
+
+                    float[] vector = new float[length];
+
+                    for (int i = 0; i < length; ++i) {
+                        def n = i*4;
+                        vector[i] = Float.intBitsToFloat( (arr[n+3] << 24) | ((arr[n+2] & 255) << 16) |  ((arr[n+1] & 255) << 8) |  (arr[n] & 255) );
+                    }
+
+                    return vector;
+                }
+
+                float[] vector = toFloat(doc["embedding"].value.bytes);
+
+                float[] q_vector = toFloat(Base64.getDecoder().decode(params.query_vector));
+
+                float distance = 0;
+
+                for (int i = 0; i < q_vector.length; ++i) {
+                    distance += Math.abs(vector[i] - q_vector[i]);
+                }
+
+                return 1/(1+distance);
+            """
         }
         return formulas[self.value]
