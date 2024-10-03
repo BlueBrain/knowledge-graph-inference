@@ -1,0 +1,20 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+
+
+jobs:
+  unit_test:
+    steps:
+      - name: Install dev dependencies
+        run:
+          python -m venv venv
+          source venv/bin/activate
+          pip install .[dev]
+
+      - name: Unit test
+        run: tox -e unit_test

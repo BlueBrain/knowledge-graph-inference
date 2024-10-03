@@ -1,0 +1,20 @@
+name: Lint
+
+on:
+  push
+  pull_request
+
+jobs:
+  lint:
+    steps:
+      - name: Install dev dependencies
+        run:
+          python -m venv venv
+          source venv/bin/activate
+          pip install .[dev]
+
+      - name: Lint
+        run: tox -e lint
+
+      - name: Type checking
+        run: tox -e type
