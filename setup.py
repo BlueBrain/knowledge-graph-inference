@@ -9,7 +9,7 @@ with open(os.path.join(HERE, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="inference_tools",
+    name="knowledge-graph-inference",
     author="Blue Brain Project, EPFL",
     use_scm_version={
         "relative_to": __file__,
@@ -27,7 +27,7 @@ setup(
         "setuptools_scm",
     ],
     install_requires=[
-        "nexusforge@git+https://github.com/BlueBrain/nexus-forge"
+        "nexusforge"
     ],
     extras_require={
         "dev": [
