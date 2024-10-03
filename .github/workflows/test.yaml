@@ -1,5 +1,6 @@
 name: Test
 
+
 on:
   pull_request:
   push:
@@ -9,11 +10,17 @@ on:
 
 jobs:
   unit_test:
+    runs-on: ubuntu-latest
+
     steps:
+      - uses: actions/checkout@v4.2.0
+      - name: Install Python 3
+        uses: actions/setup-python@v5.2.0
+        with:
+          python-version: 3.8
+
       - name: Install dev dependencies
         run:
-          python -m venv venv
-          source venv/bin/activate
           pip install .[dev]
 
       - name: Unit test
