@@ -16,7 +16,7 @@
 import os
 import re
 
-with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "../version.py"),
+with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "../../inference_tools/version.py"),
           encoding="utf-8") as f2:
     version_content = f2.read()
     version_template = "__version__ = '(.*)'\n"

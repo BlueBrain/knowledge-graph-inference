@@ -32,7 +32,8 @@ setup(
     extras_require={
         "dev": [
             "tox==4.13.0"
-        ]
+        ],
+        "docs": ["sphinx", "sphinx-bluebrain-theme"],
     },
     classifiers=[
         "Intended Audience :: Information Technology",
